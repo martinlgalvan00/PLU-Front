@@ -69,4 +69,16 @@ describe('publicViewPaths', () => {
     expect(matchPublicViewPath('/calendario/')).toBe('events')
     expect(matchPublicViewPath('/otro')).toBe(null)
   })
+
+  it('"/eventos" y "/evento" llevan al calendario en vez de caer en 404', () => {
+    for (const path of ['/eventos', '/eventos/', '/evento']) {
+      expect(isCanonicalPathname(path)).toBe(true)
+      expect(resolvePathnamePublicView(path)).toBe('events')
+    }
+    // La forma canónica no cambia.
+    expect(buildPublicViewPath('events')).toBe('/calendario')
+    // Y no pisa el detalle ni las entradas.
+    expect(resolvePathnamePublicView('/evento/entradas')).toBe('tickets')
+    expect(resolvePathnamePublicView('/evento/pitbull-classic')).toBe('events')
+  })
 })

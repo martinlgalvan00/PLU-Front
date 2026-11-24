@@ -100,6 +100,8 @@ afterEach(() => {
   generateEventCard.mockReset()
   downloadCard.mockReset()
   buildCardFilename.mockClear()
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
 describe('descargar entrada', () => {
@@ -115,6 +117,43 @@ describe('descargar entrada', () => {
     expect(buildCardFilename).toHaveBeenCalledWith('Julián Mas', 'pitbull-classic-2026', 'PLU-0001')
   })
 
+  it('muestra el código de puerta y, si no puede abrir la impresión, descarga el mismo pase', async () => {
+    const blob = new Blob(['png'], { type: 'image/png' })
+    generateEventCard.mockResolvedValue(blob)
+    vi.stubGlobal('open', vi.fn(() => null))
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:pass')
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+
+    renderSection({ tickets: [ticket({ gateCode: 'K4M-7QP' })] })
+
+    expect(screen.getByText('K4M-7QP')).toBeTruthy()
+    expect(screen.getByText(/misma entrada/i)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir entrada' }))
+
+    await waitFor(() => expect(downloadCard).toHaveBeenCalledWith(blob, expect.any(String)))
+    expect(generateEventCard).toHaveBeenCalledTimes(1)
+  })
+
+  it('abre la impresión con el pase rasterizado', async () => {
+    const blob = new Blob(['png'], { type: 'image/png' })
+    generateEventCard.mockResolvedValue(blob)
+    const frame = {
+      document: { open: vi.fn(), write: vi.fn(), close: vi.fn() },
+      addEventListener: vi.fn(),
+      close: vi.fn(),
+    }
+    vi.stubGlobal('open', vi.fn(() => frame))
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:pass')
+
+    renderSection()
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir entrada' }))
+
+    await waitFor(() => expect(frame.document.write).toHaveBeenCalled())
+    expect(frame.document.write.mock.calls[0][0]).toContain('blob:pass')
+    expect(frame.document.write.mock.calls[0][0]).toContain('window.print()')
+    expect(downloadCard).not.toHaveBeenCalled()
+  })
+
   it('muestra un aviso si la captura falla, sin romper el resto de la pantalla', async () => {
     generateEventCard.mockRejectedValue(new Error('captura falló'))
 
@@ -125,7 +164,8 @@ describe('descargar entrada', () => {
       expect(screen.getByText('No pudimos generar la imagen. Probá de nuevo.')).toBeTruthy(),
     )
     expect(downloadCard).not.toHaveBeenCalled()
-    // La pantalla sigue viva: el botón para ver la entrada sigue ahí.
-    expect(screen.getByRole('button', { name: 'Ver mi entrada' })).toBeTruthy()
+    // La pantalla sigue viva: el pase y la descarga siguen ahí.
+    expect(screen.getByTestId('ticket-pass-preview')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Descargar entrada' })).toBeTruthy()
   })
 })

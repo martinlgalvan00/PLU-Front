@@ -87,6 +87,100 @@
   align-self: flex-start;
 }
 
+.admin-event-workspace__sale {
+  --sale-accent: var(--admin-muted);
+  align-items: center;
+  align-self: flex-start;
+  background: none;
+  border: 0;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 7px;
+  line-height: 1.3;
+  margin-block: -12px;
+  min-height: 44px;
+  padding: 0;
+  text-align: left;
+}
+
+.admin-event-workspace__sale.is-on_sale {
+  --sale-accent: var(--admin-status-success);
+}
+
+.admin-event-workspace__sale.is-scheduled {
+  --sale-accent: var(--color-brand-celeste);
+}
+
+.admin-event-workspace__sale.is-blocked {
+  --sale-accent: var(--admin-status-warning);
+}
+
+.admin-event-workspace__sale.is-sold_out {
+  --sale-accent: var(--color-brand-gold);
+}
+
+.admin-event-workspace__sale-dot {
+  background: var(--sale-accent);
+  border-radius: 50%;
+  flex: none;
+  height: 7px;
+  width: 7px;
+}
+
+.admin-event-workspace__sale:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-event-workspace__sale:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-event-workspace__site {
+  align-items: center;
+  align-self: flex-start;
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  line-height: 1.3;
+  margin: 0;
+  /* Área táctil de 44px sin agrandar la línea: el padding se compensa. */
+  margin-block: -12px;
+  min-height: 44px;
+  padding: 0;
+  text-align: left;
+}
+
+.admin-event-workspace__site:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-event-workspace__site:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-event-workspace__site.is-hidden {
+  color: var(--admin-muted);
+}
+
+.admin-event-workspace__site.is-construction {
+  color: var(--color-brand-gold);
+}
+
 .admin-event-workspace__featured {
   align-items: center;
   color: var(--admin-ink);
@@ -122,6 +216,17 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.admin-event-workspace__nav-label {
+  border-top: 1px solid var(--admin-hairline);
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  margin: 14px 0 4px;
+  padding: 14px 12px 0;
+  text-transform: uppercase;
 }
 
 .admin-event-workspace__nav-group {
@@ -203,6 +308,48 @@
   color: var(--admin-status-danger);
 }
 
+/* ---- Indicador deslizante (useActiveIndicator) ----
+   Un solo fondo que viaja hasta la pestaña activa en vez de aparecer de golpe.
+   Sin medición (`data-indicator` ausente) no se dibuja y la pestaña conserva
+   su fondo propio: nunca queda la navegación sin marca. */
+
+.admin-event-workspace__nav {
+  position: relative;
+}
+
+.admin-event-workspace__nav > .admin-event-workspace__nav-item,
+.admin-event-workspace__nav-group > .admin-event-workspace__nav-item {
+  position: relative;
+  z-index: 1;
+}
+
+.admin-event-workspace__nav-indicator {
+  background: var(--admin-brand-soft);
+  border-radius: 10px;
+  height: var(--indicator-h, 40px);
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transform: translate3d(0, var(--indicator-y, 0), 0);
+}
+
+.admin-event-workspace__nav[data-indicator] .admin-event-workspace__nav-indicator {
+  opacity: 1;
+}
+
+.admin-event-workspace__nav[data-indicator='ready'] .admin-event-workspace__nav-indicator {
+  transition:
+    transform var(--motion-base) var(--ease-cinematic),
+    height var(--motion-base) var(--ease-cinematic);
+}
+
+.admin-event-workspace__nav[data-indicator] .admin-event-workspace__nav-item.is-active {
+  background: transparent;
+}
+
 /* Los capítulos de Ventas viven en la tira del panel: el submenú queda en el
    DOM (aria y tests) pero no se dibuja, ni su chevron. */
 .admin-event-workspace__nav-chevron,
@@ -252,6 +399,13 @@
     grid-column: 2;
   }
 
+  /* Debajo del estado, en la misma columna: en la tercera le quitaba ancho al
+     título. */
+  .admin-event-workspace__site,
+  .admin-event-workspace__sale {
+    grid-column: 2;
+  }
+
   /* La estrella de la barra de acciones ya marca al evento principal. */
   .admin-event-workspace__featured {
     display: none;
@@ -259,6 +413,11 @@
 
   .admin-event-workspace__meta {
     display: none;
+  }
+
+  .admin-event-workspace__sidebar-head .admin-event-bar {
+    grid-column: 1 / -1;
+    margin: 0;
   }
 
   .admin-event-workspace__nav {
@@ -276,6 +435,18 @@
 
   .admin-event-workspace__nav-group {
     display: contents;
+  }
+
+  /* En la tira horizontal el grupo se marca con una regla vertical. */
+  .admin-event-workspace__nav-label {
+    align-self: center;
+    border-left: 1px solid var(--admin-hairline-strong);
+    border-top: 0;
+    flex: none;
+    font-size: 0;
+    height: 18px;
+    margin: 0 6px;
+    padding: 0;
   }
 
   .admin-event-workspace__nav-item {
@@ -300,11 +471,236 @@
     background: transparent;
     box-shadow: inset 0 -2px 0 var(--admin-ink);
   }
+
+  /* En la tira horizontal el indicador es el subrayado: 1px escalado al ancho
+     de la pestaña, así se mueve y se estira solo con `transform`. */
+  .admin-event-workspace__nav-indicator {
+    background: var(--admin-ink);
+    border-radius: 0;
+    bottom: 0;
+    height: 2px;
+    right: auto;
+    top: auto;
+    transform: translate3d(var(--indicator-x, 0), 0, 0) scaleX(var(--indicator-w, 0));
+    transform-origin: left center;
+    width: 1px;
+  }
+
+  .admin-event-workspace__nav[data-indicator] .admin-event-workspace__nav-item.is-active {
+    box-shadow: none;
+  }
+}
+
+/* Tira de capítulos (Venta, Evento): el mismo subrayado deslizante. */
+.admin-event-workspace__chapters {
+  position: relative;
+}
+
+.admin-event-workspace__chapters-indicator {
+  background: var(--admin-brand, var(--color-brand-celeste));
+  bottom: 0;
+  height: 2px;
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translate3d(var(--indicator-x, 0), 0, 0) scaleX(var(--indicator-w, 0));
+  transform-origin: left center;
+  width: 1px;
+}
+
+.admin-event-workspace__chapters[data-indicator] .admin-event-workspace__chapters-indicator {
+  opacity: 1;
+}
+
+/* No son destinos de la tira con snap (ver admin-event-console.css). */
+.admin-event-workspace__nav > .admin-event-workspace__nav-indicator,
+.admin-event-workspace__chapters > .admin-event-workspace__chapters-indicator {
+  scroll-snap-align: none;
+}
+
+.admin-event-workspace__chapters[data-indicator='ready']
+  .admin-event-workspace__chapters-indicator {
+  transition: transform var(--motion-base) var(--ease-cinematic);
+}
+
+.admin-event-workspace__chapters[data-indicator] .admin-event-workspace__chapter.is-active {
+  box-shadow: inset 0 -2px 0 transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .admin-event-workspace__back,
-  .admin-event-workspace__nav-item {
+  .admin-event-workspace__nav-item,
+  .admin-event-workspace__nav[data-indicator='ready'] .admin-event-workspace__nav-indicator,
+  .admin-event-workspace__chapters[data-indicator='ready']
+    .admin-event-workspace__chapters-indicator {
     transition: none;
+  }
+}
+
+/* Capítulo Resultados: premios y planilla, sin card adentro de card. */
+.admin-event-results {
+  display: grid;
+  gap: 20px;
+  padding: 8px 20px 32px;
+}
+
+.admin-event-results__head {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  justify-content: space-between;
+}
+
+.admin-event-results__head h2 {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.admin-event-results__head p,
+.admin-event-results__note,
+.admin-event-results__award p,
+.admin-event-results article p {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 6px 0 0;
+}
+
+.admin-event-results__import {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-event-results__import button {
+  background: transparent;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 999px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.admin-event-results__import button.is-primary {
+  background: var(--admin-action, var(--color-brand-action));
+  border-color: transparent;
+  color: var(--admin-on-action, var(--color-brand-action-text));
+}
+
+.admin-event-results__import button:hover:not(:disabled) {
+  background: var(--admin-row-hover);
+}
+
+.admin-event-results__import button.is-primary:hover:not(:disabled) {
+  background: var(--color-brand-action-hover);
+}
+
+.admin-event-results__import button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.admin-event-results__import button:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-event-results__error,
+.admin-event-results__errors {
+  color: var(--color-danger-text, var(--admin-status-danger));
+  font-size: 13px;
+  margin: 0;
+}
+
+.admin-event-results__errors {
+  display: grid;
+  gap: 4px;
+  padding-left: 1.1rem;
+}
+
+.admin-event-results__awards {
+  border-bottom: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 18px 32px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-bottom: 16px;
+}
+
+.admin-event-results__awards h3 {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.admin-event-results__awards strong {
+  color: var(--admin-ink);
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 4px;
+}
+
+.admin-event-results__sheet {
+  overflow-x: auto;
+}
+
+.admin-event-results__sheet table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.admin-event-results__sheet th {
+  border-bottom: 1px solid var(--admin-hairline);
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.admin-event-results__sheet td {
+  border-bottom: 1px solid color-mix(in srgb, var(--admin-hairline) 72%, transparent);
+  color: var(--admin-text-secondary);
+  font-size: 13px;
+  padding: 10px;
+}
+
+.admin-event-results__sheet td:nth-child(2),
+.admin-event-results__sheet th:nth-child(2) {
+  color: var(--admin-ink);
+  font-weight: 600;
+}
+
+.admin-event-results__sheet tbody tr:hover td {
+  background: var(--admin-row-hover);
+}
+
+@media (max-width: 720px) {
+  .admin-event-results {
+    padding-inline: 14px;
+  }
+
+  .admin-event-results__awards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (pointer: coarse) {
+  .admin-event-results__import button {
+    min-height: 44px;
   }
 }

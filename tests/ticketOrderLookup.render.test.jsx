@@ -63,6 +63,27 @@ describe('TicketOrderLookup', () => {
     // feedback propio.
     expect(screen.queryByRole('alert')).toBeNull()
     expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Reenviar a mi correo' })).toBeNull()
+  })
+
+  it('después de encontrar la entrada ofrece reenviar el mail', async () => {
+    const onLookup = vi.fn().mockResolvedValue({ order: { status: 'aprobado' } })
+    const onResend = vi.fn().mockResolvedValue({ status: 'sent' })
+    setSearch('?ref=TORD-abc123')
+    render(
+      <I18nProvider>
+        <TicketOrderLookup onLookup={onLookup} onResend={onResend} />
+      </I18nProvider>,
+    )
+    fireEvent.change(screen.getByLabelText('Mail con el que compraste'), {
+      target: { value: 'camila@example.com' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Buscar mi entrada/ }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Reenviar a mi correo' }))
+    await waitFor(() =>
+      expect(onResend).toHaveBeenCalledWith('TORD-abc123', 'camila@example.com', { openKey: '' }),
+    )
+    expect(await screen.findByText(/Te reenviamos la entrada/)).toBeTruthy()
   })
 
   it('avisa cuando la compra existe pero todavía no se acreditó', async () => {
@@ -85,6 +106,17 @@ describe('TicketOrderLookup', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: /Buscar mi entrada/ }))
     await screen.findByText(/Esta compra fue rechazada/)
+  })
+
+  it('abre la entrada con la clave del mail sin pedir el mail', async () => {
+    const onLookup = vi.fn().mockResolvedValue({
+      order: { status: 'aprobado', reference: 'TORD-abc123' },
+    })
+    setSearch('?ref=TORD-abc123&k=firma')
+    renderLookup(onLookup)
+    await waitFor(() => {
+      expect(onLookup).toHaveBeenCalledWith('TORD-abc123', '', { openKey: 'firma' })
+    })
   })
 
   it('avisa cuando no encuentra ninguna compra (404)', async () => {

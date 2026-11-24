@@ -2,7 +2,6 @@ import '../../styles/components/ticket-purchase.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
-  Download,
   FileText,
   Minus,
   Plus,
@@ -14,13 +13,14 @@ import {
   X,
 } from 'lucide-react'
 import Button from './Button.jsx'
-import CardPreviewModal from './CardPreviewModal.jsx'
+import BuyerTicketsWallet from './BuyerTicketsWallet.jsx'
+import CashPaymentPlace from './CashPaymentPlace.jsx'
+import CopyButton from './CopyButton.jsx'
 import ConfirmationSeal from './ConfirmationSeal.jsx'
 import FormSection from './FormSection.jsx'
 import { Field, Select } from './FormFields.jsx'
 import StatusPill from './StatusPill.jsx'
-import TicketPassPreview from './TicketPassPreview.jsx'
-import TicketTypeOptions, { zoneScopeList } from './TicketTypeOptions.jsx'
+import TicketTypeOptions from './TicketTypeOptions.jsx'
 import MercadoPagoEmbeddedCheckout from './MercadoPagoEmbeddedCheckout.jsx'
 import { TicketCheckoutSteps, TicketOrderSummary } from './TicketCheckoutFlow.jsx'
 import { TICKET_CHECKOUT_STEPS } from '../../services/ticketCheckoutProgress.js'
@@ -32,45 +32,51 @@ import { getFormOptions } from '../../lib/formOptions.js'
 import { ticketTypeNameParts } from '../../lib/eventPricing.js'
 import { money } from '../../lib/format.js'
 import { toggleAttendeeAddon as applyAttendeeAddonToggle } from '../../lib/ticketAddons.js'
-import { groupCredentialsByBundle } from '../../lib/ticketCredentials.js'
+import { formatTicketRevealWhen } from '../../lib/ticketReveal.js'
 import { TICKETS_PATH } from '../../lib/ticketsRoute.js'
 import { isTicketTypeChannelOpen } from '../../lib/ticketTypePaymentChannels.js'
 import { validateTicketAttendees, validateTicketBuyer } from '../../lib/validation.js'
 import { priceForAttendee, priceForOrder } from '../../services/ticketService.js'
+import { ticketOrderAwaitingPayment } from '../../services/ticketPassWatch.js'
 import { buildTicketPaymentPriceLabels } from '../../lib/ticketPaymentMethods.js'
 import { formatWisePrice } from '../../services/checkoutPricing.js'
 import { resolveTicketOrderWisePricing } from '../../../shared/ticketWisePricing.js'
-import { formatDoorCode } from '../../lib/manualCheckinCode.js'
-import {
-  buildCardFilename,
-  downloadCard,
-  generateEventCard,
-  preloadEventCardCapture,
-} from '../../services/eventCardService.js'
+import { maxInstallmentsFor } from '../../../shared/eventModules.js'
+
+function transferField(accountDetails, envValue, key) {
+  const raw = accountDetails ? accountDetails[key] : envValue
+  return String(raw ?? '').trim()
+}
 
 /**
- * Espera a que las imágenes dentro del nodo (QR, logo) terminen de cargar
- * antes de rasterizar — sin esto, un tap muy rápido después de abrir la
- * confirmación podía descargar la entrada con el QR todavía en blanco.
+ * Un dato de la transferencia con su botón de copiar. Sin valor: el texto de
+ * respaldo ("Solicitar a administración") o nada si no hay respaldo.
  */
-async function waitForPassImagesReady(node, { timeoutMs = 4000 } = {}) {
-  if (!node) return
-  const images = [...node.querySelectorAll('img')]
-  await Promise.race([
-    Promise.all(
-      images.map((img) => {
-        if (img.complete) return Promise.resolve()
-        return new Promise((resolve) => {
-          img.addEventListener('load', resolve, { once: true })
-          img.addEventListener('error', resolve, { once: true })
-        })
-      }),
-    ),
-    new Promise((resolve) => setTimeout(resolve, timeoutMs)),
-  ])
+function CopyableRow({ label, value, fallback = '', copyable = true }) {
+  if (!value && !fallback) return null
+  return (
+    <div>
+      <dt>{label}</dt>
+      {value ? (
+        <dd className="ticket-purchase__copyable">
+          <span>{value}</span>
+          {copyable ? <CopyButton field={label} value={value} /> : null}
+        </dd>
+      ) : (
+        <dd>{fallback}</dd>
+      )}
+    </div>
+  )
 }
 
 const MAX_TICKETS = 10
+
+/** La base rechazó la compra: no queda un Pagar activo debajo del aviso. */
+function isTicketSaleBlockedError(message) {
+  return /venta de entradas (esta cerrada|esta deshabilitada|ya cerro|todavia no abrio)/i.test(
+    String(message ?? ''),
+  )
+}
 const CHANNEL_KEYS = ['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer']
 const MAX_PROOF_FILE_BYTES = 2 * 1024 * 1024
 const PROOF_FILE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
@@ -383,8 +389,8 @@ export function TicketPaymentOptions({
           onChange={onChange}
         />
       ) : null}
-      {/* Efectivo en Pitbull: el espectador que pasa por el gimnasio paga en
-          caja y no sube comprobante. Interruptor propio, igual que Wise. */}
+      {/* Efectivo en el lugar: el espectador paga en la sede del evento y no
+          sube comprobante. Interruptor propio, igual que Wise. */}
       {cashEnabled ? (
         <TicketPaymentOption
           value="cash_pitbull"
@@ -425,13 +431,14 @@ export default function TicketPurchaseSection({
   // Mercado Pago también se cierra por concepto desde Administración. Default
   // abierto para no dejar la pantalla sin medios ante una lectura incompleta.
   mercadoPagoEnabled = true,
-  // Efectivo en Pitbull y Wise tienen cada uno su interruptor, independiente
+  // Efectivo en el lugar y Wise tienen cada uno su interruptor, independiente
   // del de transferencia. Default cerrado en los dos: sin dato, no se ofrece un
   // medio que puede rechazar 409.
   cashEnabled = false,
   wiseEnabled = false,
-  // Datos bancarios del evento (alias/cbu/holder). Vacío = env global.
+  // Datos bancarios ya resueltos del evento. Si llegan, no se mezclan con el env.
   accountDetails = null,
+  cashPayment = null,
   pricing = { ticketTypes: [], addons: [] },
   tickets,
   // Cuenta con la sesión abierta ({ name, email, dni, emailVerified }) o null.
@@ -440,6 +447,7 @@ export default function TicketPurchaseSection({
   onOpenMyTickets,
   onCreateAccount,
   createdOrder,
+  showWallet = true,
   onSubmit,
   onUploadPaymentProof,
 }) {
@@ -473,7 +481,6 @@ export default function TicketPurchaseSection({
   }))
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
-  const [activeTicketId, setActiveTicketId] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [proofFile, setProofFile] = useState(null)
   const [proofFileName, setProofFileName] = useState('')
@@ -481,9 +488,6 @@ export default function TicketPurchaseSection({
   const [proofUploadError, setProofUploadError] = useState('')
   const [proofUploaded, setProofUploaded] = useState(false)
   const proofInputRef = useRef(null)
-  const [downloadingPassId, setDownloadingPassId] = useState(null)
-  const [downloadPassError, setDownloadPassError] = useState('')
-  const passNodesRef = useRef({})
 
   // Memoizado desde que la cotización en USD lo toma como dependencia: el `??
   // []` devolvía un array nuevo por render y recalculaba el total en cada tecla.
@@ -655,43 +659,29 @@ export default function TicketPurchaseSection({
     }
     stepHeadingRef.current?.focus?.({ preventScroll: true })
   }, [step, reducedMotion])
-  const ticketTypeNames = useMemo(
-    () => Object.fromEntries((pricing.ticketTypes ?? []).map((type) => [type.id, type.name])),
-    [pricing.ticketTypes],
-  )
   const ticketTypeSelectOptions = useMemo(
     () => (pricing.ticketTypes ?? []).map((type) => [type.id, type.name]),
     [pricing.ticketTypes],
   )
   const visibleOrder = createdOrder?.type === 'tickets' ? createdOrder : null
 
-  // Precarga el chunk de html2canvas apenas se ve la confirmación, para que
-  // el primer tap en "Descargar entrada" no espere el import.
-  useEffect(() => {
-    if (visibleOrder) preloadEventCardCapture().catch(() => {})
-  }, [visibleOrder])
-
   const orderTickets = visibleOrder
     ? tickets.filter((item) => item.orderId === visibleOrder.orderId)
     : []
-  // Las credenciales que salieron de una misma compra van juntas: dos filas con
-  // el mismo nombre y el mismo DNI, sueltas, se leían como dos compras.
-  const ticketBundles = groupCredentialsByBundle(orderTickets)
-  // Qué dice cada pase impreso. La etiqueta de la credencial manda sólo cuando
-  // la compra emitió más de una, que es donde distingue; para una entrada común
-  // "Espectador" dice más que "Entrada general".
-  const passLabelById = new Map(
-    ticketBundles.flatMap((bundle) =>
-      bundle.credentials.map((ticket) => [
-        ticket.id,
-        (bundle.credentials.length > 1 ? ticket.credentialLabel : null) ??
-          ticket.ticketTypeName ??
-          ticketTypeNames[ticket.ticketTypeId] ??
-          '',
-      ]),
-    ),
-  )
-  const activeTicket = orderTickets.find((item) => item.id === activeTicketId) ?? null
+
+  useEffect(() => {
+    if (!showWallet || visibleOrder?.status !== 'aprobado') return undefined
+    const node = document.getElementById('mis-tickets')
+    if (!node?.scrollIntoView) return undefined
+    let behavior = 'auto'
+    try {
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) behavior = 'smooth'
+    } catch {
+      behavior = 'auto'
+    }
+    node.scrollIntoView({ behavior, block: 'start' })
+    return undefined
+  }, [showWallet, visibleOrder?.orderId, visibleOrder?.status])
   const total = priceForOrder(attendees, pricing, ticketAddons, paymentMethod)
   const ticketCount = editorial ? attendees.length : quantity
   const accountLinksWholeOrder = Boolean(
@@ -904,28 +894,6 @@ export default function TicketPurchaseSection({
     if (proofInputRef.current) proofInputRef.current.value = ''
   }
 
-  async function handleDownloadPass(ticket) {
-    const node = passNodesRef.current[ticket.id]
-    if (!node) return
-    setDownloadingPassId(ticket.id)
-    setDownloadPassError('')
-    try {
-      await waitForPassImagesReady(node)
-      const blob = await generateEventCard(node)
-      const filename = buildCardFilename(
-        ticket.attendeeName,
-        ticket.eventSlug || event?.slug || 'evento',
-        ticket.ticketCode || '',
-      )
-      downloadCard(blob, filename)
-    } catch (err) {
-      console.error('TicketPurchaseSection: descarga de entrada', err)
-      setDownloadPassError(t('pages.tickets.downloadPassError'))
-    } finally {
-      setDownloadingPassId(null)
-    }
-  }
-
   function selectProofFile(file) {
     if (!file) return
     if (!PROOF_FILE_TYPES.has(file.type)) {
@@ -957,15 +925,41 @@ export default function TicketPurchaseSection({
       link: shareUrl,
     })
     const shareHref = `https://wa.me/?text=${encodeURIComponent(shareText)}`
+    const awaitingPayment = ticketOrderAwaitingPayment(visibleOrder.status)
+    const revealLeadHours = Number(event?.ticketRevealLeadHours)
+    const revealLead =
+      Number.isFinite(revealLeadHours) && revealLeadHours >= 0 ? revealLeadHours : 24
+    const allPassesSealed =
+      orderTickets.length > 0 &&
+      orderTickets.every((ticket) => ticket.passSealed === true && !ticket.qrToken)
+    const sealedWhen = formatTicketRevealWhen(
+      orderTickets
+        .map((ticket) => ticket.revealAt)
+        .filter(Boolean)
+        .sort()[0],
+      locale,
+    )
+    const wallet = showWallet ? (
+      <BuyerTicketsWallet
+        anchorId="mis-tickets"
+        catalogTypes={pricing.ticketTypes ?? []}
+        event={event}
+        orderStatus={visibleOrder.status}
+        tickets={orderTickets}
+      />
+    ) : null
 
     return (
       <div className="ticket-purchase ticket-purchase--confirmation ticket-purchase--confirmation-editorial">
+        {visibleOrder.status === 'aprobado' ? wallet : null}
+
         {visibleOrder.status === 'aprobado' ? (
           // El pago ya está acreditado: es uno de los momentos que cierra un
           // trámite (ver celebration.js), así que el sello reemplaza al
           // encabezado plano y festeja una sola vez por orden (`celebrateKey`
           // evita que se repita si la persona recarga la página o vuelve a
           // encontrar esta misma compra desde TicketOrderLookup).
+          // El QR va primero: en la puerta el sello es el comprobante, no la entrada.
           <ConfirmationSeal
             variant="payment"
             celebrate
@@ -973,9 +967,15 @@ export default function TicketPurchaseSection({
             eyebrow={t('pages.tickets.sealEyebrow')}
             seal={countLabel}
             title={t('pages.tickets.confirmationTitle', { event: visibleOrder.eventTitle })}
-            detail={t('pages.tickets.sealDetail', {
-              amount: money(visibleOrder.amount, locale, visibleOrder.currency),
-            })}
+            detail={
+              allPassesSealed
+                ? sealedWhen
+                  ? t('pages.tickets.sealDetailSealed', { when: sealedWhen })
+                  : t('pages.tickets.sealDetailSealedSoon')
+                : t('pages.tickets.sealDetail', {
+                    amount: money(visibleOrder.amount, locale, visibleOrder.currency),
+                  })
+            }
           />
         ) : (
           <div className="ticket-purchase__confirmation-head">
@@ -990,9 +990,13 @@ export default function TicketPurchaseSection({
           </div>
         )}
 
-        {visibleOrder.status !== 'aprobado' ? (
+        {awaitingPayment ? (
           <p className="ticket-purchase__confirmation-lead">
-            {t('pages.tickets.confirmationQrLead')}
+            {isManualTicketPayment(visibleOrder.paymentMethod)
+              ? t('pages.tickets.qrHeldLead')
+              : revealLead > 0
+                ? t('pages.tickets.confirmationQrLeadHeld', { hours: revealLead })
+                : t('pages.tickets.confirmationQrLead')}
           </p>
         ) : null}
 
@@ -1031,7 +1035,7 @@ export default function TicketPurchaseSection({
           </div>
         ) : null}
 
-        {editorial ? (
+        {editorial && visibleOrder.status === 'aprobado' ? (
           <a
             className="ticket-purchase__share-cta"
             href={shareHref}
@@ -1043,15 +1047,17 @@ export default function TicketPurchaseSection({
           </a>
         ) : null}
 
-        {visibleOrder.paymentMethod === 'mercado_pago' && visibleOrder.status !== 'aprobado' ? (
+        {visibleOrder.paymentMethod === 'mercado_pago' && awaitingPayment ? (
           <>
             <p className="ticket-purchase__payment-note ticket-purchase__payment-note--auto">
               {t('pages.tickets.paymentMpPending')}
             </p>
-            <MercadoPagoEmbeddedCheckout order={visibleOrder} />
+            <MercadoPagoEmbeddedCheckout
+              maxInstallments={maxInstallmentsFor(event, 'ticket')}
+              order={visibleOrder}
+            />
           </>
-        ) : isManualTicketPayment(visibleOrder.paymentMethod) &&
-          visibleOrder.status !== 'aprobado' ? (
+        ) : isManualTicketPayment(visibleOrder.paymentMethod) && awaitingPayment ? (
           <div className="ticket-purchase__transfer-panel">
             <p className="ticket-purchase__manual-note">
               {/* El efectivo no tiene destino de cobro que copiar: se paga en
@@ -1060,14 +1066,22 @@ export default function TicketPurchaseSection({
                 ? t('pages.tickets.cashNote')
                 : t('pages.tickets.manualNote')}
             </p>
-            <p className="ticket-purchase__payment-note">{t('pages.tickets.transferQrDelay')}</p>
+            {/* La demora de 48 h es de la validación de un comprobante; el
+                efectivo se acredita en caja en el momento. */}
+            {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? null : (
+              <p className="ticket-purchase__payment-note">{t('pages.tickets.transferQrDelay')}</p>
+            )}
+            {/* Lugar del efectivo: lo carga el panel por evento; sin eso, la
+                sede. Nunca un lugar fijo. Con dirección, horario y Cómo llegar. */}
+            {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? (
+              <CashPaymentPlace
+                cashPayment={cashPayment}
+                event={event}
+                fallback={t('pages.tickets.cashWhereFallback')}
+              />
+            ) : null}
             <dl className="ticket-purchase__transfer-data">
-              {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? (
-                <div>
-                  <dt>{t('pages.tickets.cashWhereLabel')}</dt>
-                  <dd>{t('pages.tickets.cashWhereValue')}</dd>
-                </div>
-              ) : visibleOrder.manualPaymentChannel === 'wise_transfer' ? (
+              {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? null : visibleOrder.manualPaymentChannel === 'wise_transfer' ? (
                 <>
                   <div>
                     <dt>{t('account.membership.transferHolder')}</dt>
@@ -1108,41 +1122,50 @@ export default function TicketPurchaseSection({
                 </>
               ) : (
                 <>
-                  <div>
-                    <dt>{t('account.membership.transferAlias')}</dt>
-                    <dd>
-                      {accountDetails?.alias ||
-                        env.payments.transferAlias ||
-                        t('account.membership.transferAskAdmin')}
-                    </dd>
-                  </div>
+                  <CopyableRow
+                    label={t('account.membership.transferAlias')}
+                    value={transferField(accountDetails, env.payments.transferAlias, 'alias')}
+                    fallback={t('account.membership.transferAskAdmin')}
+                  />
                   <div>
                     <dt>{t('account.membership.transferAccount')}</dt>
-                    <dd>{t('account.membership.transferAccountValue')}</dd>
-                  </div>
-                  {accountDetails?.cbu || env.payments.transferCbu ? (
-                    <div>
-                      <dt>{t('account.membership.transferCbu')}</dt>
-                      <dd>{accountDetails?.cbu || env.payments.transferCbu}</dd>
-                    </div>
-                  ) : null}
-                  <div>
-                    <dt>{t('account.membership.transferHolder')}</dt>
+                    {/* El banco real de la cuenta; "Mercado Pago" quedaba fijo
+                        aunque el alias fuera de un banco. */}
                     <dd>
-                      {accountDetails?.holder ||
-                        env.payments.transferHolder ||
-                        t('account.membership.transferAskAdmin')}
+                      {transferField(accountDetails, '', 'bankName') ||
+                        t('account.membership.transferAccountValue')}
                     </dd>
                   </div>
+                  <CopyableRow
+                    label={t('account.membership.transferCbu')}
+                    value={transferField(accountDetails, env.payments.transferCbu, 'cbu')}
+                  />
+                  <CopyableRow
+                    label={t('account.membership.transferHolder')}
+                    value={transferField(accountDetails, env.payments.transferHolder, 'holder')}
+                    fallback={t('account.membership.transferAskAdmin')}
+                    copyable={false}
+                  />
+                  <CopyableRow
+                    label={t('account.membership.transferCuit')}
+                    value={transferField(accountDetails, '', 'cuit')}
+                  />
                 </>
               )}
-              <div>
-                <dt>{t('account.membership.transferReference')}</dt>
-                <dd>{visibleOrder.reference}</dd>
-              </div>
+              <CopyableRow
+                label={t('account.membership.transferReference')}
+                value={visibleOrder.reference}
+              />
               <div>
                 <dt>{t('account.membership.transferAmount')}</dt>
-                <dd>{money(visibleOrder.amount, locale, visibleOrder.currency)}</dd>
+                <dd className="ticket-purchase__copyable">
+                  <span>{money(visibleOrder.amount, locale, visibleOrder.currency)}</span>
+                  {/* Se copia el número limpio: el home banking no acepta "$" ni puntos. */}
+                  <CopyButton
+                    field={t('account.membership.transferAmount')}
+                    value={String(visibleOrder.amount)}
+                  />
+                </dd>
               </div>
             </dl>
             <p className="ticket-purchase__transfer-warning" role="note">
@@ -1223,138 +1246,7 @@ export default function TicketPurchaseSection({
           </div>
         ) : null}
 
-        <div className="ticket-purchase__bundles">
-          {ticketBundles.map((bundle) => {
-            // Una compra de entrenador emite dos credenciales con el mismo
-            // nombre y el mismo DNI. Sin agruparlas parecían dos compras
-            // distintas, y sin la etiqueta se leían idénticas.
-            const multi = bundle.credentials.length > 1
-            const holder = bundle.credentials[0]?.attendeeName ?? ''
-
-            return (
-              <section key={bundle.bundleId} className="ticket-purchase__bundle">
-                {multi ? (
-                  <header className="ticket-purchase__bundle-head">
-                    <h4>{t('pages.tickets.credentialsFor', { name: holder })}</h4>
-                    <p>
-                      {t('pages.tickets.bundleNote_other', {
-                        count: bundle.credentials.length,
-                      })}
-                    </p>
-                  </header>
-                ) : null}
-
-                <ul className="ticket-purchase__list ticket-purchase__list--passes">
-                  {bundle.credentials.map((ticket) => {
-                    const passLabel = passLabelById.get(ticket.id) ?? ''
-                    const scopes = ticket.credentialScopes ?? []
-                    // "Abre Puerta general" en una entrada común es ruido; en un
-                    // juego de dos, o cuando abre algo más que la puerta, es el
-                    // dato.
-                    const showZones =
-                      scopes.length > 0 &&
-                      (multi || scopes.some((scope) => scope !== 'gate_tickets'))
-
-                    const isDownloading = downloadingPassId === ticket.id
-
-                    return (
-                      <li key={ticket.id} className="ticket-purchase__pass-item">
-                        <div ref={(el) => (passNodesRef.current[ticket.id] = el)}>
-                          <TicketPassPreview
-                            live
-                            interactive={false}
-                            attendeeName={ticket.attendeeName}
-                            date={ticket.eventDate || event?.date}
-                            dayPassLabel={passLabel}
-                            eventSlug={ticket.eventSlug || event?.slug || ''}
-                            eventTitle={ticket.eventTitle || visibleOrder.eventTitle}
-                            qrCode={ticket.qrToken || ticket.ticketCode || ''}
-                            venue={ticket.eventVenue || event?.venue}
-                          />
-                        </div>
-                        <div className="ticket-purchase__pass-actions">
-                          <div className="ticket-purchase__ticket-info">
-                            <span>
-                              {t('pages.tickets.dni')} {ticket.attendeeDni} · {ticket.ticketCode}
-                            </span>
-                            {/* Plan B del QR en la puerta: se le dicta a seguridad. */}
-                            {ticket.doorCode ? (
-                              <span className="ticket-purchase__door-code">
-                                {t('pages.tickets.doorCode')}{' '}
-                                <strong>{formatDoorCode(ticket.doorCode)}</strong>
-                              </span>
-                            ) : null}
-                            {showZones ? (
-                              <span className="ticket-purchase__ticket-zones">
-                                {t('pages.tickets.credentialOpens', {
-                                  zones: zoneScopeList(scopes, t),
-                                })}
-                              </span>
-                            ) : null}
-                            {ticket.addons?.length ? (
-                              <span className="ticket-purchase__ticket-benefits">
-                                {t('pages.tickets.redeemBenefits')}:{' '}
-                                {ticket.addons.map((addon) => addon.label).join(' · ')}
-                              </span>
-                            ) : null}
-                          </div>
-                          <StatusPill value={ticket.status} />
-                          <button
-                            type="button"
-                            className="ticket-purchase__qr-btn"
-                            onClick={() => setActiveTicketId(ticket.id)}
-                          >
-                            <QrCode size={14} aria-hidden />
-                            {t('pages.tickets.viewTicket')}
-                          </button>
-                          <button
-                            type="button"
-                            className="ticket-purchase__qr-btn"
-                            disabled={isDownloading}
-                            onClick={() => handleDownloadPass(ticket)}
-                          >
-                            <Download size={14} aria-hidden />
-                            {isDownloading
-                              ? t('pages.tickets.downloadingPass')
-                              : t('pages.tickets.downloadPass')}
-                          </button>
-                        </div>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </section>
-            )
-          })}
-        </div>
-
-        {downloadPassError ? (
-          <p className="ticket-purchase__submit-error" role="alert">
-            {downloadPassError}
-          </p>
-        ) : null}
-
-        <CardPreviewModal
-          open={Boolean(activeTicket)}
-          onClose={() => setActiveTicketId(null)}
-          cardData={
-            activeTicket
-              ? {
-                  athleteName: activeTicket.attendeeName,
-                  athleteCode: activeTicket.ticketCode,
-                  qrCode: activeTicket.qrToken,
-                  attendeeDocument: activeTicket.attendeeDni,
-                  eventTitle: activeTicket.eventTitle,
-                  eventDate: activeTicket.eventDate,
-                  eventVenue: activeTicket.eventVenue,
-                  eventLocation: activeTicket.eventLocation,
-                  eventSlug: activeTicket.eventSlug,
-                  dayPassLabel: passLabelById.get(activeTicket.id) ?? '',
-                  variant: 'ticket',
-                }
-              : {}
-          }
-        />
+        {awaitingPayment ? wallet : null}
       </div>
     )
   }
@@ -1364,6 +1256,7 @@ export default function TicketPurchaseSection({
     : ticketCount === 1
       ? t('pages.tickets.buy_one')
       : t('pages.tickets.buy_other', { count: ticketCount })
+  const saleBlocked = isTicketSaleBlockedError(submitError)
 
   if (editorial) {
     const stepIndex = TICKET_CHECKOUT_STEPS.indexOf(step)
@@ -1377,7 +1270,9 @@ export default function TicketPurchaseSection({
         ? t('pages.tickets.flow.continue')
         : step === 'buyer'
           ? t('pages.tickets.flow.continueToPayment')
-          : buyLabel
+          : saleBlocked
+            ? t('pages.events.publicTicketsSalesClosed')
+            : buyLabel
     const maxReached = attendees.length >= MAX_TICKETS
 
     const ticketsStep = (
@@ -1518,7 +1413,11 @@ export default function TicketPurchaseSection({
         </div>
 
         <TicketOrderSummary
-          actionDisabled={submitting || (step === 'tickets' && attendees.length === 0)}
+          actionDisabled={
+            submitting ||
+            (step === 'tickets' && attendees.length === 0) ||
+            (step === 'payment' && saleBlocked)
+          }
           actionLabel={actionLabel}
           count={attendees.length}
           event={event}
@@ -1630,8 +1529,8 @@ export default function TicketPurchaseSection({
             </div>
           </div>
           {submitError && <p className="ticket-purchase__submit-error">{submitError}</p>}
-          <Button type="submit" className="btn--small" disabled={submitting}>
-            {buyLabel}
+          <Button type="submit" className="btn--small" disabled={submitting || saleBlocked}>
+            {saleBlocked ? t('pages.events.publicTicketsSalesClosed') : buyLabel}
           </Button>
         </div>
       </FormSection>

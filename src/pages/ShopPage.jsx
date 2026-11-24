@@ -14,7 +14,7 @@ import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.js
 import { zoneScopeLabel } from '../components/ui/TicketTypeOptions.jsx'
 import { useShopCart } from '../hooks/useShopCart.js'
 import { useShopProducts } from '../hooks/useShopProducts.js'
-import { useTicketAvailability } from '../hooks/useTicketAvailability.js'
+import { usePublicTicketOffer, useTicketAvailability } from '../hooks/useTicketAvailability.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import {
   getFeaturedEvent,
@@ -23,9 +23,10 @@ import {
 } from '../lib/eventNavigation.js'
 import {
   cheapestTicketTypePrice,
-  isTicketSalesEnabled,
+  shortTicketTypeName,
   ticketPricingFromEvent,
 } from '../lib/eventPricing.js'
+import { ticketOfferCopyKey } from '../lib/ticketSalesState.js'
 import { FEATURE_KEYS, isFeatureEnabled } from '../lib/featureAvailability.js'
 import { money } from '../lib/format.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
@@ -38,9 +39,10 @@ import '../styles/pages/shop.css'
 import '../styles/pages/shop-luxe.css'
 import '../styles/pages/shop-checkout.css'
 
-function shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t) {
+function shopTicketPriceLabel(checkoutOpen, offer, fromPrice, locale, t) {
   if (!checkoutOpen) return t('pages.shop.checkoutSoonLabel')
-  if (!salesOpen) return t('pages.shop.salesClosed')
+  if (offer?.status === 'blocked') return t(ticketOfferCopyKey(offer))
+  if (offer?.status !== 'open') return t('pages.shop.salesClosed')
   if (fromPrice == null) return t('pages.shop.ticketsAvailable')
   return t('pages.shop.fromPrice', { amount: money(fromPrice, locale) })
 }
@@ -63,6 +65,33 @@ function parseShopDateParts(dateStr = '') {
     }
   }
   return { raw: cleaned }
+}
+
+/**
+ * Día (o rango del mismo mes) y mes de una fila de evento. El catálogo
+ * público trae `dateISO`/`endsAt` y no `date` (eso solo lo arma el panel):
+ * leyendo únicamente `date`, las filas salían sin fecha. Misma derivación
+ * que el calendario; en UTC porque `dateISO` es la fecha de `starts_at`.
+ */
+function shopEventDateParts(event, locale) {
+  const startKey = /^\d{4}-\d{2}-\d{2}/.exec(String(event?.dateISO ?? ''))?.[0]
+  if (!startKey) return parseShopDateParts(event?.date)
+  const toDate = (key) => new Date(`${key}T00:00:00Z`)
+  const monthOf = (date) =>
+    new Intl.DateTimeFormat(locale, { month: 'short', timeZone: 'UTC' })
+      .format(date)
+      .replace(/\./g, '')
+      .slice(0, 3)
+      .toUpperCase()
+  const start = toDate(startKey)
+  const day = String(start.getUTCDate()).padStart(2, '0')
+  const endKey = /^\d{4}-\d{2}-\d{2}/.exec(String(event?.endsAt ?? ''))?.[0]
+  const end = endKey && endKey > startKey ? toDate(endKey) : null
+  const sameMonth = end && end.getUTCMonth() === start.getUTCMonth()
+  return {
+    day: sameMonth ? `${day}–${String(end.getUTCDate()).padStart(2, '0')}` : day,
+    month: monthOf(start),
+  }
 }
 
 const panelVariants = {
@@ -99,7 +128,8 @@ function ShopFeatured({
 }) {
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
-  const salesOpen = checkoutOpen && isTicketSalesEnabled(event)
+  const offer = usePublicTicketOffer(event, { checkoutOpen })
+  const salesOpen = offer.status === 'open'
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
   const canBuy = salesOpen && remaining !== 0
 
@@ -132,7 +162,7 @@ function ShopFeatured({
             </p>
           ) : (
             <p className="shop-feature__price shop-feature__price--status">
-              {shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t)}
+              {shopTicketPriceLabel(checkoutOpen, offer, fromPrice, locale, t)}
             </p>
           )}
 
@@ -145,24 +175,23 @@ function ShopFeatured({
             </>
           )}
 
-          <div className="shop-feature__actions">
-            <button
-              type="button"
-              className="shop-cta"
-              onClick={canBuy ? onBuyTickets : onViewDetail}
-            >
-              <span>
-                {canBuy ? t('pages.shop.buyTickets') : t('pages.shop.featuredViewDetail')}
-              </span>
-              <ArrowRight size={15} aria-hidden />
+          <div
+            className={`shop-feature__actions${canBuy ? '' : ' shop-feature__actions--quiet'}`}
+          >
+            {canBuy ? (
+              <button type="button" className="shop-cta" onClick={onBuyTickets}>
+                <span>{t('pages.shop.buyTickets')}</span>
+                <ArrowRight size={15} aria-hidden />
+              </button>
+            ) : null}
+            <button type="button" className="shop-link" onClick={onViewDetail}>
+              {t('pages.shop.featuredViewDetail')}
             </button>
-            <button
-              type="button"
-              className="shop-link"
-              onClick={canBuy ? onViewDetail : onBrowseCalendar}
-            >
-              {canBuy ? t('pages.shop.featuredViewDetail') : t('pages.shop.browseCalendar')}
-            </button>
+            {canBuy ? null : (
+              <button type="button" className="shop-link" onClick={onBrowseCalendar}>
+                {t('pages.shop.browseCalendar')}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -178,10 +207,11 @@ function ShopFeatured({
 function ShopEventRow({ event, locale, checkoutOpen, onBuyTickets, onOpenDetail, t }) {
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
-  const salesOpen = checkoutOpen && isTicketSalesEnabled(event)
+  const offer = usePublicTicketOffer(event, { checkoutOpen })
+  const salesOpen = offer.status === 'open'
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
   const canBuy = salesOpen && remaining !== 0
-  const dateParts = parseShopDateParts(event.date)
+  const dateParts = shopEventDateParts(event, locale)
   const { reducedMotion, tier } = useMotionConfig()
   const still = reducedMotion || tier === 'low'
   const Row = still ? 'li' : m.li
@@ -193,7 +223,12 @@ function ShopEventRow({ event, locale, checkoutOpen, onBuyTickets, onOpenDetail,
         className="shop-row__hit"
         onClick={() => (canBuy ? onBuyTickets(event) : onOpenDetail(event))}
       >
-        <span className="shop-row__date" aria-label={event.date}>
+        <span
+          className="shop-row__date"
+          aria-label={
+            dateParts?.day ? `${dateParts.day} ${dateParts.month}` : (dateParts?.raw ?? event.date)
+          }
+        >
           {dateParts?.day ? (
             <>
               <span className="shop-row__day">{dateParts.day}</span>
@@ -218,7 +253,7 @@ function ShopEventRow({ event, locale, checkoutOpen, onBuyTickets, onOpenDetail,
                 )
                 return (
                   <span key={type.id}>
-                    {type.name}
+                    {shortTicketTypeName(type.name, locale)}
                     {extraZones.length > 0
                       ? ` · ${extraZones.map((scope) => zoneScopeLabel(scope, t)).join(', ')}`
                       : ''}
@@ -234,10 +269,10 @@ function ShopEventRow({ event, locale, checkoutOpen, onBuyTickets, onOpenDetail,
 
         <span className="shop-row__foot">
           <span className="shop-row__price">
-            {shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t)}
+            {shopTicketPriceLabel(checkoutOpen, offer, fromPrice, locale, t)}
           </span>
           <span className="shop-row__hint">
-            {canBuy
+            {checkoutOpen && canBuy
               ? t('pages.shop.buyTickets')
               : checkoutOpen
                 ? t('pages.shop.cardHint')

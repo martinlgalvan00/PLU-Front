@@ -1,0 +1,119 @@
+/* =============================================
+   Escenas de las landings de evento — paso entre bloques
+   (`layout.motion` → `data-motion` del <main class="event-landing-theme">)
+
+   Una escena es un bloque del Constructor o una sección de otra plantilla
+   marcada con `data-scene`. `useRevealOnScroll` pone `data-reveal="hidden"`
+   solo en las que están debajo del primer pantallazo y las pasa a `shown` al
+   llegar; lo que ya se ve al cargar nunca se oculta.
+
+     soft   fundido corto.
+     bold   más recorrido y duración.
+     depth  "Profundidad": la escena llega desde atrás con perspectiva
+            (translateZ + rotateX ≤ 6°, pivote abajo) y, donde hay
+            animaciones ligadas al scroll, el contenido de la que se va por
+            arriba (`data-scene-content`) se aleja apenas. La salida va en el
+            contenido y no en la escena para no pelear con el `transform` de
+            la entrada. La perspectiva viaja dentro del `transform`: no crea un
+            contexto 3D en toda la página.
+
+   Solo `transform` y `opacity`, sin JS por frame. `prefers-reduced-motion`
+   deja todo quieto y en equipos lentos (`data-motion-tier="low"`) Profundidad
+   cae al fundido de `soft`.
+   ============================================= */
+
+.event-landing-theme[data-motion='soft'] {
+  --scene-rise: 8px;
+  --scene-reveal-time: var(--motion-slow);
+}
+
+.event-landing-theme[data-motion='bold'] {
+  --scene-rise: 32px;
+  --scene-reveal-time: var(--motion-cinematic);
+}
+
+.event-landing-theme[data-motion='depth'] {
+  --scene-rise: 48px;
+  --scene-depth: -160px;
+  --scene-reveal-time: var(--motion-cinematic);
+}
+
+.event-landing-theme[data-motion] [data-reveal] {
+  transition:
+    opacity var(--scene-reveal-time) var(--ease-cinematic),
+    transform var(--scene-reveal-time) var(--ease-cinematic);
+}
+
+.event-landing-theme[data-motion] [data-reveal='hidden'] {
+  opacity: 0;
+  transform: translateY(var(--scene-rise));
+}
+
+.event-landing-theme[data-motion='depth'] [data-reveal] {
+  transform-origin: 50% 100%;
+}
+
+.event-landing-theme[data-motion='depth'] [data-reveal='hidden'] {
+  transform: perspective(1200px) translate3d(0, var(--scene-rise), var(--scene-depth))
+    rotateX(6deg);
+}
+
+.event-landing-theme[data-motion] [data-reveal='shown'] {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes event-scene-depth-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0.45;
+    transform: perspective(1200px) translate3d(0, -20px, -120px) rotateX(-4deg);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  /* `overflow: hidden` en el marco de la escena (la portada recorta su foto) lo
+     vuelve contenedor de scroll y el `view()` quedaba atado a algo que nunca
+     se mueve. `clip` recorta igual sin crear contenedor. */
+  .event-landing-theme[data-motion='depth'] :has(> [data-scene-content]) {
+    overflow: clip;
+  }
+
+  .event-landing-theme[data-motion='depth'] [data-scene-content] {
+    animation: event-scene-depth-out linear both;
+    animation-range: exit 25% exit 100%;
+    animation-timeline: view();
+    transform-origin: 50% 0%;
+  }
+}
+
+/* Equipos lentos: sin 3D ni animación por scroll. */
+[data-motion-tier='low'] .event-landing-theme[data-motion='depth'] {
+  --scene-rise: 8px;
+  --scene-reveal-time: var(--motion-slow);
+}
+
+[data-motion-tier='low'] .event-landing-theme[data-motion='depth'] [data-reveal='hidden'] {
+  transform: translateY(var(--scene-rise));
+}
+
+[data-motion-tier='low'] .event-landing-theme[data-motion='depth'] [data-scene-content] {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-landing-theme[data-motion] [data-reveal],
+  .event-landing-theme[data-motion] [data-reveal='hidden'],
+  .event-landing-theme[data-motion='depth'] [data-reveal='hidden'] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .event-landing-theme[data-motion] [data-scene-content] {
+    animation: none;
+  }
+}

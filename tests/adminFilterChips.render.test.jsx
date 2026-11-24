@@ -4,6 +4,7 @@ import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import AdminFilterChipGroup from '../src/components/admin/AdminFilterChipGroup.jsx'
 import AdminListSection from '../src/components/admin/AdminListSection.jsx'
 import RegistrationsSection from '../src/pages/admin/RegistrationsSection.jsx'
+import { openActionMenus } from './support/openActionMenus.js'
 
 vi.mock('../src/services/platformSettingsAdminService.js', async (importOriginal) => {
   const actual = await importOriginal()
@@ -221,20 +222,24 @@ describe('Inscripciones — rieles etiquetados', () => {
     )
   }
 
-  it('nombra el estado en la barra y el evento dentro de Filtros', () => {
+  it('nombra el estado en la barra y deja el evento a la vista junto al buscador', () => {
     renderRegistrations()
 
     // El estado parte el listado: queda a la vista, como grupo etiquetado.
     expect(screen.getByRole('group', { name: 'Estado' })).toBeTruthy()
-    // El evento se elige en el popover de «Filtros», también como grupo etiquetado.
+    // El evento decide qué filas se ven y qué se exporta: selector siempre visible,
+    // sin abrir «Filtros».
+    expect(screen.getByRole('combobox', { name: 'Evento' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /^Filtros/ }))
-    expect(screen.getByRole('group', { name: 'Evento' })).toBeTruthy()
+    expect(screen.getAllByRole('combobox', { name: 'Evento' })).toHaveLength(1)
   })
 
   it('mantiene el texto de los exports para poder ocultarlo solo por CSS', () => {
     renderRegistrations()
 
-    const csv = screen.getByRole('button', { name: 'Exportar inscripciones' })
+    const csv = screen.getByRole('button', {
+      name: 'Exportar todas las inscripciones (universo, no solo la pantalla)',
+    })
     expect(csv.querySelector('.export-btn__label')?.textContent).toBe('CSV')
   })
 
@@ -268,6 +273,8 @@ describe('Inscripciones — rieles etiquetados', () => {
       </I18nProvider>,
     )
 
+    // La visibilidad vive en el menú «Más acciones» de la fila, no a la vista.
+    openActionMenus()
     fireEvent.click(screen.getAllByRole('button', { name: /ocultar del padrón público/i })[0])
     expect(onSetPublicVisibility).toHaveBeenCalledWith('reg-visible', false)
   })

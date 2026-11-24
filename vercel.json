@@ -21,7 +21,9 @@
     { "path": "/api/internal/jobs/payment-revalidation", "schedule": "0 3 * * *" },
     { "path": "/api/internal/jobs/payment-order-expiry", "schedule": "15 3 * * *" },
     { "path": "/api/internal/jobs/payment-proof-retention", "schedule": "30 3 * * *" },
-    { "path": "/api/internal/jobs/shop-order-expiry", "schedule": "45 3 * * *" }
+    { "path": "/api/internal/jobs/shop-order-expiry", "schedule": "45 3 * * *" },
+    { "path": "/api/internal/jobs/mercado-pago-oauth-refresh", "schedule": "0 4 * * *" },
+    { "path": "/api/internal/jobs/ticket-reveal", "schedule": "15 4 * * *" }
   ],
   "headers": [
     {
@@ -30,6 +32,16 @@
         {
           "key": "Content-Security-Policy",
           "value": "default-src 'none'; frame-ancestors 'self'; img-src 'self' data: blob:; object-src 'none'"
+        },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+      ]
+    },
+    {
+      "source": "/docs/:path*",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; frame-ancestors 'self'; object-src 'none'"
         },
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
       ]

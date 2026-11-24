@@ -20,6 +20,18 @@ describe('HeroStatusCard', () => {
     expect(document.body.textContent).not.toContain('Entradas disponibles')
   })
 
+  it('con la inscripción cerrada mantiene disponible el acceso al evento', () => {
+    const onSelect = vi.fn()
+    renderCard({ onSelect })
+
+    const shell = document.querySelector('.hero-meta--action')
+    expect(shell?.tagName).toBe('BUTTON')
+    expect(shell?.textContent).toContain('Ver evento')
+
+    fireEvent.click(shell)
+    expect(onSelect).toHaveBeenCalledTimes(1)
+  })
+
   it('si hay entradas en venta, toda la ficha abre la compra y no el evento', () => {
     const onSelect = vi.fn()
     const onSelectTickets = vi.fn()

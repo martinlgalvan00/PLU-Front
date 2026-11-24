@@ -2,10 +2,10 @@
  * Medios de cobro de un tipo de entrada — PLU ARG
  *
  * Tercer eslabón de una cadena que ya existía en dos: la matriz de plataforma
- * (Finanzas) es el techo, el evento sólo puede cerrar debajo de ella
- * (`eventPaymentChannels.js`), y ahora el tipo de entrada sólo puede cerrar
- * debajo del evento. Ningún eslabón reabre lo que el de arriba cerró: si
- * Finanzas apagó el efectivo, una entrada que lo pide igual no lo consigue.
+ * (Finanzas) es el valor por defecto, el evento abre o cierra sobre ella
+ * (`eventPaymentChannels.js`), y el tipo de entrada sólo puede cerrar debajo del
+ * evento. El tipo no reabre lo que el evento cerró: si el evento apagó el
+ * efectivo, una entrada que lo pide igual no lo consigue.
  *
  * El caso que lo pidió: un palco caro se cobra sólo por Mercado Pago —se
  * acredita solo, sin comprobante que aprobar a mano— mientras la general

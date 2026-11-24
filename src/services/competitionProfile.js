@@ -6,7 +6,6 @@ const REQUIRED_COMPETITION_PROFILE_FIELDS = [
   'phone',
   'country',
   'province',
-  'division',
   'category',
   'estimatedWeight',
 ]

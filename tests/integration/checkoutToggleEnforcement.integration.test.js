@@ -314,8 +314,11 @@ describe('interruptores de canal manual y validación por HTTP', () => {
       body: JSON.stringify({
         eventSlug: EVENT_SLUG,
         division: 'Open',
+        modalities: ['full_power'],
         category: 'Raw',
         bodyweightKg: 90,
+        declaredWeightClass: '90',
+        competitionBestTotalKg: 500,
         paymentMethod: 'manual_link',
         idempotencyKey: randomUUID(),
       }),
@@ -511,8 +514,11 @@ describe('interruptores de canal manual y validación por HTTP', () => {
         body: JSON.stringify({
           eventSlug: EVENT_SLUG,
           division: 'Open',
+          modalities: ['full_power'],
           category: 'Raw',
           bodyweightKg: 90,
+          declaredWeightClass: '90',
+          competitionBestTotalKg: 500,
           paymentMethod: 'manual_link',
           idempotencyKey: randomUUID(),
         }),

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import useLiveState from './useLiveState.js'
 import {
   ApiError,
   acceptStaffInvitationRequest,
   createAccessRoleRequest,
   createSecurityAccessLinkRequest,
+  getSecurityAccessLinkRequest,
   createSecurityUserRequest,
   createSecurityUsersBulkRequest,
   changeOwnPasswordRequest,
@@ -30,11 +32,14 @@ import {
   updateSecurityUserStatusRequest,
   updateAccessRolePermissionsRequest,
   updateAccessRoleStatusRequest,
+  bulkUpdateStaffUserRoleRequest,
   updateStaffUserRoleRequest,
   updateStaffUserStatusRequest,
+  setStaffUserEventAccessRequest,
 } from '../lib/api.js'
+import { isRetryableCheckinFailure } from '../services/checkinFailure.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
-import { normalizeAdminFacetValue } from '../lib/adminPeopleFilters.js'
+import { normalizeAdminFacetValue, registrationMatchesDivision } from '../lib/adminPeopleFilters.js'
 import { env } from '../config/env.js'
 import { sessionDisplayName } from '../lib/format.js'
 import { markSignedOut, markSignedIn } from '../lib/sessionNotice.js'
@@ -52,6 +57,7 @@ import {
   ACCESS_ROLE_TEMPLATES,
   getDefaultPermissionsForRole,
   hasAnyPermission,
+  isEventScopedSession,
   hasPermission,
   PERMISSION_CATALOG,
 } from '../lib/permissions.js'
@@ -69,8 +75,10 @@ import {
   deleteAthleteRequest,
   deleteMembershipRequest,
   deleteRegistrationRequest,
+  downloadAdminExport,
   fetchAdminAthleteData,
   fetchAdminPhotoUrls,
+  fetchLiftersExportReadiness,
   fetchAthleteSession,
   fetchAthleteSnapshot,
   forceSettleAthletePaymentOrder as forceSettleAthletePaymentOrderRequest,
@@ -85,6 +93,7 @@ import {
   previewRegistrationNotification as previewRegistrationNotificationRequest,
   setMembershipStatus as setMembershipStatusRequest,
   setRegistrationPublicVisibility as setRegistrationPublicVisibilityRequest,
+  saveMembershipFile as saveMembershipFileRequest,
   updateAthleteProfile as updateAthleteProfileRequest,
   sendAthleteProfileNotice as sendAthleteProfileNoticeRequest,
   sendAthleteProfileNoticesBulk as sendAthleteProfileNoticesBulkRequest,
@@ -92,6 +101,9 @@ import {
   dismissAthleteProfileNotice as dismissAthleteProfileNoticeRequest,
 } from '../services/athleteApi.js'
 import { uploadAthletePhoto } from '../services/athletePhotoService.js'
+import { uploadAthleteDocument } from '../services/athleteDocumentService.js'
+import { ATHLETE_DOCUMENT_KIND_LABELS, documentPackGate } from '../lib/athleteDocuments.js'
+import { membershipFileStatus } from '../../shared/membershipFile.js'
 import {
   invalidateEventLiveData,
   invalidateEventRegistrationSummary,
@@ -121,6 +133,13 @@ import {
 } from '../services/competitionCheckoutService.js'
 import { readStorage, writeCurrentOrder, writeStorage } from '../services/storageService.js'
 import {
+  TICKET_PASS_CLOSED_STATUSES,
+  TICKET_PASS_SETTLE_ATTEMPTS,
+  TICKET_PASS_SETTLE_MS,
+  TICKET_PASS_WATCH_MS,
+  ticketPassWatchMode,
+} from '../services/ticketPassWatch.js'
+import {
   approveTicketOrder as approveTicketOrderRequest,
   checkInTicket as checkInTicketRequest,
   createManualTicketOrder as createManualTicketOrderRequest,
@@ -128,17 +147,22 @@ import {
   getEventScanReport,
   listPendingTicketOrders as listPendingTicketOrdersRequest,
   listTicketsForEvent as listTicketsForEventRequest,
+  fetchTicketOrderPass,
   lookupTicketOrder as lookupTicketOrderRequest,
   mapApiTicket,
   redeemTicketAddon as redeemTicketAddonRequest,
   registerTicketPaymentProof as registerTicketPaymentProofRequest,
   rejectTicketOrder as rejectTicketOrderRequest,
+  reopenTicketOrder as reopenTicketOrderRequest,
+  settleCancelledTicketOrder as settleCancelledTicketOrderRequest,
   setTicketAccessOverride as setTicketAccessOverrideRequest,
 } from '../services/ticketApi.js'
 import { uploadTicketPaymentProof } from '../services/ticketProofService.js'
 import {
+  bulkUpdateUserRole,
   deleteUser,
   getInitialUsers,
+  mergeBulkRoleResults,
   updateUserRole,
   updateUserStatus,
 } from '../services/userService.js'
@@ -149,7 +173,9 @@ import {
   buildAdminExportRows,
   buildPluUsaExportRows,
   createCsv,
+  downloadBlob,
 } from '../services/exportService.js'
+import { notifyError, notifySuccess } from '../lib/adminToast.js'
 import {
   buildPendingActions,
   buildDashboardOverview,
@@ -208,6 +234,9 @@ import {
   fetchPublicCheckoutAvailability,
 } from '../services/platformSettingsService.js'
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
+import { checkRequiredRegistrationFields } from '../../shared/registrationRequirements.js'
+import { selectionFromForm } from '../../shared/registrationSelection.js'
+import { matchesRegistrationEventFilter } from '../lib/athleteEventStatus.js'
 
 // Los derechos de una persona se confirman en el backend (webhook de Mercado
 // Pago, validación manual o staff). Esta frecuencia es el respaldo seguro para
@@ -230,6 +259,35 @@ const LIVE_REFRESH_HINT_DELAY_MS = 600
 const LIVE_PUBLIC_CATALOG_SYNC_MS = 30_000
 // Varios cambios seguidos (guardar un evento toca varias filas) se leen juntos.
 const CATALOG_NOTICE_DEBOUNCE_MS = 400
+// Un guardado propio dispara varios avisos `catalog-changed` (cada RPC del
+// upsert toca `events`). La respuesta del guardado ya trae la lista completa:
+// mientras dura y unos segundos después, el aviso no vuelve a pedirla.
+const LOCAL_EVENTS_WRITE_ECHO_MS = 3_000
+
+function missingDocumentsMessage(missing, purpose) {
+  const labels = missing.map((kind) => ATHLETE_DOCUMENT_KIND_LABELS[kind] ?? kind)
+  const list =
+    labels.length <= 1
+      ? (labels[0] ?? 'el DNI frente y dorso')
+      : labels.length === 2
+        ? `${labels[0]} y ${labels[1]}`
+        : `${labels.slice(0, -1).join(', ')} y ${labels.at(-1)}`
+  if (purpose === 'membership') return `Subí ${list} antes de pagar la afiliación.`
+  if (purpose === 'combo') return `Subí ${list} antes de pagar.`
+  return `Subí ${list} antes de inscribirte.`
+}
+
+/**
+ * Precio de inscripción de UN evento. `admin.pricing.write` está reservado a Super Admin
+ * y Administrador y no se delega; un organizador (cuenta por evento) lo programa para SU
+ * evento con `admin.events.write`, y el servidor verifica que el evento sea suyo.
+ */
+function canWriteEventPrice(session) {
+  return (
+    hasPermission(session, 'admin.pricing.write') ||
+    (isEventScopedSession(session) && hasPermission(session, 'admin.events.write'))
+  )
+}
 
 export function useAppData() {
   const oauth = usePluOAuth()
@@ -238,8 +296,19 @@ export function useAppData() {
   // Restauración de sesión en vuelo (cookie httpOnly: no se puede saber de
   // forma síncrona si el visitante tiene sesión). En demo no hay probe.
   const [sessionPending, setSessionPending] = useState(() => !env.demoMode)
+  // La primera lectura del catálogo público ya respondió (bien o mal): recién
+  // ahí un slug que no aparece es "no existe" y no "todavía no llegó".
+  const [publicCatalogSettled, setPublicCatalogSettled] = useState(() => env.demoMode)
   const sessionRef = useRef(null)
+  // Cada logout (o descarte de sesión inválida) sube el epoch. Una
+  // restauración que arrancó antes no puede volver a pintar al usuario.
+  const logoutEpochRef = useRef(0)
+  const logoutInFlightRef = useRef(false)
+  // Cada setSession cuenta. El probe en vuelo no pisa un login o logout
+  // que ocurrió mientras las cookies se estaban leyendo.
+  const sessionWriteRef = useRef(0)
   const setSession = useCallback((next) => {
+    sessionWriteRef.current += 1
     sessionRef.current = next
     setSessionState(next)
   }, [])
@@ -275,7 +344,7 @@ export function useAppData() {
   const [pendingTicketOrdersLoading, setPendingTicketOrdersLoading] = useState(false)
   const [pendingTicketOrdersError, setPendingTicketOrdersError] = useState(null)
   const [createdOrder, setCreatedOrder] = useState(() => storedOrder)
-  const [adminEvents, setAdminEvents] = useState(() =>
+  const [adminEvents, setAdminEvents, adminEventsRef] = useLiveState(() =>
     getInitialAdminEvents(storedData?.adminEvents, { allowStoredEvents: env.demoMode }),
   )
   const [adminEventsLoading, setAdminEventsLoading] = useState(false)
@@ -332,6 +401,7 @@ export function useAppData() {
   const membershipAttemptRef = useRef(null)
   const registrationAttemptRef = useRef(null)
   const ticketAttemptRef = useRef(null)
+  const manualSaleAttemptRef = useRef(null)
   const liveRefreshInFlightRef = useRef(false)
   const athleteDataLoadedRef = useRef(false)
   // Huellas del último payload aplicado de cada poll: sin esto, cada ciclo
@@ -403,6 +473,8 @@ export function useAppData() {
   // "cerrado" que el staff acaba de guardar con el "abierto" de antes.
   const eventsEpochRef = useRef(0)
   const publicCatalogRefreshRef = useRef(null)
+  // Escrituras de eventos de esta pestaña: en curso y cuándo terminó la última.
+  const localEventsWriteRef = useRef({ pending: 0, finishedAt: 0 })
   useEffect(() => {
     eventsEpochRef.current += 1
   }, [adminEvents])
@@ -422,15 +494,27 @@ export function useAppData() {
         if (fresh) rerunRequested = true
         return refreshInFlight
       }
+      // Con permiso de lectura, la lista es la del panel (incluye lo no
+      // publicado y su estado guardado): el catálogo público, que es un
+      // subconjunto, no puede reemplazarla. Se decide antes de pedirlo: antes
+      // el staff bajaba el catálogo cada 30 s (y al volver a la pestaña) para
+      // descartarlo al llegar.
+      // Un organizador NO tiene la lista del panel completa (solo sus eventos): para él el
+      // catálogo público sigue siendo la fuente de las páginas públicas.
+      const staff = sessionRef.current
+      if (
+        staff &&
+        !isDemoSession(staff) &&
+        !isEventScopedSession(staff) &&
+        hasPermission(staff, 'admin.events.read')
+      ) {
+        if (active) setPublicCatalogSettled(true)
+        return Promise.resolve()
+      }
       const epoch = eventsEpochRef.current
       const request = fetchPublishedEvents()
         .then((remoteEvents) => {
           if (!active) return
-          // Con permiso de lectura, la lista es la del panel (incluye lo no
-          // publicado y su estado guardado): el catálogo público, que es un
-          // subconjunto, no puede reemplazarla.
-          const staff = sessionRef.current
-          if (staff && !isDemoSession(staff) && hasPermission(staff, 'admin.events.read')) return
           if (eventsEpochRef.current !== epoch) {
             // Respuesta vieja: se descarta y se pide de nuevo una vez.
             if (retriesLeft > 0) {
@@ -457,6 +541,7 @@ export function useAppData() {
         })
         .catch((error) => console.warn('No se pudieron cargar los eventos publicados.', error))
         .finally(() => {
+          if (active) setPublicCatalogSettled(true)
           // Solo se libera si nadie la reemplazó (el reintento de arriba).
           if (refreshInFlight === request) refreshInFlight = null
           if (rerunRequested && refreshInFlight == null) {
@@ -498,7 +583,7 @@ export function useAppData() {
       stop()
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
-  }, [])
+  }, [setAdminEvents])
 
   // Pública y sin sesión: la lee cualquier visitante para saber si el checkout
   // de afiliación/inscripción/entradas está habilitado antes de tocar un botón.
@@ -551,7 +636,7 @@ export function useAppData() {
     } finally {
       if (!silent) setAdminEventsLoading(false)
     }
-  }, [])
+  }, [setAdminEvents])
 
   // Aviso en vivo: cuando el staff cambia un evento o un interruptor operativo,
   // la base emite `catalog-changed` en el tópico `public-catalog` (sin datos) y
@@ -571,7 +656,14 @@ export function useAppData() {
         timerId = null
         void publicCatalogRefreshRef.current?.()
         void refreshCheckoutAvailability()
-        void refreshAdminEvents({ silent: true })
+        // La disponibilidad de entradas cachea el interruptor del evento.
+        // Sin esto, apagar la venta en el panel deja la página abierta hasta
+        // que vence el TTL.
+        invalidateEventLiveData()
+        const write = localEventsWriteRef.current
+        const ownEcho =
+          write.pending > 0 || Date.now() - write.finishedAt < LOCAL_EVENTS_WRITE_ECHO_MS
+        if (!ownEcho) void refreshAdminEvents({ silent: true })
       }, CATALOG_NOTICE_DEBOUNCE_MS)
     }
 
@@ -649,12 +741,17 @@ export function useAppData() {
       }
 
       const tasks = []
-      const canReadAthleteData = hasAnyPermission(session, [
-        'admin.athletes.read',
-        'admin.memberships.read',
-        'admin.registrations.read',
-        'admin.payments.read',
-      ])
+      // Un organizador tiene `registrations.read` y `payments.read`, pero este listado trae
+      // los atletas y pagos de TODOS los eventos y el servidor se lo niega: no se pide (los
+      // cobros de su evento salen de `GET /api/events/:slug/payments`).
+      const canReadAthleteData =
+        !isEventScopedSession(session) &&
+        hasAnyPermission(session, [
+          'admin.athletes.read',
+          'admin.memberships.read',
+          'admin.registrations.read',
+          'admin.payments.read',
+        ])
 
       if (canReadAthleteData) {
         // Loader bloqueante solo en la primera carga: las sincronizaciones
@@ -914,8 +1011,37 @@ export function useAppData() {
     if (env.demoMode) return undefined
 
     let active = true
+    const epochAtStart = logoutEpochRef.current
+    const writeAtStart = sessionWriteRef.current
+    const startedDuringLogout = logoutInFlightRef.current
+
+    function superseded() {
+      return (
+        !active ||
+        startedDuringLogout ||
+        logoutEpochRef.current !== epochAtStart ||
+        sessionWriteRef.current !== writeAtStart
+      )
+    }
+
+    function isProbeUncertain(error) {
+      if (!error) return false
+      return !error.status || error.status === 0 || error.status !== 401
+    }
+
+    function isConfirmedAbsent(user, error) {
+      if (user) return false
+      if (!error) return true
+      return error.status === 401
+    }
+
+    function dropStaleSession() {
+      if (superseded() || !sessionRef.current) return
+      setSession(null)
+    }
 
     async function applyAthleteSession(athleteSession, { staffAvailable = false } = {}) {
+      if (superseded()) return
       setSession({
         ...athleteSession.user,
         staffAvailable: Boolean(athleteSession.user.staffAvailable || staffAvailable),
@@ -939,7 +1065,7 @@ export function useAppData() {
           .catch((error) => ({ session: null, error })),
       ])
 
-      if (!active) return
+      if (superseded()) return
 
       const staffError = staffOutcome.error
       if (staffError && (!staffError.status || staffError.status === 0)) {
@@ -980,22 +1106,39 @@ export function useAppData() {
       }
 
       if (mode === 'staff' && restored) {
+        if (superseded()) return
         setSession(restored)
         return
       }
 
-      if (staffError && staffError.status !== 401) return
-      if (!oauth.configured || !oauth.isAuthenticated || oauth.isLoading) return
+      // 5xx o red: la cookie puede seguir viva. No borrar la sesión en memoria.
+      if (isProbeUncertain(staffError) || isProbeUncertain(athleteError)) return
+
+      const bothCookiesGone =
+        isConfirmedAbsent(staffUser, staffError) &&
+        isConfirmedAbsent(athleteSession?.user, athleteError)
+
+      if (!bothCookiesGone) return
+      if (!oauth.configured || !oauth.isAuthenticated || oauth.isLoading) {
+        dropStaleSession()
+        return
+      }
 
       try {
         const accessToken = await oauth.getAccessToken()
-        if (!active || !accessToken) return
+        if (superseded() || !accessToken) {
+          dropStaleSession()
+          return
+        }
 
         const { user: oauthUser, supabaseAuth } = await oauthSessionRequest(accessToken)
-        if (active) setSession(oauthUser)
+        if (superseded()) return
+        if (oauthUser?.role || oauthUser?.id) setSession(oauthUser)
+        else dropStaleSession()
         await establishSupabaseSession(supabaseAuth)
       } catch (oauthError) {
         console.warn('No se pudo iniciar sesion con OAuth.', oauthError)
+        dropStaleSession()
       }
     }
 
@@ -1070,10 +1213,15 @@ export function useAppData() {
       const now = Date.now()
       if (now - sessionReprobeAtRef.current < 5 * 60_000) return
       sessionReprobeAtRef.current = now
+      const epoch = logoutEpochRef.current
+      const write = sessionWriteRef.current
 
       meRequest()
         .then(({ user }) => {
-          if (user && !sessionRef.current) setSession(user)
+          if (logoutEpochRef.current !== epoch || sessionWriteRef.current !== write) return
+          if (user?.role || user?.id) {
+            if (!sessionRef.current) setSession(user)
+          }
         })
         .catch(() => {})
     }
@@ -1210,7 +1358,11 @@ export function useAppData() {
         filters.status,
         gatePendingIds,
       )
-      const eventMatch = filters.event === 'all' || registration.event === filters.event
+      const eventMatch = matchesRegistrationEventFilter(
+        registration,
+        filters.event,
+        adminEvents,
+      )
       const affiliationMatch =
         !filters.affiliationStatus ||
         filters.affiliationStatus === 'all' ||
@@ -1219,10 +1371,7 @@ export function useAppData() {
         !filters.gym ||
         filters.gym === 'all' ||
         normalizeAdminFacetValue(registration.athlete?.gym) === filters.gym
-      const divisionMatch =
-        !filters.division ||
-        filters.division === 'all' ||
-        normalizeAdminFacetValue(registration.division) === filters.division
+      const divisionMatch = registrationMatchesDivision(registration, filters.division)
       const dateMatch = matchesDateRange(registration.createdAt, filters.createdAtRange)
       const query = filters.query.trim().toLowerCase()
       const queryMatch =
@@ -1241,7 +1390,7 @@ export function useAppData() {
         registration.manualOverride?.reason?.toLowerCase().includes(query)
       return statusMatch && eventMatch && affiliationMatch && gymMatch && divisionMatch && dateMatch && queryMatch
     })
-  }, [enrichedRegistrations, filters, gatePendingIds])
+  }, [adminEvents, enrichedRegistrations, filters, gatePendingIds])
 
   const updateForm = useCallback((event) => {
     const { name, value } = event.target
@@ -1298,6 +1447,22 @@ export function useAppData() {
     ) => {
       const athlete = athletes.find((item) => item.id === session?.athleteId)
       if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
+      const membershipFile = membershipFileStatus(athlete)
+      if (!membershipFile.complete) {
+        return {
+          error: 'Completá los datos de afiliación antes de pagar.',
+          code: 'ATHLETE_MEMBERSHIP_DATA_INCOMPLETE',
+          missing: membershipFile.missing,
+        }
+      }
+      const documentsGate = documentPackGate(athlete, athlete.documents, { purpose: 'membership' })
+      if (documentsGate.blocked) {
+        return {
+          error: missingDocumentsMessage(documentsGate.missing, 'membership'),
+          code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+          missing: documentsGate.missing,
+        }
+      }
 
       try {
         const normalizedMethod = paymentMethod === 'transferencia' ? 'manual_link' : paymentMethod
@@ -1442,6 +1607,29 @@ export function useAppData() {
       event.preventDefault()
       const athlete = athletes.find((item) => item.id === session?.athleteId)
       if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
+      if (options.purchaseType === 'combo') {
+        const membershipFile = membershipFileStatus(athlete)
+        if (!membershipFile.complete) {
+          return {
+            error: 'Completá los datos de afiliación antes de pagar.',
+            code: 'ATHLETE_MEMBERSHIP_DATA_INCOMPLETE',
+            missing: membershipFile.missing,
+          }
+        }
+      }
+      const documentsPurpose = options.purchaseType === 'combo' ? 'combo' : 'registration'
+      const meet = options.event ?? selectedEvent
+      const documentsGate = documentPackGate(athlete, athlete.documents, {
+        purpose: documentsPurpose,
+        requiresMembership: meet?.requiresMembership === true || meet?.requires_membership === true,
+      })
+      if (documentsGate.blocked) {
+        return {
+          error: missingDocumentsMessage(documentsGate.missing, documentsPurpose),
+          code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+          missing: documentsGate.missing,
+        }
+      }
 
       try {
         const purchaseType = options.purchaseType === 'combo' ? 'combo' : 'registration'
@@ -1449,9 +1637,34 @@ export function useAppData() {
         // La ficha de oferta exclusiva cobra desde Mi cuenta, donde el
         // formulario del checkout no existe: manda sus propios datos de
         // inscripción. Sin override, sigue mandando el formulario global.
-        const competition = {
+        // La ficha de oferta trae su propia selección: no hereda segunda división
+        // ni modalidad del formulario global, que puede tener valores de otro intento.
+        const selection = selectionFromForm({
           division: options.competition?.division ?? form.division,
+          secondaryDivision: options.competition
+            ? options.competition.secondaryDivision
+            : form.secondaryDivision,
+          // Una ficha de oferta sin modalidades propias compite Full Power.
+          modalities: options.competition ? options.competition.modalities : form.modalities,
+        })
+        const competition = {
+          division: selection.division,
+          secondaryDivision: selection.secondaryDivision,
+          modalities: selection.modalities,
           category: options.competition?.category ?? form.category,
+          // Lo que marcó el checkout (`options.categories`) o la categoría sola.
+          // `form.categories` no: fuera de Submission queda en su default y
+          // mandaba "Raw" aunque se hubiera elegido otra.
+          categories: options.competition
+            ? (options.competition.categories ?? [options.competition.category])
+            : (options.categories ?? [form.category]),
+          declaredWeightClass:
+            options.competition?.declaredWeightClass ?? form.declaredWeightClass ?? '',
+          firstMeet: options.competition?.firstMeet ?? form.firstMeet === true,
+          competitionBestTotalKg:
+            options.competition?.competitionBestTotalKg ?? form.competitionBestTotalKg ?? '',
+          trainingBestTotalKg:
+            options.competition?.trainingBestTotalKg ?? form.trainingBestTotalKg ?? '',
           bodyweightKg:
             options.competition?.bodyweightKg !== undefined
               ? options.competition.bodyweightKg
@@ -1459,11 +1672,28 @@ export function useAppData() {
                 ? Number(String(form.estimatedWeight).replace(',', '.'))
                 : null,
         }
+        // Sin división, categoría, categoría de peso y peso corporal no se pide el cobro:
+        // el servidor lo rechazaría igual y el atleta perdería el intento.
+        const required = checkRequiredRegistrationFields(competition)
+        if (!required.ok) {
+          return {
+            error: required.message,
+            code: 'REGISTRATION_FIELD_REQUIRED',
+            field: required.field,
+          }
+        }
         const attemptFingerprint = JSON.stringify([
           athlete.id,
           selectedEvent.slug,
           competition.division,
+          competition.secondaryDivision,
+          competition.modalities,
           competition.category,
+          competition.categories,
+          competition.declaredWeightClass,
+          competition.firstMeet,
+          competition.competitionBestTotalKg,
+          competition.trainingBestTotalKg,
           competition.bodyweightKg,
           paymentMethod,
           purchaseType,
@@ -1485,7 +1715,14 @@ export function useAppData() {
             athleteId: athlete.id,
             eventSlug: selectedEvent.slug,
             division: competition.division,
+            secondaryDivision: competition.secondaryDivision,
+            modalities: competition.modalities,
             category: competition.category,
+            categories: competition.categories,
+            declaredWeightClass: competition.declaredWeightClass,
+            firstMeet: competition.firstMeet === true,
+            competitionBestTotalKg: competition.competitionBestTotalKg,
+            trainingBestTotalKg: competition.trainingBestTotalKg,
             bodyweightKg: competition.bodyweightKg,
             paymentMethod,
             idempotencyKey: registrationAttemptRef.current.idempotencyKey,
@@ -1601,6 +1838,7 @@ export function useAppData() {
           return {
             error: error.message,
             code: error.body?.code ?? null,
+            status: error.status ?? null,
             resumeMembershipPayment: membershipPaymentInProgress,
           }
         }
@@ -1620,7 +1858,18 @@ export function useAppData() {
    * restringido y fija el importe promocional.
    */
   const startOfferPayment = useCallback(
-    ({ offer, event, paymentMethod = 'mercado_pago', division, category, bodyweightKg }) => {
+    ({
+      offer,
+      event,
+      paymentMethod = 'mercado_pago',
+      division,
+      category,
+      declaredWeightClass,
+      bodyweightKg,
+      firstMeet = false,
+      competitionBestTotalKg = '',
+      trainingBestTotalKg = '',
+    }) => {
       if (!offer?.code || !event?.slug) {
         return Promise.resolve({ error: 'No se pudo resolver la oferta.' })
       }
@@ -1629,7 +1878,15 @@ export function useAppData() {
         paymentMethod,
         discountCode: offer.code,
         comboAccessCode: offer.code,
-        competition: { division, category, bodyweightKg },
+        competition: {
+          division,
+          category,
+          declaredWeightClass,
+          bodyweightKg,
+          firstMeet,
+          competitionBestTotalKg,
+          trainingBestTotalKg,
+        },
       })
     },
     [submitCompetition],
@@ -1743,18 +2000,124 @@ export function useAppData() {
     writeCurrentOrder(null)
   }, [])
 
+  // Mercado Pago puede figurar acreditado antes de que el QR esté listo.
+  // Transferencia y efectivo se quedan en pendiente hasta que Finanzas acredita:
+  // mientras la pestaña está visible, la misma lectura espera ese cierre.
+  useEffect(() => {
+    const mode = ticketPassWatchMode(createdOrder)
+    if (!mode) return undefined
+    const order = createdOrder
+    let cancelled = false
+    let timer = 0
+    let attempts = 0
+
+    function commitPass(found, foundTickets) {
+      const purchaseEvent = {
+        slug: found.eventSlug,
+        title: found.eventTitle,
+        venue: found.eventVenue ?? null,
+        date: found.eventStartsAt ?? null,
+      }
+      const mappedTickets = foundTickets.map((ticket) => mapApiTicket(ticket, purchaseEvent))
+      setTickets((current) => {
+        const byId = new Map(mappedTickets.map((ticket) => [ticket.id, ticket]))
+        const merged = current.map((item) => byId.get(item.id) ?? item)
+        const newOnes = mappedTickets.filter((ticket) => !current.some((item) => item.id === ticket.id))
+        return [...newOnes, ...merged]
+      })
+      setCreatedOrder((current) => {
+        if (current?.orderId !== order.orderId) return current
+        return {
+          ...current,
+          status: 'aprobado',
+          tickets: mappedTickets,
+          passFresh: true,
+          eventTitle: found.eventTitle || current.eventTitle,
+          eventSlug: found.eventSlug || current.eventSlug,
+        }
+      })
+    }
+
+    function schedule(delay) {
+      if (cancelled) return
+      if (mode === 'watch' && document.visibilityState === 'hidden') return
+      timer = window.setTimeout(() => {
+        void pull()
+      }, delay)
+    }
+
+    async function pull() {
+      if (cancelled) return
+      if (mode === 'watch' && document.visibilityState === 'hidden') return
+      try {
+        const { order: found, tickets: foundTickets } = await fetchTicketOrderPass(
+          order.orderId,
+          order.orderAccessToken,
+        )
+        if (cancelled || !found) return
+        if (found.status === 'aprobado' && foundTickets.length > 0) {
+          commitPass(found, foundTickets)
+          return
+        }
+        if (TICKET_PASS_CLOSED_STATUSES.has(found.status)) {
+          setCreatedOrder((current) => {
+            if (current?.orderId !== order.orderId || current.status === found.status) return current
+            return { ...current, status: found.status }
+          })
+          return
+        }
+        if (found.status === 'aprobado' && order.status !== 'aprobado') {
+          setCreatedOrder((current) => {
+            if (current?.orderId !== order.orderId || current.status === 'aprobado') return current
+            return { ...current, status: 'aprobado' }
+          })
+          return
+        }
+      } catch (error) {
+        if (error?.status === 401 || error?.status === 403) return
+      }
+      if (cancelled) return
+      if (mode === 'settle') {
+        attempts += 1
+        if (attempts >= TICKET_PASS_SETTLE_ATTEMPTS) return
+        schedule(TICKET_PASS_SETTLE_MS)
+        return
+      }
+      schedule(TICKET_PASS_WATCH_MS)
+    }
+
+    function onVisible() {
+      if (cancelled || mode !== 'watch' || document.visibilityState !== 'visible') return
+      window.clearTimeout(timer)
+      void pull()
+    }
+
+    void pull()
+    if (mode === 'watch') document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [createdOrder])
+
   /**
    * Recupera una compra de entradas ya hecha por referencia + mail (link del
    * mail de confirmación, sin sesión). Alimenta el mismo `createdOrder` que
    * usa una compra recién hecha, así que `TicketPurchaseSection` la muestra
    * con el mismo render -- QR incluido -- sin código nuevo.
    */
-  const lookupTicketOrderAction = useCallback(async (reference, email) => {
-    const { order, tickets: foundTickets } = await lookupTicketOrderRequest(reference, email)
+  const lookupTicketOrderAction = useCallback(async (reference, email, options) => {
+    const { order, tickets: foundTickets } = await lookupTicketOrderRequest(reference, email, options)
     if (order.status !== 'aprobado') {
       return { order }
     }
-    const purchaseEvent = { slug: order.eventSlug, title: order.eventTitle }
+    const purchaseEvent = {
+      slug: order.eventSlug,
+      title: order.eventTitle,
+      venue: order.eventVenue ?? null,
+      date: order.eventStartsAt ?? null,
+    }
     const mappedTickets = foundTickets.map((ticket) => mapApiTicket(ticket, purchaseEvent))
     setTickets((current) => {
       const byId = new Map(mappedTickets.map((ticket) => [ticket.id, ticket]))
@@ -1779,12 +2142,14 @@ export function useAppData() {
   // Aprobación operativa reservada a transferencias manuales. Las órdenes
   // Mercado Pago se acreditan exclusivamente mediante webhook.
   const approveTicketPurchase = useCallback(
-    async (orderId) => {
-      if (!hasPermission(session, 'admin.payments.approve')) {
-        return { error: 'Sin permisos para aprobar pagos.' }
+    async (orderId, { overrideReason } = {}) => {
+      if (!hasAnyPermission(session, ['admin.payments.approve', 'admin.tickets.enable'])) {
+        return { error: 'Sin permisos para habilitar esta entrada.' }
       }
       try {
-        const { order, tickets: approvedTickets } = await approveTicketOrderRequest(orderId)
+        const { order, tickets: approvedTickets } = await approveTicketOrderRequest(orderId, {
+          overrideReason,
+        })
         setTickets((current) => {
           const byId = new Map(approvedTickets.map((ticket) => [ticket.id, ticket]))
           return current.map((item) =>
@@ -1808,8 +2173,8 @@ export function useAppData() {
   // bandeja de pendientes, igual que una aprobación.
   const rejectTicketPurchase = useCallback(
     async (orderId, reason) => {
-      if (!hasPermission(session, 'admin.payments.approve')) {
-        return { error: 'Sin permisos para rechazar pagos.' }
+      if (!hasAnyPermission(session, ['admin.payments.approve', 'admin.tickets.enable'])) {
+        return { error: 'Sin permisos para rechazar esta entrada.' }
       }
       try {
         const { order, tickets: rejectedTickets } = await rejectTicketOrderRequest(orderId, reason)
@@ -1826,7 +2191,68 @@ export function useAppData() {
         return { order }
       } catch (error) {
         console.error('rejectTicketPurchase:', error)
+        if (isRetryableCheckinFailure(error)) throw error
         return { error: error?.message ?? 'No se pudo rechazar la orden.' }
+      }
+    },
+    [session],
+  )
+
+  // El vencimiento automático a veces cierra una transferencia que ya tiene
+  // comprobante. Reabrir la devuelve a pendiente; acreditar sigue siendo el
+  // botón de validar, que es el que manda el mail.
+  const reopenTicketPurchase = useCallback(
+    async (orderId, reason) => {
+      if (!hasAnyPermission(session, ['admin.payments.approve', 'admin.tickets.enable'])) {
+        return { error: 'Sin permisos para reabrir esta entrada.' }
+      }
+      try {
+        const { order, tickets: reopenedTickets } = await reopenTicketOrderRequest(orderId, reason)
+        setTickets((current) => {
+          const byId = new Map(reopenedTickets.map((ticket) => [ticket.id, ticket]))
+          return current.map((item) =>
+            byId.has(item.id) ? { ...item, status: byId.get(item.id).status } : item,
+          )
+        })
+        setCreatedOrder((current) =>
+          current?.orderId === orderId ? { ...current, status: order.status } : current,
+        )
+        return { order }
+      } catch (error) {
+        console.error('reopenTicketPurchase:', error)
+        return { error: error?.message ?? 'No se pudo reabrir la orden.' }
+      }
+    },
+    [session],
+  )
+
+  // Un paso para el caso en que el dinero ya está: reabre y acredita, y
+  // devuelve si el mail salió. No saca de la cola una orden que la RPC rechazó.
+  const settleCancelledTicketPurchase = useCallback(
+    async (orderId, reason) => {
+      if (!hasAnyPermission(session, ['admin.payments.approve', 'admin.tickets.enable'])) {
+        return { error: 'Sin permisos para acreditar esta entrada.' }
+      }
+      try {
+        const {
+          order,
+          tickets: settledTickets,
+          mail,
+        } = await settleCancelledTicketOrderRequest(orderId, reason)
+        setTickets((current) => {
+          const byId = new Map(settledTickets.map((ticket) => [ticket.id, ticket]))
+          return current.map((item) =>
+            byId.has(item.id) ? { ...item, status: byId.get(item.id).status } : item,
+          )
+        })
+        setCreatedOrder((current) =>
+          current?.orderId === orderId ? { ...current, status: order.status } : current,
+        )
+        setPendingTicketOrders((current) => current.filter((item) => item.orderId !== orderId))
+        return { order, mail }
+      } catch (error) {
+        console.error('settleCancelledTicketPurchase:', error)
+        return { error: error?.message ?? 'No se pudo acreditar la orden.' }
       }
     },
     [session],
@@ -1869,7 +2295,14 @@ export function useAppData() {
   )
 
   const refreshPendingTicketOrders = useCallback(async () => {
-    if (!hasPermission(session, 'admin.payments.read') || isDemoSession(session)) return
+    // El listado pendiente es de todos los eventos: el organizador usa el de su evento.
+    if (
+      !hasPermission(session, 'admin.payments.read') ||
+      isDemoSession(session) ||
+      isEventScopedSession(session)
+    ) {
+      return
+    }
     setPendingTicketOrdersLoading(true)
     setPendingTicketOrdersError(null)
     try {
@@ -1897,7 +2330,27 @@ export function useAppData() {
         return { error: 'Sin permisos para cargar una venta manual.' }
       }
       try {
-        const result = await createManualTicketOrderRequest(payload)
+        // Misma venta, misma clave. Si el request se cortó después de crear
+        // la orden, el reintento la encuentra y —en efectivo— la acredita.
+        // Recién un alta que salió bien suelta la clave, para que la próxima
+        // carga de las mismas personas sea otra venta.
+        const fingerprint = JSON.stringify([
+          payload?.eventSlug ?? null,
+          payload?.attendees ?? null,
+          payload?.buyer ?? null,
+          payload?.manualPaymentChannel ?? null,
+        ])
+        if (manualSaleAttemptRef.current?.fingerprint !== fingerprint) {
+          manualSaleAttemptRef.current = {
+            fingerprint,
+            idempotencyKey: crypto.randomUUID(),
+          }
+        }
+        const result = await createManualTicketOrderRequest({
+          ...payload,
+          idempotencyKey: manualSaleAttemptRef.current.idempotencyKey,
+        })
+        manualSaleAttemptRef.current = null
         await refreshPendingTicketOrders()
         return result
       } catch (error) {
@@ -1912,20 +2365,26 @@ export function useAppData() {
   // usado de forma atómica — dos escaneos simultáneos del mismo QR no
   // pueden dejar pasar a las dos personas (ver server/modules/ticketing).
   useEffect(() => {
-    if (!hasPermission(session, 'admin.payments.read')) return undefined
+    if (!hasPermission(session, 'admin.payments.read') || isEventScopedSession(session)) {
+      return undefined
+    }
     refreshPendingTicketOrders()
     return undefined
   }, [session, refreshPendingTicketOrders])
 
   const checkInTicketAction = useCallback(
-    async (qrToken) => {
+    async (qrToken, { force, reason } = {}) => {
       if (!hasPermission(session, 'admin.checkin.execute')) {
+        return { outcome: 'forbidden' }
+      }
+      if (force && !hasPermission(session, 'admin.checkin.override')) {
         return { outcome: 'forbidden' }
       }
       try {
         const { ticket, checkIn } = await checkInTicketRequest(
           qrToken,
           session.securityZone?.name,
+          { force, reason },
         )
         const updated = { ...mapApiTicket(ticket), checkedInAt: checkIn.scannedAt }
         setTickets((current) => current.map((item) => (item.qrToken === qrToken ? updated : item)))
@@ -2004,15 +2463,32 @@ export function useAppData() {
   // La asignación se persiste y se vuelve a validar en Express. El fallback
   // local queda únicamente para la sesión demo.
   const updateUserRoleAction = useCallback(
-    async (userId, nextRole) => {
+    async (userId, nextRole, eventIds) => {
       if (isDemoSession(session)) {
         setUsers((current) => updateUserRole(current, userId, nextRole))
         return users.find((user) => user.id === userId) ?? null
       }
 
-      const { user } = await updateStaffUserRoleRequest(userId, nextRole)
+      const { user } = await updateStaffUserRoleRequest(userId, nextRole, eventIds)
       setUsers((current) => current.map((item) => (item.id === user.id ? user : item)))
       return user
+    },
+    [session, users],
+  )
+
+  // Varias cuentas de una vez. Devuelve un resultado por cuenta; el padrón local
+  // sólo cambia con las que quedaron `updated`.
+  const bulkUpdateUserRoleAction = useCallback(
+    async (userIds, roleKey) => {
+      if (isDemoSession(session)) {
+        const outcome = bulkUpdateUserRole(users, userIds, roleKey)
+        setUsers(outcome.users)
+        return outcome.results
+      }
+
+      const { results } = await bulkUpdateStaffUserRoleRequest(userIds, roleKey)
+      setUsers((current) => mergeBulkRoleResults(current, results))
+      return results
     },
     [session, users],
   )
@@ -2031,19 +2507,35 @@ export function useAppData() {
     [session, users],
   )
 
+  // Eventos que gestiona un organizador. Devuelve el usuario con su lista nueva.
+  const setUserEventAccessAction = useCallback(async (userId, eventIds) => {
+    const { eventAccess } = await setStaffUserEventAccessRequest(userId, eventIds)
+    let updated = null
+    setUsers((current) =>
+      current.map((item) => {
+        if (item.id !== userId) return item
+        updated = { ...item, eventAccess }
+        return updated
+      }),
+    )
+    return updated ?? { id: userId, eventAccess }
+  }, [])
+
   // Alta real de staff (admin/operador/viewer): el backend crea la cuenta
   // invitada y manda un enlace firmado para elegir contraseña.
   const createUserAction = useCallback(async (draft) => {
-    const { user, emailed } = await createStaffUserRequest(draft)
+    const { user, emailed, invitationUrl, invitationExpiresAt } =
+      await createStaffUserRequest(draft)
     setUsers((current) => [user, ...current.filter((item) => item.id !== user.id)])
-    return { user, emailed }
+    return { user, emailed, invitationUrl, invitationExpiresAt }
   }, [])
 
   // Reenvío de invitación / reseteo: rota el enlace anterior y corta sesiones.
   const resetStaffPasswordAction = useCallback(async (userId, sendEmail = true) => {
-    const { user, emailed } = await resetStaffPasswordRequest(userId, sendEmail)
+    const { user, emailed, invitationUrl, invitationExpiresAt } =
+      await resetStaffPasswordRequest(userId, sendEmail)
     setUsers((current) => current.map((item) => (item.id === user.id ? user : item)))
-    return { user, emailed }
+    return { user, emailed, invitationUrl, invitationExpiresAt }
   }, [])
 
   const acceptStaffInvitationAction = useCallback(
@@ -2569,8 +3061,10 @@ export function useAppData() {
   }, [])
 
   const createSecurityAccessLinkAction = useCallback(
-    (userId, { sendEmail = false, expiresAt } = {}) =>
-      createSecurityAccessLinkRequest(userId, { sendEmail, expiresAt }),
+    (userId, { sendEmail = false, expiresAt, rotate = false, read = false } = {}) =>
+      read
+        ? getSecurityAccessLinkRequest(userId)
+        : createSecurityAccessLinkRequest(userId, { sendEmail, expiresAt, rotate }),
     [],
   )
 
@@ -2610,8 +3104,8 @@ export function useAppData() {
   // Login passwordless de puerta: la credencial (token firmado) crea una
   // sesión real igual que loginRequest, incluyendo el puente de Supabase Auth.
   const loginWithGateToken = useCallback(
-    async (token) => {
-      const { user, supabaseAuth } = await securityGateRequest(token)
+    async (credential) => {
+      const { user, supabaseAuth } = await securityGateRequest(credential)
       setSession(user)
       await establishSupabaseSession(supabaseAuth)
       return user
@@ -2756,8 +3250,10 @@ export function useAppData() {
   )
 
   const logout = useCallback(
-    async ({ notify = true } = {}) => {
+    async ({ notify = true, preserveOfflineQueue = false } = {}) => {
       const currentSession = session
+      logoutEpochRef.current += 1
+      logoutInFlightRef.current = true
       setSession(null)
       adminSnapshotEtagRef.current = null
       athleteSnapshotEtagRef.current = null
@@ -2766,38 +3262,53 @@ export function useAppData() {
       // tiene que decir quién salió, no un genérico.
       if (notify) markSignedOut(sessionDisplayName(currentSession ?? {}, { short: true }))
       // Las listas de la puerta (nombre y DNI) no se quedan en el equipo al salir.
-      void import('../lib/offlineCheckinDb.js')
-        .then((offlineDb) => offlineDb.purgeOfflineCheckinData())
-        .catch(() => {})
+      // Quien vuelve a entrar para sincronizar una cola no tiene que perderla.
+      if (!preserveOfflineQueue) {
+        void import('../lib/offlineCheckinDb.js')
+          .then((offlineDb) => offlineDb.purgeOfflineCheckinData())
+          .catch(() => {})
+      }
 
-      if (!isDemoSession(currentSession) && currentSession) {
-        // Con el puente staff↔atleta pueden coexistir ambas cookies: limpiar las dos.
-        await logoutAthleteSession().catch((error) => {
-          if (error?.status !== 401) console.warn('No se pudo cerrar la sesion de atleta.', error)
-        })
+      try {
+        if (!isDemoSession(currentSession) && currentSession) {
+          // Con el puente staff↔atleta pueden coexistir ambas cookies: limpiar las dos.
+          await logoutAthleteSession().catch((error) => {
+            if (error?.status !== 401) console.warn('No se pudo cerrar la sesion de atleta.', error)
+          })
 
-        if (currentSession.role !== 'athlete_plu' || currentSession.staffAvailable) {
-          if (isSupabaseConfigured) {
-            const supabase = await getSupabaseClient()
-            await supabase.auth.signOut().catch(() => {})
-          }
+          if (currentSession.role !== 'athlete_plu' || currentSession.staffAvailable) {
+            if (isSupabaseConfigured) {
+              const supabase = await getSupabaseClient()
+              await supabase.auth.signOut().catch(() => {})
+            }
 
-          try {
-            await logoutRequest()
-          } catch (error) {
-            if (error.status !== 401) {
-              console.warn('No se pudo cerrar la sesion del servidor.', error)
+            try {
+              await logoutRequest()
+            } catch (error) {
+              if (error.status !== 401) {
+                console.warn('No se pudo cerrar la sesion del servidor.', error)
+              }
+            }
+
+            if (oauth.configured && oauth.isAuthenticated) {
+              await oauth.logout()
             }
           }
-
-          if (oauth.configured && oauth.isAuthenticated) {
-            await oauth.logout()
-          }
         }
+      } finally {
+        logoutInFlightRef.current = false
       }
     },
     [oauth, session, setSession],
   )
+
+  // Sesión en memoria que la cookie ya no respalda. No avisa: no fue un
+  // cierre pedido por la persona. El epoch impide que un probe viejo la reviva.
+  const clearInvalidSession = useCallback(() => {
+    if (!sessionRef.current) return
+    logoutEpochRef.current += 1
+    setSession(null)
+  }, [setSession])
 
   /**
    * Staff autenticado → modo atleta (afiliación / inscripción) sin segunda cuenta.
@@ -3191,6 +3702,33 @@ export function useAppData() {
     return { success: true }
   }, [])
 
+  const saveMembershipFileAction = useCallback(async (athleteId, file) => {
+    try {
+      const { athlete } = await saveMembershipFileRequest(file)
+      setAthletes((current) =>
+        current.map((item) =>
+          item.id === athleteId
+            ? {
+                ...item,
+                fullName: athlete.fullName ?? item.fullName,
+                documentId: athlete.documentId ?? item.documentId,
+                birthDate: athlete.birthDate ?? item.birthDate,
+                sex: athlete.sex ?? item.sex,
+                phone: athlete.phone ?? item.phone,
+                country: athlete.country ?? item.country,
+                province: athlete.province ?? item.province,
+                city: athlete.city ?? item.city,
+              }
+            : item,
+        ),
+      )
+      return { athlete }
+    } catch (error) {
+      if (error instanceof ApiError) return { error: error.message, code: error.body?.code ?? null }
+      return { error: 'No se pudo guardar la ficha. Intentá de nuevo.' }
+    }
+  }, [])
+
   const updateAthleteProfileAction = useCallback(async (athleteId, updates) => {
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailPattern.test(updates.email ?? '')) {
@@ -3219,6 +3757,36 @@ export function useAppData() {
     }
   }, [])
 
+  const uploadAthleteDocumentAction = useCallback(async (athleteId, kind, file) => {
+    try {
+      const uploaded = await uploadAthleteDocument(kind, file)
+      const row = uploaded?.document ?? {}
+      setAthletes((current) =>
+        current.map((item) => {
+          if (item.id !== athleteId) return item
+          const documents = (item.documents ?? []).filter((entry) => entry.kind !== kind)
+          return {
+            ...item,
+            documents: [
+              ...documents,
+              {
+                kind: row.kind ?? kind,
+                contentType: row.content_type ?? row.contentType ?? file.type,
+                sizeBytes: row.size_bytes ?? row.sizeBytes ?? file.size,
+                originalName: row.original_name ?? row.originalName ?? file.name,
+                uploadedAt: row.uploaded_at ?? row.uploadedAt ?? new Date().toISOString(),
+              },
+            ],
+          }
+        }),
+      )
+      return { ok: true }
+    } catch (error) {
+      if (error instanceof ApiError) return { error: error.message }
+      return { error: 'No se pudo subir el documento. Intentá de nuevo.' }
+    }
+  }, [])
+
   const removeAthletePhotoAction = useCallback(async (athleteId) => {
     try {
       const { athlete } = await registerAthletePhotoRequest(athleteId, null)
@@ -3230,17 +3798,243 @@ export function useAppData() {
     }
   }, [])
 
-  const exportAdminCsv = useCallback(() => {
-    if (!hasPermission(session, 'admin.exports.admin')) return
-    const rows = buildAdminExportRows(registrations, athletes, memberships, payments)
-    createCsv('plu-arg-admin-export.csv', rows)
-  }, [registrations, athletes, memberships, payments, session])
+  const exportAdminCsv = useCallback(
+    async ({ eventSlug = null, format = 'csv' } = {}) => {
+      if (!hasPermission(session, 'admin.exports.admin')) return { ok: false }
 
-  const exportPluUsaCsv = useCallback(() => {
-    if (!hasPermission(session, 'admin.exports.plu_usa')) return
-    const rows = buildPluUsaExportRows(athletes, memberships, registrations)
-    createCsv('plu-usa-export.csv', rows)
-  }, [athletes, memberships, registrations, session])
+      const runLocal = () => {
+        const scopedRegistrations = eventSlug
+          ? registrations.filter(
+              (item) => item.eventSlug === eventSlug || item.event === eventSlug,
+            )
+          : registrations
+        const rows = buildAdminExportRows(scopedRegistrations, athletes, memberships, payments)
+        if (!rows.length) {
+          notifyError('No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        const suffix = eventSlug
+          ? `-${String(eventSlug).replaceAll(/[^a-z0-9-]+/gi, '-').toLowerCase()}`
+          : ''
+        createCsv(`plu-arg-admin-export${suffix}.csv`, rows)
+        notifySuccess('Exportación descargada.')
+        return { ok: true }
+      }
+
+      if (env.demoMode || isDemoSession(session)) return runLocal()
+
+      try {
+        const result = await downloadAdminExport({ type: 'admin', format, eventSlug })
+        downloadBlob(result.blob, result.filename)
+        if (result.truncated) {
+          notifySuccess(
+            'Exportación descargada (parcial: hay más filas; filtrá por evento para el resto).',
+          )
+        } else {
+          notifySuccess('Exportación descargada.')
+        }
+        return { ok: true, truncated: result.truncated }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          notifyError(error.message || 'No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        notifyError(error?.message ?? 'No se pudo generar el export.')
+        return { ok: false, error }
+      }
+    },
+    [athletes, memberships, payments, registrations, session],
+  )
+
+  const exportPluUsaCsv = useCallback(
+    async ({ eventSlug = null, format = 'csv' } = {}) => {
+      if (!hasPermission(session, 'admin.exports.plu_usa')) return { ok: false }
+
+      const runLocal = () => {
+        const scopedRegistrations = eventSlug
+          ? registrations.filter(
+              (item) => item.eventSlug === eventSlug || item.event === eventSlug,
+            )
+          : registrations
+        const athleteIds = new Set(scopedRegistrations.map((item) => item.athleteId))
+        const scopedAthletes = eventSlug
+          ? athletes.filter((item) => athleteIds.has(item.id))
+          : athletes
+        const rows = buildPluUsaExportRows(scopedAthletes, memberships, scopedRegistrations)
+        if (!rows.length) {
+          notifyError('No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        createCsv('plu-usa-export.csv', rows)
+        notifySuccess('Exportación descargada.')
+        return { ok: true }
+      }
+
+      if (env.demoMode || isDemoSession(session)) return runLocal()
+
+      try {
+        const result = await downloadAdminExport({ type: 'plu_usa', format, eventSlug })
+        downloadBlob(result.blob, result.filename)
+        if (result.truncated) {
+          notifySuccess(
+            'Exportación descargada (parcial: hay más filas; filtrá por evento para el resto).',
+          )
+        } else {
+          notifySuccess('Exportación descargada.')
+        }
+        return { ok: true, truncated: result.truncated }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          notifyError(error.message || 'No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        notifyError(error?.message ?? 'No se pudo generar el export.')
+        return { ok: false, error }
+      }
+    },
+    [athletes, memberships, registrations, session],
+  )
+
+  const fetchLiftersReadiness = useCallback(
+    async ({ eventSlug = null } = {}) => {
+      if (!hasPermission(session, 'admin.exports.admin')) {
+        return { error: 'Sin permisos para exportar.' }
+      }
+      if (env.demoMode || isDemoSession(session)) {
+        const { buildLiftersExportRows, buildLiftersReadiness, validateLifterExport } = await import(
+          '../../shared/liftersExport.js'
+        )
+        const scoped = eventSlug
+          ? registrations.filter(
+              (item) => item.eventSlug === eventSlug || item.event === eventSlug,
+            )
+          : registrations
+        const rows = buildLiftersExportRows(scoped, athletes, memberships)
+        return {
+          readiness: buildLiftersReadiness(rows),
+          exportCheck: validateLifterExport(rows),
+          rows,
+          truncated: false,
+          event: null,
+        }
+      }
+      try {
+        return await fetchLiftersExportReadiness({ eventSlug })
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo calcular la completitud.' }
+      }
+    },
+    [athletes, memberships, registrations, session],
+  )
+
+  const exportLiftersXls = useCallback(
+    async ({ eventSlug = null, options = null } = {}) => {
+      if (!hasPermission(session, 'admin.exports.admin')) return { ok: false }
+
+      const { liftersExportOptionsToQuery } = await import('../lib/liftersExportStudio.js')
+      const liftersQuery = options ? liftersExportOptionsToQuery(options) : null
+
+      if (env.demoMode || isDemoSession(session)) {
+        const {
+          buildLiftersExportRows,
+          buildLiftersReadiness,
+          filterLiftersRowsByCompleteness,
+          liftersImportColumnsMissing,
+          serializeLiftersSpreadsheet,
+          validateLifterExport,
+        } = await import('../../shared/liftersExport.js')
+        const scoped = eventSlug
+          ? registrations.filter(
+              (item) => item.eventSlug === eventSlug || item.event === eventSlug,
+            )
+          : registrations
+        const liftersRows = buildLiftersExportRows(scoped, athletes, memberships)
+        if (!liftersRows.length) {
+          notifyError('No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        const readiness = buildLiftersReadiness(liftersRows)
+        const exportCheck = validateLifterExport(
+          filterLiftersRowsByCompleteness(liftersRows, options?.rowFilter),
+        )
+        if (!exportCheck.valid) {
+          notifyError('Hay atletas con datos que no se pueden exportar.')
+          return { ok: false, error: exportCheck }
+        }
+        if (liftersImportColumnsMissing(options ?? {})) {
+          notifyError('La plantilla de importación necesita todas las columnas.')
+          return { ok: false, error: { code: 'LIFTERS_EXPORT_COLUMNS' } }
+        }
+        const xml = serializeLiftersSpreadsheet(liftersRows, 'Lifters', options ?? {})
+        if (!xml) {
+          notifyError('No hay filas para exportar con el filtro del studio.')
+          return { ok: false, empty: true }
+        }
+        downloadBlob(
+          new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' }),
+          'lifters-export.xls',
+        )
+        const notes = []
+        if (exportCheck.warnings) {
+          notes.push(`${exportCheck.warnings} con peso por encima de la categoría`)
+        }
+        if (readiness.incomplete) notes.push(`${readiness.incomplete} con datos faltantes`)
+        if (readiness.divisionMismatch) {
+          notes.push(`${readiness.divisionMismatch} con división incorrecta`)
+        }
+        notifySuccess(
+          notes.length
+            ? `Exportación Lifters descargada (${notes.join('; ')}).`
+            : 'Exportación Lifters descargada.',
+        )
+        return { ok: true, readiness }
+      }
+
+      try {
+        const result = await downloadAdminExport({
+          type: 'lifters',
+          format: 'xls',
+          eventSlug,
+          liftersOptions: liftersQuery,
+        })
+        downloadBlob(result.blob, result.filename)
+        const notes = []
+        if (result.incomplete > 0) notes.push(`${result.incomplete} incompletas`)
+        if (result.divisionMismatch > 0) {
+          notes.push(`${result.divisionMismatch} con desajuste de división`)
+        }
+        notifySuccess(
+          notes.length
+            ? `Exportación Lifters descargada (${notes.join('; ')}).`
+            : 'Exportación Lifters descargada.',
+        )
+        return {
+          ok: true,
+          incomplete: result.incomplete,
+          divisionMismatch: result.divisionMismatch,
+        }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          notifyError(error.message || 'No hay datos para exportar con esos filtros.')
+          return { ok: false, empty: true }
+        }
+        notifyError(error?.message ?? 'No se pudo generar el export Lifters.')
+        return { ok: false, error }
+      }
+    },
+    [athletes, memberships, registrations, session],
+  )
+
+  /** Marca una escritura de eventos propia mientras dura (ver LOCAL_EVENTS_WRITE_ECHO_MS). */
+  const trackLocalEventsWrite = useCallback(async (request) => {
+    localEventsWriteRef.current.pending += 1
+    try {
+      return await request()
+    } finally {
+      localEventsWriteRef.current.pending -= 1
+      localEventsWriteRef.current.finishedAt = Date.now()
+    }
+  }, [])
 
   const saveAdminEvent = useCallback(
     async (draft) => {
@@ -3262,14 +4056,16 @@ export function useAppData() {
       }
 
       const sourceEvent = draft.id
-        ? (adminEvents.find((event) => event.id === draft.id) ?? null)
+        ? (adminEventsRef.current.find((event) => event.id === draft.id) ?? null)
         : null
-      const result = await saveAdminEventRequest(draft, sourceEvent)
+      const result = await trackLocalEventsWrite(() => saveAdminEventRequest(draft, sourceEvent))
       setAdminEvents(result.events)
       setAdminEventsError(null)
+      const savedSlug = result.event?.slug ?? sourceEvent?.slug ?? draft.slug
+      if (savedSlug) invalidateTicketAvailability(savedSlug)
       return result
     },
-    [adminEvents, session],
+    [adminEvents, adminEventsRef, session, setAdminEvents, trackLocalEventsWrite],
   )
 
   /**
@@ -3300,6 +4096,25 @@ export function useAppData() {
             requiresMembership: changes.requiresMembership ?? event.requiresMembership,
             capacityProgressPublic:
               changes.capacityProgressPublic ?? event.capacityProgressPublic,
+            registrationOpensAt:
+              changes.registrationOpensAt !== undefined
+                ? changes.registrationOpensAt
+                : event.registrationOpensAt,
+            registrationClosesAt:
+              changes.registrationClosesAt !== undefined
+                ? changes.registrationClosesAt
+                : event.registrationClosesAt,
+            ...(changes.ticketsEnabled !== undefined
+              ? {
+                  pricing: {
+                    ...event.pricing,
+                    ticketsEnabled: changes.ticketsEnabled === true,
+                  },
+                  ...(changes.ticketsEnabled === true
+                    ? { publicSurface: { ...event.publicSurface, tickets: true } }
+                    : {}),
+                }
+              : {}),
             updatedAt: new Date().toISOString(),
           }
           // El demo replica la regla de la base: sin esto el cupo lleno se
@@ -3315,6 +4130,7 @@ export function useAppData() {
 
         if (!updated) return { error: 'No se encontró el evento.' }
         setAdminEvents(events)
+        invalidateTicketAvailability(slug)
         return {
           event: updated,
           events,
@@ -3323,15 +4139,16 @@ export function useAppData() {
       }
 
       try {
-        const result = await setEventStateRequest(slug, changes)
+        const result = await trackLocalEventsWrite(() => setEventStateRequest(slug, changes))
         setAdminEvents(result.events)
         setAdminEventsError(null)
+        invalidateTicketAvailability(slug)
         return result
       } catch (error) {
         return { error: error?.message ?? 'No se pudo cambiar el estado del evento.' }
       }
     },
-    [adminEvents, session],
+    [adminEvents, session, setAdminEvents, trackLocalEventsWrite],
   )
 
   /**
@@ -3340,7 +4157,7 @@ export function useAppData() {
    * `updatedAt`, así que no invalida el formulario que el operador tenga abierto.
    */
   const setAdminEventLogo = useCallback(
-    async (slug, file) => {
+    async (slug, file, options) => {
       if (!hasPermission(session, 'admin.events.write')) {
         return { error: 'Sin permisos para editar eventos.' }
       }
@@ -3363,7 +4180,7 @@ export function useAppData() {
       }
 
       try {
-        const result = await setEventLogoRequest(slug, file)
+        const result = await trackLocalEventsWrite(() => setEventLogoRequest(slug, file, options))
         setAdminEvents(result.events)
         setAdminEventsError(null)
         return result
@@ -3371,7 +4188,7 @@ export function useAppData() {
         return { error: error?.message ?? 'No se pudo guardar el logo del evento.' }
       }
     },
-    [adminEvents, session],
+    [adminEvents, session, setAdminEvents, trackLocalEventsWrite],
   )
 
   /**
@@ -3442,7 +4259,7 @@ export function useAppData() {
         return { deletedEvent: { id: target.id, slug, title: target.title }, events: result.events }
       }
 
-      const result = await deleteAdminEventRequest(slug, { force })
+      const result = await trackLocalEventsWrite(() => deleteAdminEventRequest(slug, { force }))
       setAdminEvents(result.events)
       // Inscripciones y entradas del evento ya no existen en la base: sin esto
       // las secciones de inscripciones y entradas siguen mostrando filas de un
@@ -3452,7 +4269,7 @@ export function useAppData() {
       setAdminEventsError(null)
       return result
     },
-    [adminEvents, session],
+    [adminEvents, session, setAdminEvents, trackLocalEventsWrite],
   )
 
   const refreshPricingConfiguration = useCallback(async () => {
@@ -3598,10 +4415,7 @@ export function useAppData() {
   // relectura del catálogo al terminar.
   const setEventRegistrationPrice = useCallback(
     async (eventSlug, payload) => {
-      if (
-        !hasPermission(session, 'admin.pricing.write') ||
-        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
-      ) {
+      if (!canWriteEventPrice(session) || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
         return { error: 'La configuración económica está disponible próximamente.' }
       }
       try {
@@ -3620,10 +4434,7 @@ export function useAppData() {
 
   const clearEventRegistrationPriceSchedule = useCallback(
     async (eventSlug) => {
-      if (
-        !hasPermission(session, 'admin.pricing.write') ||
-        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
-      ) {
+      if (!canWriteEventPrice(session) || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
         return { error: 'La configuración económica está disponible próximamente.' }
       }
       try {
@@ -3874,9 +4685,11 @@ export function useAppData() {
     role,
     session,
     sessionPending,
+    publicCatalogSettled,
     getSession,
     login,
     logout,
+    clearInvalidSession,
     enterAthleteContext,
     returnToStaffContext,
     athletes,
@@ -3952,8 +4765,10 @@ export function useAppData() {
     adminNavBadges,
     getAthleteDetail,
     updateForm,
+    saveMembershipFileAction,
     updateAthleteProfileAction,
     updateAthletePhotoAction,
+    uploadAthleteDocumentAction,
     removeAthletePhotoAction,
     registerAthlete,
     submitMembership,
@@ -3971,6 +4786,8 @@ export function useAppData() {
     uploadTicketPaymentProofAction,
     approveTicketPurchase,
     rejectTicketPurchase,
+    reopenTicketPurchase,
+    settleCancelledTicketPurchase,
     refreshPendingTicketOrders,
     createManualTicketSale,
     checkInTicketAction,
@@ -3982,7 +4799,9 @@ export function useAppData() {
     roleActivity,
     permissionCatalog,
     updateUserRoleAction,
+    bulkUpdateUserRoleAction,
     updateUserStatusAction,
+    setUserEventAccessAction,
     createUserAction,
     acceptStaffInvitationAction,
     changeOwnPasswordAction,
@@ -4022,6 +4841,8 @@ export function useAppData() {
     handleRejectPayment,
     exportAdminCsv,
     exportPluUsaCsv,
+    exportLiftersXls,
+    fetchLiftersReadiness,
     demoMode: isDemoSession(session),
   }
 }

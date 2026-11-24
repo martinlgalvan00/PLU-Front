@@ -14,6 +14,7 @@ import {
   getEventRegistrationAvailability,
   isEventFull,
 } from '../../services/eventAdminService.js'
+import useEventRegistrationSale from '../../hooks/useEventRegistrationSale.js'
 
 function baselineFromEvent(event) {
   return {
@@ -68,6 +69,11 @@ export default function AdminEventStateControl({
   onPendingChange,
   onRegisterDiscard,
   onSetState,
+  /**
+   * En el workspace el estado de la inscripción lo maneja el control de venta
+   * (abrir / programar / cerrar): acá quedan acceso y sitio.
+   */
+  showStatus = true,
 }) {
   const { locale, t } = useI18n()
   const [busy, setBusy] = useState(false)
@@ -100,6 +106,8 @@ export default function AdminEventStateControl({
 
   const full = isEventFull(event)
   const registration = getEventRegistrationAvailability(event)
+  // Sin el campo de estado, el resumen dice lo mismo que el control de venta.
+  const sale = useEventRegistrationSale({ ...event, published: draft.published })
   const registered = Number(event?.registered) || 0
 
   const scheduledDate = useMemo(() => {
@@ -216,6 +224,7 @@ export default function AdminEventStateControl({
 
   const slots = Number(event?.slots) || 0
   const resultPrimary = (() => {
+    if (!showStatus) return t(`admin.eventSale.state_${sale.state}`)
     if (!draft.published) return t('admin.eventState.resultHidden')
     if (effectiveRegistration.full || draft.status === 'agotado') {
       return t('admin.eventState.resultFull')
@@ -309,25 +318,31 @@ export default function AdminEventStateControl({
   return (
     <section className="admin-event-state" aria-label={t('admin.eventState.label')}>
       <header className="admin-event-state__head">
-        <h4>{t('admin.eventState.sectionTitle')}</h4>
-        <p>{t('admin.eventState.sectionLead')}</p>
+        <h4>
+          {t(showStatus ? 'admin.eventState.sectionTitle' : 'admin.eventState.sectionTitleAccess')}
+        </h4>
+        <p>
+          {t(showStatus ? 'admin.eventState.sectionLead' : 'admin.eventState.sectionLeadAccess')}
+        </p>
       </header>
 
       <div className="admin-event-state__fields">
-        <div className="admin-event-state__field">
-          <span className="admin-event-state__field-label" id={statusLabelId}>
-            {t('admin.eventState.status')}
-          </span>
-          {renderOptions({
-            labelledBy: statusLabelId,
-            options: statusOptions.map(([value, label]) => ({
-              id: value,
-              label,
-              selected: draft.status === value,
-              onSelect: () => handleStatusChange(value),
-            })),
-          })}
-        </div>
+        {showStatus ? (
+          <div className="admin-event-state__field">
+            <span className="admin-event-state__field-label" id={statusLabelId}>
+              {t('admin.eventState.status')}
+            </span>
+            {renderOptions({
+              labelledBy: statusLabelId,
+              options: statusOptions.map(([value, label]) => ({
+                id: value,
+                label,
+                selected: draft.status === value,
+                onSelect: () => handleStatusChange(value),
+              })),
+            })}
+          </div>
+        ) : null}
 
         <div className="admin-event-state__field">
           <span className="admin-event-state__field-label" id={accessLabelId}>
@@ -407,7 +422,7 @@ export default function AdminEventStateControl({
         </p>
 
         <div className="admin-event-state__result-actions">
-          {effectiveRegistration.isLive ? null : (
+          {effectiveRegistration.isLive || !showStatus ? null : (
             <button
               type="button"
               className="admin-event-state__registration-action admin-event-state__registration-action--open"
@@ -427,7 +442,7 @@ export default function AdminEventStateControl({
               {t('admin.eventState.openRegistration')}
             </button>
           )}
-          {registration.canSetUpcoming && draft.status !== 'proximamente' ? (
+          {showStatus && registration.canSetUpcoming && draft.status !== 'proximamente' ? (
             <button
               type="button"
               className="admin-event-state__registration-action"
@@ -438,7 +453,7 @@ export default function AdminEventStateControl({
               {t('admin.eventState.setUpcoming')}
             </button>
           ) : null}
-          {(registration.scheduled || registration.closedByWindow) && onEditWindow ? (
+          {showStatus && (registration.scheduled || registration.closedByWindow) && onEditWindow ? (
             <button
               type="button"
               className="admin-event-state__registration-action"

@@ -1,5 +1,71 @@
+import { isStoredEventModuleOn } from '../../shared/eventModules.js'
+import { hiddenLandingTakesRegistrations } from '../../shared/registrationSaleState.js'
+
 function firstEmbeddedRow(value) {
   return Array.isArray(value) ? (value[0] ?? null) : (value ?? null)
+}
+
+/**
+ * Una landing con el interruptor apagado (cualquier plantilla) se puede preparar
+ * con el evento ya configurado sin exponer sus datos. La decisión vive en la
+ * misma landing para no mezclarla con `published`, que también gobierna cobros.
+ */
+export function isPublicCatalogEvent(row) {
+  return row?.rules?.landing?.publicVisible !== false
+}
+
+/**
+ * Lo único que el público ve de una landing apagada: que el evento existe y que
+ * su plataforma está en construcción. Sin fecha, sede, precios, cupos ni
+ * descripción. Alcanza para que el menú lo muestre y la landing diga "en
+ * construcción" en vez de un 404.
+ */
+export function underConstructionCatalogEvent(row) {
+  return {
+    id: row?.id,
+    slug: row?.slug,
+    title: row?.title,
+    published: true,
+    status: 'proximamente',
+    rules: { landing: constructionLanding(row) },
+  }
+}
+
+/**
+ * Landing reducida al aviso: plantilla, tema y los colores/animación del
+ * evento. Sin slots ni bloques, que son la página que todavía se está armando.
+ */
+function constructionLanding(row) {
+  const landing = row?.rules?.landing ?? {}
+  const { palette, motion } = landing.layout ?? {}
+  return {
+    templateId: landing.templateId,
+    themeId: landing.themeId,
+    publicVisible: false,
+    ...(palette || motion ? { layout: { ...(palette ? { palette } : {}), ...(motion ? { motion } : {}) } } : {}),
+  }
+}
+
+/**
+ * Landing apagada con la inscripción abierta (o programada): el aviso "en
+ * construcción" lleva el botón de inscripción, así que el evento viaja con lo
+ * que necesita el checkout (fecha, sede, precio, oferta, ventana). Lo que se
+ * sigue guardando es la página en armado: slots, bloques, copy público y
+ * portada.
+ */
+export function registrationOnlyCatalogEvent(row, now = new Date()) {
+  const event = sanitizePublicCatalogEvent(row, now)
+  const { publicCopy: _publicCopy, landing: _landing, ...rules } = event.rules ?? {}
+  const { hero_image_url: _heroImageUrl, ...rest } = event
+  return { ...rest, rules: { ...rules, landing: constructionLanding(row) } }
+}
+
+/** Lo que el catálogo público entrega de cada fila publicada. */
+export function publicCatalogEventFor(row, now = new Date()) {
+  if (isPublicCatalogEvent(row)) return sanitizePublicCatalogEvent(row, now)
+  return hiddenLandingTakesRegistrations(row, { now })
+    ? registrationOnlyCatalogEvent(row, now)
+    : underConstructionCatalogEvent(row)
 }
 
 /**
@@ -11,7 +77,10 @@ export function sanitizePublicCatalogEvent(row, now = new Date()) {
   const combo = firstEmbeddedRow(row?.comboOffer ?? row?.combo_offer)
   const startsAt = combo?.starts_at ? new Date(combo.starts_at) : null
   const endsAt = combo?.ends_at ? new Date(combo.ends_at) : null
+  // Con el módulo Combo apagado la oferta no se ofrece aunque esté vigente: el
+  // checkout la trataría como disponible y el servidor la rechazaría (409).
   const visible =
+    isStoredEventModuleOn(row, 'combo') &&
     combo?.active === true &&
     combo?.audience === 'public' &&
     !combo?.archived_at &&
@@ -19,8 +88,10 @@ export function sanitizePublicCatalogEvent(row, now = new Date()) {
     (!endsAt || endsAt >= now)
   const rules = { ...(row?.rules ?? {}) }
   if (!visible) delete rules.comboPrice
+  // La URL ya es pública; la ruta interna del bucket no aporta nada al cliente.
+  const { logo_path: _logoPath, ...event } = row ?? {}
   return {
-    ...row,
+    ...event,
     rules,
     comboOffer: visible ? combo : null,
   }

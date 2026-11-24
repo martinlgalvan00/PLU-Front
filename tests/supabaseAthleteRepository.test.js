@@ -1,6 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createSupabaseAthleteRepository } from '../server/modules/athletes/supabaseAthleteRepository.js'
 
+function documentsQuery(rows = []) {
+  const query = {
+    select: () => query,
+    in: () => Promise.resolve({ data: rows, error: null }),
+    eq: () => query,
+    order: () => Promise.resolve({ data: rows, error: null }),
+  }
+  return query
+}
+
 function athleteQuery(rows) {
   const query = {
     select: () => query,
@@ -18,6 +28,7 @@ describe('supabase athlete repository admin snapshot', () => {
     let signedUrlCalls = 0
     const client = {
       from: (table) => {
+        if (table === 'athlete_documents') return documentsQuery()
         expect(table).toBe('athletes')
         return athleteQuery([
           { id: 'a1', full_name: 'Ana', photo_path: 'cache-test/a1.jpg' },
@@ -54,7 +65,10 @@ describe('supabase athlete repository admin snapshot', () => {
 
   it('también adjunta URL estable cuando el poll pide photos=0', async () => {
     const client = {
-      from: () => athleteQuery([{ id: 'a1', full_name: 'Ana', photo_path: 'cache-test/a1.jpg' }]),
+      from: (table) =>
+        table === 'athlete_documents'
+          ? documentsQuery()
+          : athleteQuery([{ id: 'a1', full_name: 'Ana', photo_path: 'cache-test/a1.jpg' }]),
       storage: {
         from: () => ({
           createSignedUrls: async () => {
@@ -166,6 +180,7 @@ describe('supabase athlete repository admin snapshot', () => {
     const orFilters = []
     const client = {
       from: (table) => {
+        if (table === 'athlete_documents') return documentsQuery()
         if (table !== 'athletes') return athleteQuery([])
         const query = {
           select: () => query,

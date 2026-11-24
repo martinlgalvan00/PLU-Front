@@ -1,7 +1,13 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, Check, QrCode } from 'lucide-react'
 import { m, useScroll, useTransform } from 'motion/react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import {
+  buildCredentialUrl,
+  generateCredentialQr,
+  HOME_PREVIEW_CREDENTIAL_CODE,
+  peekCredentialQr,
+} from '../../lib/credentialQr.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import Reveal from '../../motion/Reveal.tsx'
 import ScrollRail from '../../motion/ScrollRail.tsx'
@@ -56,6 +62,51 @@ function JourneyPass({ targetRef, activeIndex, still, t }) {
   const maxTilt = TILT_MAX_DEG * MOTION_TIER_SCALE[tier]
   const rotateY = useTransform(scrollYProgress, [0, 1], [maxTilt, -maxTilt])
   const depth = !still && hasFinePointer()
+  const plateRef = useRef(null)
+  const previewUrl = useRef(buildCredentialUrl({ code: HOME_PREVIEW_CREDENTIAL_CODE }))
+  const [qrSrc, setQrSrc] = useState(() => peekCredentialQr(previewUrl.current) ?? '')
+
+  useEffect(() => {
+    const url = previewUrl.current
+    const cached = peekCredentialQr(url)
+    if (cached) {
+      setQrSrc(cached)
+      return undefined
+    }
+
+    const node = plateRef.current
+    let cancelled = false
+    const reveal = () => {
+      generateCredentialQr(url)
+        .then((dataUrl) => {
+          if (!cancelled) setQrSrc(dataUrl)
+        })
+        .catch(() => {
+          if (!cancelled) setQrSrc('')
+        })
+    }
+
+    if (!node || typeof IntersectionObserver === 'undefined') {
+      reveal()
+      return () => {
+        cancelled = true
+      }
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return
+        observer.disconnect()
+        reveal()
+      },
+      { rootMargin: '240px 0px' },
+    )
+    observer.observe(node)
+    return () => {
+      cancelled = true
+      observer.disconnect()
+    }
+  }, [])
 
   const Shell = depth ? m.div : 'div'
   const shellProps = depth ? { style: { rotateY, transformPerspective: PASS_PERSPECTIVE } } : {}
@@ -67,23 +118,28 @@ function JourneyPass({ targetRef, activeIndex, still, t }) {
         <span className="journey-pass__title">{t('pages.home.journeyPassTitle')}</span>
       </div>
       <div className="journey-pass__body">
-        <span className="journey-pass__qr">
-          <QrCode size={64} strokeWidth={1.25} />
+        <span className="journey-pass__qr" ref={plateRef}>
+          {qrSrc ? (
+            <img alt="" className="journey-pass__qr-img" decoding="async" src={qrSrc} />
+          ) : (
+            <QrCode size={36} strokeWidth={1.5} />
+          )}
         </span>
-        <ul className="journey-pass__rows">
+        <ol className="journey-pass__rows">
           {CHAPTERS.map((chapter, index) => (
             <li
               key={chapter.id}
               className="journey-pass__row"
               data-state={rowState(index, activeIndex, still)}
             >
-              <span className="journey-pass__mark">
-                <Check size={11} strokeWidth={3} />
-              </span>
+              <span className="journey-pass__index">{pad2(chapter.n)}</span>
               <span className="journey-pass__label">{t(PASS_ROW_KEYS[chapter.id])}</span>
+              <span className="journey-pass__mark">
+                <Check size={13} strokeWidth={2.5} />
+              </span>
             </li>
           ))}
-        </ul>
+        </ol>
       </div>
     </Shell>
   )

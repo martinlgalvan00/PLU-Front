@@ -4,7 +4,11 @@ import { m } from 'motion/react'
 import TiltCard from '../../motion/TiltCard.tsx'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
+import {
+  buildCredentialUrl,
+  generateCredentialQr,
+  HOME_PREVIEW_CREDENTIAL_CODE,
+} from '../../lib/credentialQr.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import {
   MOTION_DURATION,
@@ -67,8 +71,6 @@ const layerItem = {
   },
 }
 
-const PREVIEW_MEMBER_CODE = 'PREV-HOME-MEMBER'
-
 /**
  * Showcase de afiliación — frente de la credencial digital real
  * (`DigitalCredential` + QR de cuenta), sin PII inventados:
@@ -110,7 +112,7 @@ export default function HomeMembershipCredential() {
   useEffect(() => {
     if (!shouldGenerateQr) return undefined
     let cancelled = false
-    const url = buildCredentialUrl({ code: PREVIEW_MEMBER_CODE })
+    const url = buildCredentialUrl({ code: HOME_PREVIEW_CREDENTIAL_CODE })
 
     generateCredentialQr(url)
       .then((dataUrl) => {
@@ -127,12 +129,6 @@ export default function HomeMembershipCredential() {
 
   const body = (
     <div className="home-credential__stack" aria-label={t('pages.home.credentialAria')}>
-      <span className="home-credential__glow" aria-hidden />
-      <span className="home-credential__grain" aria-hidden />
-      <span className="home-credential__watermark" aria-hidden>
-        {seasonYear.slice(-2) || 'PL'}
-      </span>
-
       {reducedMotion ? (
         <div className="home-credential__face">
           <CredentialFaceContent seasonYear={seasonYear} qrSrc={qrSrc} t={t} />
@@ -223,14 +219,13 @@ function CredentialFaceContent({ seasonYear, qrSrc, t, motion = false }) {
         <div className="home-credential__qr" aria-hidden>
           <div className="home-credential__qr-frame">
             {qrSrc ? (
-              <img src={qrSrc} alt="" className="home-credential__qr-img" />
+              <img src={qrSrc} alt="" className="home-credential__qr-img" decoding="async" />
             ) : (
               <span className="home-credential__qr-fallback">
                 <QrCode size={36} strokeWidth={1.4} />
               </span>
             )}
           </div>
-          <span className="home-credential__qr-label">{t('pages.home.credentialQrLabel')}</span>
         </div>
       </Item>
 

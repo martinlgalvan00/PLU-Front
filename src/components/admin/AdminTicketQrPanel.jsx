@@ -1,11 +1,12 @@
 import { useEffect, useId, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Copy, Download, ShieldPlus, X } from 'lucide-react'
+import { Copy, Download, Mail, ShieldPlus, X } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 import CredentialQr from '../ui/CredentialQr.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { generateCredentialQr } from '../../lib/credentialQr.js'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
+import { resendTicketOrder } from '../../services/ticketApi.js'
 import { money } from '../../lib/format.js'
 import { ticketTypeNameParts } from '../../lib/eventPricing.js'
 import {
@@ -53,10 +54,12 @@ export default function AdminTicketQrPanel({
   const panelRef = useAdminModal(() => onClose())
   const [qrSrc, setQrSrc] = useState(null)
   const [qrFailed, setQrFailed] = useState(false)
+  const [resending, setResending] = useState(false)
+  const orderId = ticket.order?.id || ticket.orderId || null
 
   const usable = ticketHasUsableQr(ticket)
   const admission = ticketAdmissionState(ticket)
-  const buyerUrl = buildBuyerTicketsUrl(ticket.order?.reference)
+  const buyerUrl = buildBuyerTicketsUrl(ticket.order?.reference, ticket.order?.openKey)
   const typeParts = ticketTypeNameParts(ticket.ticketTypeName, locale)
   const credential =
     ticket.credentialLabel && ticket.credentialLabel !== ticket.ticketTypeName
@@ -97,6 +100,21 @@ export default function AdminTicketQrPanel({
     }
   }
 
+  async function resendToBuyer() {
+    if (!orderId || resending) return
+    setResending(true)
+    try {
+      const result = await resendTicketOrder(orderId)
+      if (result?.status === 'already') notifySuccess(t('admin.eventTicketsSold.qr.already'))
+      else if (result?.status === 'sent') notifySuccess(t('admin.eventTicketsSold.qr.resent'))
+      else notifyError(t('admin.eventTicketsSold.qr.resendFailed'))
+    } catch (error) {
+      notifyError(error?.message || t('admin.eventTicketsSold.qr.resendFailed'))
+    } finally {
+      setResending(false)
+    }
+  }
+
   function downloadQr() {
     if (!qrSrc) return
     const link = document.createElement('a')
@@ -123,6 +141,12 @@ export default function AdminTicketQrPanel({
       validFrom && validUntil && admission !== 'ready' ? `${validFrom} → ${validUntil}` : null,
     ],
   ].filter(([, value]) => Boolean(value))
+  const typeLine = [typeParts.title, credential].filter(Boolean).join(' · ')
+  const showDownload = usable
+  const showCopy = Boolean(buyerUrl) && usable
+  const showResend = Boolean(orderId) && usable
+  const showOverride = Boolean(canOverride && onOverride) && usable
+  const hasActions = showDownload || showCopy || showResend || showOverride
 
   return createPortal(
     <div className="ticket-qr-panel">
@@ -143,9 +167,8 @@ export default function AdminTicketQrPanel({
           <div className="ticket-qr-panel__identity">
             <span className="ticket-qr-panel__eyebrow">{t('admin.eventTicketsSold.qr.eyebrow')}</span>
             <h2 id={titleId}>{ticket.attendeeName || '—'}</h2>
-            <p>
-              {[ticket.attendeeDni, ticket.ticketCode].filter(Boolean).join(' · ')}
-            </p>
+            <p>{[ticket.attendeeDni, ticket.ticketCode].filter(Boolean).join(' · ')}</p>
+            {typeLine ? <p className="ticket-qr-panel__type">{typeLine}</p> : null}
           </div>
           <button
             type="button"
@@ -158,11 +181,6 @@ export default function AdminTicketQrPanel({
         </header>
 
         <div className="ticket-qr-panel__body">
-          <div className="ticket-qr-panel__ticket">
-            <strong>{typeParts.title || '—'}</strong>
-            {credential ? <span className="ticket-qr-panel__credential">{credential}</span> : null}
-          </div>
-
           {usable ? (
             <div className="ticket-qr-panel__code">
               <CredentialQr
@@ -179,10 +197,8 @@ export default function AdminTicketQrPanel({
             <span>
               <strong>{t(`admin.eventTicketsSold.qr.state.${admission}`)}</strong>
               {admissionDetail ? <small>{admissionDetail}</small> : null}
+              <small>{t(`admin.eventTicketsSold.qr.hint.${admission}`)}</small>
             </span>
-          </p>
-          <p className="ticket-qr-panel__hint">
-            {t(`admin.eventTicketsSold.qr.hint.${admission}`)}
           </p>
 
           {details.length > 0 ? (
@@ -197,26 +213,41 @@ export default function AdminTicketQrPanel({
           ) : null}
         </div>
 
-        <footer className="ticket-qr-panel__actions">
-          {usable ? (
-            <Button type="button" variant="gold" disabled={!qrSrc} onClick={downloadQr}>
-              <Download size={15} aria-hidden />
-              {t('admin.eventTicketsSold.qr.download')}
-            </Button>
-          ) : null}
-          {buyerUrl && usable ? (
-            <button type="button" className="ticket-qr-panel__secondary" onClick={copyBuyerLink}>
-              <Copy size={15} aria-hidden />
-              {t('admin.eventTicketsSold.qr.copyLink')}
-            </button>
-          ) : null}
-          {canOverride && onOverride && usable ? (
-            <button type="button" className="ticket-qr-panel__tertiary" onClick={onOverride}>
-              <ShieldPlus size={15} aria-hidden />
-              {t('admin.eventTicketsSold.qr.override')}
-            </button>
-          ) : null}
-        </footer>
+        {hasActions ? (
+          <footer className="ticket-qr-panel__actions">
+            {showDownload ? (
+              <Button type="button" variant="gold" disabled={!qrSrc} onClick={downloadQr}>
+                <Download size={15} aria-hidden />
+                {t('admin.eventTicketsSold.qr.download')}
+              </Button>
+            ) : null}
+            {showCopy ? (
+              <button type="button" className="ticket-qr-panel__secondary" onClick={copyBuyerLink}>
+                <Copy size={15} aria-hidden />
+                {t('admin.eventTicketsSold.qr.copyLink')}
+              </button>
+            ) : null}
+            {showResend ? (
+              <button
+                type="button"
+                className="ticket-qr-panel__secondary"
+                disabled={resending}
+                onClick={() => void resendToBuyer()}
+              >
+                <Mail size={15} aria-hidden />
+                {resending
+                  ? t('admin.eventTicketsSold.qr.resending')
+                  : t('admin.eventTicketsSold.qr.resend')}
+              </button>
+            ) : null}
+            {showOverride ? (
+              <button type="button" className="ticket-qr-panel__tertiary" onClick={onOverride}>
+                <ShieldPlus size={15} aria-hidden />
+                {t('admin.eventTicketsSold.qr.override')}
+              </button>
+            ) : null}
+          </footer>
+        ) : null}
       </section>
     </div>,
     document.body,

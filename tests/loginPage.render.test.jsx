@@ -144,7 +144,7 @@ describe('LoginPage', () => {
       </I18nProvider>,
     )
 
-    const oauthButton = screen.getByRole('button', { name: /Ingresar con OAuth/i })
+    const oauthButton = screen.getByRole('button', { name: /Ingresar con la cuenta del equipo/i })
     expect(oauthButton.getAttribute('type')).toBe('button')
     fireEvent.click(oauthButton)
 
@@ -188,12 +188,49 @@ describe('LoginPage', () => {
     expect(screen.getByText(/atleta@plu.test/)).toBeTruthy()
   })
 
-  it('desde el pie deja pedir el enlace si llegó una clave temporal', async () => {
+  it('desde olvidé mi contraseña abre recuperar acceso', async () => {
     renderLogin()
-    fireEvent.click(screen.getByRole('button', { name: /Pedir enlace de acceso/i }))
+    fireEvent.click(screen.getByRole('button', { name: '¿Olvidaste tu contraseña?' }))
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Recuperar acceso' })).toBeTruthy()
     })
+  })
+
+  it('la guía de acceso abre recuperar desde la clave temporal y no duplica Afiliate', async () => {
+    renderLogin()
+
+    fireEvent.click(screen.getByText('¿Cómo entro?'))
+
+    const tempKey = screen.getByRole('button', { name: 'Pedir enlace de acceso' })
+    expect(screen.getByText('Todavía no tengo cuenta')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Afiliarme' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Afiliate' })).toBeTruthy()
+
+    fireEvent.click(tempKey)
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Recuperar acceso' })).toBeTruthy()
+    })
+    await waitFor(() => {
+      expect(screen.queryByText('¿Cómo entro?')).toBeNull()
+    })
+  })
+})
+
+describe('LoginPage: errores accesibles', () => {
+  it('lleva el foco al primer campo con error y lo asocia a su mensaje', () => {
+    const onLogin = vi.fn()
+    renderLogin({ onLogin })
+    const password = screen.getByLabelText('Contraseña')
+    fireEvent.change(screen.getByPlaceholderText('tu@email.com'), {
+      target: { value: 'atleta@plu.test' },
+    })
+    fireEvent.change(password, { target: { value: 'ab' } })
+    fireEvent.click(screen.getByRole('button', { name: /^ingresar$/i }))
+
+    expect(onLogin).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(password)
+    const message = document.getElementById(password.getAttribute('aria-describedby'))
+    expect(message.textContent).toMatch(/la contraseña es más larga/i)
   })
 })

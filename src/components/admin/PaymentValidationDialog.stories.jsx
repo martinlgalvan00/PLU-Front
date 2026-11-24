@@ -1,3 +1,4 @@
+import { expect, userEvent, within } from 'storybook/test'
 import '../../styles/pages/admin.css'
 import PaymentValidationDialog from './PaymentValidationDialog.jsx'
 
@@ -61,6 +62,36 @@ export const ValidacionConComprobante = {
   },
 }
 
+/**
+ * Transferencia de entradas sin archivo: la ficha pide el motivo y lista a
+ * cada asistente antes de habilitar el QR.
+ */
+export const EntradaSinComprobante = {
+  args: {
+    item: {
+      type: 'ticket',
+      orderId: 'ticket-order-1',
+      requiresProofOverride: true,
+      hasProof: false,
+      paymentProofPath: null,
+      subject: 'Hernán Ali (55954736) · Cristhian Godoy (95994950) · José Martínez (30743158)',
+      subjects: [
+        'Hernán Ali (55954736)',
+        'Cristhian Godoy (95994950)',
+        'José Martínez (30743158)',
+        'Angelo Ruiz (40111222)',
+      ],
+      method: 'Transferencia',
+      detail: 'Pitbull Classic · TORD-1',
+      meta: '$ 60.000',
+    },
+    mode: 'validate',
+    onCancel: () => {},
+    onConfirm: () => {},
+    onReject: () => {},
+  },
+}
+
 export const ConsultaConComprobante = {
   args: {
     item: PAYMENT_WITH_PROOF,
@@ -95,5 +126,41 @@ export const AcreditacionManualConComprobante = {
     mode: 'settle',
     onCancel: () => {},
     onConfirm: () => {},
+  },
+}
+
+/**
+ * Orden ya resuelta: se puede dar de baja el comprobante (va a la papelera y se
+ * restaura desde Cobros). La imagen es local para no depender de la red.
+ */
+const PROOF_IMAGE =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='1100'><rect width='100%' height='100%' fill='%23e9ecef'/><text x='50%' y='50%' text-anchor='middle' font-family='sans-serif' font-size='42' fill='%23495057'>Comprobante</text></svg>"
+
+const APPROVED_WITH_PROOF = {
+  ...PAYMENT_WITH_PROOF,
+  proofUrl: PROOF_IMAGE,
+  canTrashProof: true,
+}
+
+export const ConsultaConBajaDelComprobante = {
+  args: {
+    item: APPROVED_WITH_PROOF,
+    mode: 'view',
+    onCancel: () => {},
+    onTrashProof: async () => {},
+  },
+}
+
+export const ConfirmarBajaDelComprobante = {
+  args: {
+    item: APPROVED_WITH_PROOF,
+    mode: 'view',
+    onCancel: () => {},
+    onTrashProof: async () => {},
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement.ownerDocument.body)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Mover a la papelera' }))
+    await expect(await canvas.findByRole('button', { name: 'Sí, mover' })).toBeTruthy()
   },
 }

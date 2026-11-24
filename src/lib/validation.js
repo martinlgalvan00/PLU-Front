@@ -1,4 +1,9 @@
-﻿import { z } from 'zod'
+import { z } from 'zod'
+import { isDivisionAllowedForAge } from '../../shared/ageDivision.js'
+import { isValidDeclaredTotalKg } from '../../shared/declaredMeetTotal.js'
+import { isDeclaredWeightClassForSex } from '../../shared/pluWeightClasses.js'
+import { validateDivisionSelection, validateModalities } from '../../shared/registrationSelection.js'
+import { validateSelectionAgainstOffering } from '../../shared/eventOffering.js'
 
 function todayInBuenosAires() {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -108,8 +113,23 @@ function buildAthleteProfileSchema(t, country) {
   })
 }
 
-function buildCompetitionSchema(t) {
+function optionalDeclaredTotalField(message) {
+  return z
+    .string()
+    .optional()
+    .default('')
+    .superRefine((value, ctx) => {
+      if (!String(value ?? '').trim()) return
+      if (!isValidDeclaredTotalKg(value)) {
+        ctx.addIssue({ code: 'custom', message })
+      }
+    })
+}
+
+function buildCompetitionObjectSchema(t, { sex = null } = {}) {
   const msg = (key) => (t ? t(`validation.${key}`) : undefined)
+  const weightClassMessage =
+    msg('weightClass') ?? 'Seleccioná la categoría de peso en la que vas a competir.'
 
   return z.object({
     division: z.enum(['Open', 'Youth', 'Junior', 'Sub-Masters', 'Masters'], {
@@ -118,15 +138,156 @@ function buildCompetitionSchema(t) {
     category: z.enum(['Raw', 'Raw With Wraps', 'Single-Ply', 'Multi-Ply', 'Unlimited'], {
       message: msg('category') ?? 'Seleccioná una categoría válida.',
     }),
-    estimatedWeight: z.string().refine(
-      (value) => {
-        const weight = Number(value.replace(',', '.').replace(/\s*kg$/i, ''))
-        return Number.isFinite(weight) && weight >= 10 && weight <= 250
-      },
-      msg('weight') ?? 'Ingresá un peso entre 10 y 250 kg.',
+    declaredWeightClass: z.string().trim().refine(
+      (value) => isDeclaredWeightClassForSex(sex, value),
+      weightClassMessage,
     ),
+    // Vacío pide el dato; con algo escrito, el rango. Un único mensaje de
+    // rango para el campo vacío se leía como un error de lo que se escribió.
+    estimatedWeight: z.string().superRefine((value, ctx) => {
+      if (!value.trim()) {
+        ctx.addIssue({
+          code: 'custom',
+          message: msg('weightRequired') ?? 'Ingresá tu peso corporal.',
+        })
+        return
+      }
+      const weight = Number(value.replace(',', '.').replace(/\s*kg$/i, ''))
+      if (!(Number.isFinite(weight) && weight >= 10 && weight <= 250)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: msg('weight') ?? 'Ingresá un peso entre 10 y 250 kg.',
+        })
+      }
+    }),
     paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
+    firstMeet: z.boolean().optional().default(false),
+    competitionBestTotalKg: optionalDeclaredTotalField(
+      msg('declaredTotal') ?? 'Ingresá un total entre 10 y 2.000 kg.',
+    ),
+    trainingBestTotalKg: optionalDeclaredTotalField(
+      msg('declaredTotal') ?? 'Ingresá un total entre 10 y 2.000 kg.',
+    ),
+    // Opcionales: el formulario viejo no los manda y compite Full Power en una división.
+    secondaryDivision: z.string().optional(),
+    modalities: z.array(z.string()).optional(),
   })
+}
+
+/**
+ * Reglas cruzadas de la selección competitiva: la segunda división tiene que
+ * corresponder a la edad y distinta de la primera, las modalidades tienen que
+ * ser una combinación válida (al menos una, sin Push-Pull + banco/peso muerto)
+ * y, si se conoce, todo tiene que estar en lo que ofrece el evento (la misma
+ * regla que aplica el servidor, para no llegar al cobro y recibir un 422).
+ */
+function competitionSelectionIssues(data, { birthDate, eventDate, offering = null }, msg) {
+  const issues = []
+  const secondary = String(data.secondaryDivision ?? '').trim()
+  if (secondary) {
+    const check = validateDivisionSelection({
+      division: data.division,
+      secondaryDivision: secondary,
+      birthDate,
+      referenceDate: eventDate || undefined,
+    })
+    const sameAsFirst = secondary === data.division
+    if (!check.ok || !check.secondary || sameAsFirst) {
+      issues.push({
+        path: 'secondaryDivision',
+        message:
+          msg('divisionSecond') ?? 'Esa segunda división no está disponible para tu edad.',
+      })
+    }
+  }
+  if (Array.isArray(data.modalities)) {
+    const lifts = validateModalities(data.modalities)
+    if (!lifts.ok) {
+      const key = {
+        MODALITY_REQUIRED: ['modalityRequired', 'Elegí al menos una modalidad.'],
+        MODALITY_INVALID: ['modality', 'Elegí una modalidad válida.'],
+        MODALITY_COMBINATION_INVALID: [
+          'modalityCombination',
+          'Push-Pull ya incluye banco y peso muerto: no se combina con ellos.',
+        ],
+      }[lifts.code]
+      issues.push({ path: 'modalities', message: msg(key[0]) ?? key[1] })
+    }
+  }
+  if (offering) {
+    const offered = validateSelectionAgainstOffering(
+      {
+        category: data.category,
+        division: data.division,
+        secondaryDivision: secondary,
+        modalities: Array.isArray(data.modalities) ? data.modalities : [],
+      },
+      offering,
+    )
+    if (!offered.ok) {
+      const [path, key, fallback] = {
+        OFFERING_CATEGORY_UNAVAILABLE: [
+          'category',
+          'offeringCategory',
+          'Este evento no ofrece esa categoría de competencia.',
+        ],
+        OFFERING_DIVISION_UNAVAILABLE: [
+          offered.value === secondary && secondary !== data.division ? 'secondaryDivision' : 'division',
+          'offeringDivision',
+          'Este evento no ofrece esa división.',
+        ],
+        OFFERING_MODALITY_UNAVAILABLE: [
+          'modalities',
+          'offeringModality',
+          'Este evento no ofrece esa modalidad.',
+        ],
+      }[offered.code]
+      if (!issues.some((issue) => issue.path === path)) {
+        issues.push({ path, message: msg(key) ?? fallback })
+      }
+    }
+  }
+  return issues
+}
+
+function buildCompetitionSchema(
+  t,
+  { birthDate = null, eventDate = null, sex = null, offering = null } = {},
+) {
+  const msg = (key) => (t ? t(`validation.${key}`) : undefined)
+  return buildCompetitionObjectSchema(t, { sex }).superRefine((data, ctx) => {
+    const firstMeet = data.firstMeet === true
+    const totalField = firstMeet ? 'trainingBestTotalKg' : 'competitionBestTotalKg'
+    if (!isValidDeclaredTotalKg(data[totalField])) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [totalField],
+        message: firstMeet
+          ? (msg('trainingBestTotal') ?? 'Ingresá tu máximo total entrenando (entre 10 y 2.000 kg).')
+          : (msg('competitionBestTotal') ??
+            'Ingresá tu máximo total en competencia (entre 10 y 2.000 kg).'),
+      })
+    }
+    for (const issue of competitionSelectionIssues(data, { birthDate, eventDate, offering }, msg)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: [issue.path], message: issue.message })
+    }
+    if (!birthDate) return
+    if (!isDivisionAllowedForAge(data.division, birthDate, eventDate || undefined)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['division'],
+        message:
+          msg('divisionAge') ??
+          'Esa división no corresponde a tu edad en la fecha del evento.',
+      })
+    }
+  })
+}
+
+function divisionAgeError(t) {
+  return t
+    ? t('validation.divisionAge')
+    : 'Esa división no corresponde a tu edad en la fecha del evento.'
 }
 
 function buildMembershipSchema() {
@@ -168,16 +329,35 @@ export function validateAthleteFields(form, fields, t) {
   return formatResult(z.object(shape).safeParse(form), t)
 }
 
-export function validateCompetitionFields(form, fields, t) {
-  const schema = buildCompetitionSchema(t)
+export function validateCompetitionFields(form, fields, t, ageContext = {}) {
+  const objectSchema = buildCompetitionObjectSchema(t, ageContext)
   const shape = Object.fromEntries(
-    fields.filter((field) => schema.shape[field]).map((field) => [field, schema.shape[field]]),
+    fields.filter((field) => objectSchema.shape[field]).map((field) => [field, objectSchema.shape[field]]),
   )
-  return formatResult(z.object(shape).safeParse(form), t)
+  const result = formatResult(z.object(shape).safeParse(form), t)
+  if (
+    result.success &&
+    fields.includes('division') &&
+    ageContext.birthDate &&
+    !isDivisionAllowedForAge(form.division, ageContext.birthDate, ageContext.eventDate || undefined)
+  ) {
+    const message = divisionAgeError(t)
+    return { success: false, error: message, errors: { division: message } }
+  }
+  if (result.success) {
+    const msg = (key) => (t ? t(`validation.${key}`) : undefined)
+    const issue = competitionSelectionIssues(form, ageContext, msg).find((item) =>
+      fields.includes(item.path),
+    )
+    if (issue) {
+      return { success: false, error: issue.message, errors: { [issue.path]: issue.message } }
+    }
+  }
+  return result
 }
 
-export function validateCompetitionForm(form, t) {
-  return formatResult(buildCompetitionSchema(t).safeParse(form), t)
+export function validateCompetitionForm(form, t, ageContext = {}) {
+  return formatResult(buildCompetitionSchema(t, ageContext).safeParse(form), t)
 }
 
 export function validateMembershipForm(form, t) {

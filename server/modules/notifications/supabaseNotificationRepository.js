@@ -63,6 +63,30 @@ export function createSupabaseNotificationRepository(client) {
       return { emailLog: assertResult(result, 'No se pudo registrar el email.'), created: true }
     },
 
+    /**
+     * Un envío que falló se puede retomar desde el flujo que todavía tiene
+     * la credencial en memoria. El compare-and-swap evita que dos clics
+     * manden el mismo mail. El payload guardado sigue redactado.
+     */
+    async reopenFailedEmail(id) {
+      const result = await client
+        .from('transactional_email_logs')
+        .update({
+          status: 'processing',
+          error: null,
+          error_code: null,
+          next_retry_at: null,
+          last_attempt_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('status', 'failed')
+        .select()
+        .maybeSingle()
+      if (result.error) throw new HttpError(503, result.error.message || 'No se pudo retomar el email.')
+      return result.data ?? null
+    },
+
     async completeEmail(
       id,
       { status, response = null, error = null, errorCode = null, attempt, nextRetryAt } = {},

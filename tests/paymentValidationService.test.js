@@ -4,6 +4,7 @@ import {
   canApproveManualOrder,
   canValidateConcept,
   canValidateManualOrder,
+  describePaymentProof,
   findOpenManualOrderForRegistration,
   hasPaymentProof,
   isCashOrder,
@@ -160,5 +161,75 @@ describe('objeto de revisión', () => {
 
   it('sin orden no arma nada', () => {
     expect(buildPaymentValidationItem(null, {})).toBeNull()
+  })
+})
+
+describe('describePaymentProof', () => {
+  it('sin orden no hay nada que mostrar', () => {
+    expect(describePaymentProof(null)).toEqual({ kind: 'none' })
+  })
+
+  it('Mercado Pago no genera comprobante: lo confirma el webhook', () => {
+    expect(describePaymentProof(order({ method: 'mercado_pago', paymentProofPath: null }))).toEqual({
+      kind: 'provider',
+    })
+  })
+
+  it('transferencia con archivo: adjunto, con la fecha en que se subió', () => {
+    expect(describePaymentProof(order())).toEqual({
+      kind: 'attached',
+      channel: 'bank_transfer',
+      uploadedAt: '2026-08-20T12:00:00.000Z',
+    })
+  })
+
+  it('Wise conserva su canal para rotularlo distinto de la transferencia bancaria', () => {
+    expect(describePaymentProof(order({ manualPaymentChannel: 'wise_transfer' })).channel).toBe(
+      'wise_transfer',
+    )
+  })
+
+  it('efectivo en sede no pide archivo ni se marca como faltante', () => {
+    expect(
+      describePaymentProof(order({ manualPaymentChannel: 'cash_pitbull', paymentProofPath: null })),
+    ).toEqual({ kind: 'cash', channel: 'cash_pitbull' })
+  })
+
+  it('transferencia abierta sin archivo pide atención: frena la decisión', () => {
+    expect(describePaymentProof(order({ paymentProofPath: null }))).toEqual({
+      kind: 'missing',
+      channel: 'bank_transfer',
+      needsAttention: true,
+    })
+  })
+
+  it('transferencia ya cerrada sin archivo es solo un dato, no una alarma', () => {
+    expect(describePaymentProof(order({ status: 'aprobado', paymentProofPath: null }))).toMatchObject({
+      kind: 'missing',
+      needsAttention: false,
+    })
+  })
+
+  it('un archivo que la retención eliminó se distingue de uno que nunca existió', () => {
+    expect(
+      describePaymentProof(
+        order({ paymentProofPath: null, paymentProofPurgedAt: '2026-09-01T00:00:00.000Z' }),
+      ),
+    ).toEqual({
+      kind: 'archived',
+      channel: 'bank_transfer',
+      purgedAt: '2026-09-01T00:00:00.000Z',
+    })
+  })
+
+  it('lee también los nombres de columna en snake_case de la base', () => {
+    expect(
+      describePaymentProof({
+        method: 'manual_link',
+        status: 'validacion_manual',
+        payment_proof_path: 'ord/x.jpg',
+        payment_proof_uploaded_at: '2026-08-20T12:00:00.000Z',
+      }),
+    ).toMatchObject({ kind: 'attached', uploadedAt: '2026-08-20T12:00:00.000Z' })
   })
 })

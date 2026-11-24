@@ -1,5 +1,9 @@
 import { HttpError } from '../../lib/errors.js'
-import { athleteProfileFromRow, isProfileComplete } from '../../../shared/athleteProfile.js'
+import {
+  athleteProfileFromRow,
+  getMissingProfileNoticeFields,
+  isProfileNoticeComplete,
+} from '../../../shared/athleteProfile.js'
 import {
   PROFILE_NOTICE_BULK_MAX,
   PROFILE_NOTICE_KIND,
@@ -20,17 +24,18 @@ export function normalizeProfileNoticeMessage(message) {
 export async function sendProfileNotice({ repository, athleteId, message, createdBy }) {
   const row = await repository.findProfileCompleteness(athleteId)
   if (!row) throw new HttpError(404, 'No se encontró el atleta.')
-  const status = isProfileComplete(athleteProfileFromRow(row))
-  if (status.complete) {
+  const athlete = athleteProfileFromRow(row)
+  const missing = getMissingProfileNoticeFields(athlete)
+  if (missing.length === 0) {
     throw new HttpError(409, 'El perfil ya está completo.', { code: 'PROFILE_COMPLETE' })
   }
   const notice = await repository.upsertProfileNotice({
     athleteId,
-    missingFields: status.missing,
+    missingFields: missing,
     message: normalizeProfileNoticeMessage(message),
     createdBy,
   })
-  return { notice, missing: status.missing }
+  return { notice, missing }
 }
 
 export async function sendProfileNoticesBulk({ repository, athleteIds, message, createdBy }) {
@@ -51,15 +56,15 @@ export async function sendProfileNoticesBulk({ repository, athleteIds, message, 
       failed.push({ athleteId, reason: 'not_found' })
       continue
     }
-    const status = isProfileComplete(athleteProfileFromRow(row))
-    if (status.complete) {
+    const missing = getMissingProfileNoticeFields(athleteProfileFromRow(row))
+    if (missing.length === 0) {
       skipped.push({ athleteId, reason: 'complete' })
       continue
     }
     try {
       const notice = await repository.upsertProfileNotice({
         athleteId,
-        missingFields: status.missing,
+        missingFields: missing,
         message: note,
         createdBy,
       })
@@ -73,8 +78,10 @@ export async function sendProfileNoticesBulk({ repository, athleteIds, message, 
 }
 
 export async function resolveProfileNoticesIfComplete({ repository, athlete }) {
-  const status = isProfileComplete(athlete)
-  if (!status.complete) return { resolved: false, status }
+  const complete = isProfileNoticeComplete(athlete)
+  const missing = getMissingProfileNoticeFields(athlete)
+  const status = { complete, missing }
+  if (!complete) return { resolved: false, status }
   await repository.resolveOpenProfileNotices(athlete.id)
   return { resolved: true, status }
 }

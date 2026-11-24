@@ -56,7 +56,7 @@
 - [ ] El mismo código sigue creando la orden por Mercado Pago cuando la pasarela global está abierta
 - [ ] Precio fijo de $85.000 sobre una inscripción de $92.500 muestra y crea una orden por $85.000 exactos
 - [ ] El mismo precio fijo conserva $85.000 al elegir transferencia bancaria
-- [ ] El mismo precio fijo conserva $85.000 al elegir efectivo en Pitbull
+- [ ] El mismo precio fijo conserva $85.000 al elegir efectivo en el lugar
 - [ ] La orden y `discount_code_redemptions` guardan el mismo descuento ($7.500 en el caso anterior)
 - [ ] Un código de afiliación repite la prueba contra el precio vigente del plan
 
@@ -78,6 +78,22 @@ queda para el repaso manual sobre datos reales.
 - [ ] Reveal: el foco inicial queda en el panel, sin anillo celeste sobre el chip de oro; `Escape` y click afuera cierran
 - [ ] Reveal: en los dos checkouts la acción plena cierra con salida animada; en Mi cuenta navega en el acto
 - [ ] Con `prefers-reduced-motion` ninguna secuencia corre y todo queda en su pose final
+
+## Credencial y puerta
+
+- [ ] La card del inicio y Mi QR muestran el mismo estado y el mismo QR
+- [ ] En un torneo con inscripción confirmada y código, "Ver credencial" abre Mi QR de ese torneo
+- [ ] Sin código de credencial, la fila inscripta no abre una credencial vacía
+- [ ] Con inscripción confirmada y sin afiliación vigente, la card gira si el meet no pide afiliación
+- [ ] Si el meet pide afiliación y no está vigente, el chip dice cupo reservado y el QR igual se puede ver
+- [ ] Escanear ese QR en la página pública no dice "Credencial válida" y no ofrece marcar ingreso
+- [ ] En un meet abierto, la misma página dice "Credencial válida" y ofrece el ingreso
+- [ ] En la lista de check-in, quien debe afiliación no cuenta como listo y el botón de ingreso queda deshabilitado
+- [ ] El escáner de ese QR responde que no está habilitado, sin registrar el ingreso
+- [ ] Un competidor aparece en los dos días de puerta; un segundo ingreso el mismo día se rechaza
+- [ ] Escanear la URL del QR, el token pelado o el mismo token en mayúsculas abre a la misma persona
+- [ ] Sin red, ese mismo token en mayúsculas sigue encontrando a la persona
+- [ ] La puerta acredita el torneo del puesto aunque el enlace traiga otro evento
 
 ## Panel admin
 

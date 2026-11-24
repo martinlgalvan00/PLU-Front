@@ -80,11 +80,33 @@ export function parseSecurityTeamImport(raw) {
   return { members, invalid }
 }
 
+function rosterRank(user) {
+  if (user?.status === 'active' && !user.securityZoneId) return 0
+  if (user?.status === 'active') return 1
+  return 2
+}
+
+/** Activos sin puesto primero: es lo que hay que resolver antes de abrir la puerta. */
+export function orderSecurityRoster(users = []) {
+  return [...users].sort((left, right) => {
+    const rank = rosterRank(left) - rosterRank(right)
+    if (rank !== 0) return rank
+    return String(left?.name ?? '').localeCompare(String(right?.name ?? ''), 'es', {
+      sensitivity: 'base',
+    })
+  })
+}
+
+export function countUnassignedActive(users = []) {
+  return users.filter((user) => user?.status === 'active' && !user.securityZoneId).length
+}
+
 export function formatSecurityAccessList(created) {
   return created
     .map((item) => {
       const access = item.accessUrl || item.tempPassword || ''
-      return `${item.user.name} · ${item.user.email}\n${access}`
+      const code = item.accessCode || ''
+      return [item.user.name + ' · ' + item.user.email, code, access].filter(Boolean).join('\n')
     })
     .join('\n\n')
 }

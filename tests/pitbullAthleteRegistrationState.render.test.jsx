@@ -103,7 +103,7 @@ describe('página del torneo · estado del atleta', () => {
 
     const state = container.querySelector('.pitbull-inscription-mine')
     expect(state.getAttribute('data-state')).toBe('pending_payment')
-    expect(state.textContent).toMatch(/cupo está reservado/i)
+    expect(state.textContent).toMatch(/cupo reservado/i)
 
     fireEvent.click(container.querySelector('.pitbull-inscription__cta--primary'))
     expect(onSelectEvent).toHaveBeenCalledWith(PITBULL, {})

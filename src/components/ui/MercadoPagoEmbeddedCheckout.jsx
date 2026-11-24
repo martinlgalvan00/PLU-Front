@@ -284,6 +284,11 @@ function resolvePreferenceId(order) {
 }
 
 export default function MercadoPagoEmbeddedCheckout({
+  /**
+   * Tope de cuotas del evento (`maxInstallmentsFor`). Sin él decide Mercado
+   * Pago; el servidor rechaza igual un pago con más cuotas que el tope.
+   */
+  maxInstallments = null,
   onCheckoutError,
   onResult,
   order,
@@ -344,12 +349,17 @@ export default function MercadoPagoEmbeddedCheckout({
     () => (brickTheme ? buildBrickVisual(brickTheme === 'light') : null),
     [brickTheme],
   )
+  const installmentsCap =
+    Number.isInteger(maxInstallments) && maxInstallments > 0 ? maxInstallments : null
   const paymentCustomization = useMemo(
     () => ({
-      paymentMethods: canOfferWallet ? PAYMENT_METHODS_WITH_WALLET : PAYMENT_METHODS_CARDS_ONLY,
+      paymentMethods: {
+        ...(canOfferWallet ? PAYMENT_METHODS_WITH_WALLET : PAYMENT_METHODS_CARDS_ONLY),
+        ...(installmentsCap ? { maxInstallments: installmentsCap } : {}),
+      },
       visual: brickVisual,
     }),
-    [brickVisual, canOfferWallet],
+    [brickVisual, canOfferWallet, installmentsCap],
   )
   const subscriptionCustomization = useMemo(
     () => ({

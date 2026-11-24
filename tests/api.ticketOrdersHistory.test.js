@@ -61,6 +61,9 @@ describe('GET /api/tickets/orders', () => {
         channel: 'bank_transfer',
         sort: 'aging',
         limit: 50,
+        eventId: null,
+        includeHeldProof: false,
+        excludeHeldProof: false,
       })
       expect(tickets.orderCounts).not.toHaveBeenCalled()
     } finally {

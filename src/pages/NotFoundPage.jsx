@@ -2,6 +2,7 @@ import '../styles/pages/institutional-pages.css'
 import '../styles/pages/not-found.css'
 import { ArrowRight, Compass, Mail } from 'lucide-react'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
+import Reveal from '../components/ui/Reveal.jsx'
 import Button from '../components/ui/Button.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
@@ -46,7 +47,7 @@ export default function NotFoundPage({ onNavigate }) {
       />
 
       <div className="institutional-page__inner not-found-page__inner">
-        <section className="not-found-page__panel" aria-labelledby="not-found-panel-title">
+        <Reveal as="section" variant="fade" className="not-found-page__panel" aria-labelledby="not-found-panel-title">
           <Compass className="not-found-page__icon" size={28} aria-hidden />
           <p className="institutional-kicker">01 / {t('pages.notFound.panelEyebrow')}</p>
           <h2 id="not-found-panel-title">{t('pages.notFound.panelTitle')}</h2>
@@ -65,7 +66,7 @@ export default function NotFoundPage({ onNavigate }) {
               {t('pages.notFound.ctaContact')}
             </Button>
           </div>
-        </section>
+        </Reveal>
       </div>
     </main>
   )

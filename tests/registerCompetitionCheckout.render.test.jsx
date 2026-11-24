@@ -102,6 +102,7 @@ const athlete = {
   fullName: 'Ana Torres',
   documentId: '30111222',
   email: 'ana@plu.test',
+  sex: 'Femenino',
 }
 
 const event = {
@@ -136,10 +137,14 @@ function renderCompetition({
   payments = [],
   registrations = [],
   checkoutAvailability,
+  checkoutIntent = null,
+  onCheckoutIntentConsumed,
 } = {}) {
   return render(
     <I18nProvider>
       <RegisterPage
+        checkoutIntent={checkoutIntent}
+        onCheckoutIntentConsumed={onCheckoutIntentConsumed}
         athlete={athleteData}
         createdOrder={createdOrder}
         event={event}
@@ -148,8 +153,10 @@ function renderCompetition({
         form={{
           division: 'Open',
           category: 'Raw',
+          declaredWeightClass: '75',
           estimatedWeight: '83',
           paymentMethod: 'mercado_pago',
+          competitionBestTotalKg: '500',
           ...form,
         }}
         memberships={[]}
@@ -221,6 +228,80 @@ describe('RegisterPage — orden abierta rehidratada del snapshot', () => {
     expect(screen.getByLabelText(/^División$/i)).toBeTruthy()
   })
 
+  /**
+   * "Elegir otro medio" desde Mi cuenta: la pantalla puede montarse dos veces al
+   * entrar. La intención la conserva App mientras dure el checkout, así que la
+   * segunda instancia también abre el selector en vez del cobro.
+   */
+  it('"Elegir otro medio" abre el selector aunque la pantalla se monte dos veces', () => {
+    const props = {
+      checkoutIntent: 'change_method',
+      payments: [openPayment],
+      registrations: [pendingRegistration],
+    }
+    const first = renderCompetition(props)
+    expect(document.querySelector('.register-competition-form--change-method')).toBeTruthy()
+    first.unmount()
+
+    renderCompetition(props)
+    expect(document.querySelector('.register-competition-form--change-method')).toBeTruthy()
+  })
+
+  it('cerrar el selector no lo reabre cuando se refrescan los pagos', () => {
+    const props = {
+      checkoutIntent: 'change_method',
+      payments: [openPayment],
+      registrations: [pendingRegistration],
+    }
+    const view = renderCompetition(props)
+    fireEvent.click(screen.getByRole('button', { name: /volver a transferencia/i }))
+    expect(document.querySelector('.register-competition-form--change-method')).toBe(null)
+
+    // Mismo pago, objeto nuevo: es lo que llega cuando App relee el snapshot.
+    view.unmount()
+    const refreshed = render(
+      <I18nProvider>
+        <RegisterPage
+          checkoutIntent="change_method"
+          athlete={athlete}
+          event={event}
+          flow="competition"
+          payments={[{ ...openPayment }]}
+          form={{ division: 'Open', category: 'Raw', paymentMethod: 'manual_link' }}
+          memberships={[]}
+          registrations={[{ ...pendingRegistration }]}
+          total={75000}
+          onNavigate={() => {}}
+          onSubmit={vi.fn(async () => ({}))}
+          onUpdateForm={() => {}}
+        />
+      </I18nProvider>,
+    )
+    // Montaje nuevo con la intención todavía viva: vuelve a abrir (es otra
+    // entrada al checkout). Dentro de un mismo montaje, un refresco no.
+    expect(document.querySelector('.register-competition-form--change-method')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /volver a transferencia/i }))
+    refreshed.rerender(
+      <I18nProvider>
+        <RegisterPage
+          checkoutIntent="change_method"
+          athlete={athlete}
+          event={event}
+          flow="competition"
+          payments={[{ ...openPayment }]}
+          form={{ division: 'Open', category: 'Raw', paymentMethod: 'manual_link' }}
+          memberships={[]}
+          registrations={[{ ...pendingRegistration }]}
+          total={75000}
+          onNavigate={() => {}}
+          onSubmit={vi.fn(async () => ({}))}
+          onUpdateForm={() => {}}
+        />
+      </I18nProvider>,
+    )
+    expect(document.querySelector('.register-competition-form--change-method')).toBe(null)
+  })
+
   it('createdOrder gana sobre el snapshot: es la orden que esta sesión tocó', () => {
     renderCompetition({
       createdOrder: pendingOrder,
@@ -263,10 +344,10 @@ describe('RegisterPage competition profile summary', () => {
       },
     })
 
-    expect(screen.getByText(/perfil completo/i)).toBeTruthy()
-    expect(screen.getByText(/tus datos están listos/i)).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: /perfil de competencia/i })).toBeNull()
+    expect(screen.queryByText(/perfil completo/i)).toBeNull()
+    expect(screen.getByText(/Masculino · Maximal Strength Club/)).toBeTruthy()
     expect(screen.getByRole('button', { name: /revisar perfil/i })).toBeTruthy()
-    expect(screen.getByText('Maximal Strength Club')).toBeTruthy()
   })
 
   it('muestra y bloquea el compromiso competitivo de una inscripción ya creada', () => {
@@ -287,7 +368,7 @@ describe('RegisterPage competition profile summary', () => {
 
     expect(screen.getByText(/modalidad y categoría declaradas.*asentadas/i)).toBeTruthy()
     expect(screen.getByRole('radio', { name: 'Open' }).disabled).toBe(true)
-    expect(screen.getByLabelText(/^categoría$/i).disabled).toBe(true)
+    expect(screen.getByLabelText(/^peso corporal \(kg\)$/i).disabled).toBe(true)
     expect(onUpdateForm).toHaveBeenCalledWith({ target: { name: 'estimatedWeight', value: '74.5' } })
   })
 
@@ -305,7 +386,7 @@ describe('RegisterPage competition profile summary', () => {
     })
 
     expect(screen.getByRole('radio', { name: 'Open' }).disabled).toBe(false)
-    expect(screen.getByLabelText(/^categoría$/i).disabled).toBe(false)
+    expect(screen.getByLabelText(/^peso corporal \(kg\)$/i).disabled).toBe(false)
     const weightInput = document.querySelector('input[name="estimatedWeight"]')
     expect(weightInput).toBeTruthy()
     expect(weightInput.disabled).toBe(false)
@@ -321,7 +402,9 @@ describe('RegisterPage — link de pago de inscripción', () => {
       const [form, setForm] = useState({
         division: 'Open',
         category: 'Raw',
+        declaredWeightClass: '75',
         estimatedWeight: '83',
+        competitionBestTotalKg: '500',
         paymentMethod: 'mercado_pago',
       })
       return (
@@ -367,7 +450,7 @@ describe('RegisterPage — link de pago de inscripción', () => {
     expect(screen.getByRole('radio', { name: /mercado pago/i }).checked).toBe(true)
     expect(screen.queryByRole('radio', { name: /transferencia/i })).toBeNull()
     expect(screen.queryByRole('radio', { name: /efectivo/i })).toBeNull()
-    expect(screen.getByText(/mercado pago.*próximamente/i)).toBeTruthy()
+    expect(screen.queryByText(/solo está disponible Mercado Pago/i)).toBeNull()
   })
 
   it('no muestra el texto crudo de PLU08 si la inscripción ya está confirmada', async () => {
@@ -465,7 +548,9 @@ describe('RegisterPage — link de pago de inscripción', () => {
       const [form, setForm] = useState({
         division: 'Open',
         category: 'Raw',
+        declaredWeightClass: '75',
         estimatedWeight: '83',
+        competitionBestTotalKg: '500',
         paymentMethod: 'mercado_pago',
       })
       return (
@@ -537,7 +622,9 @@ describe('RegisterPage — link de pago de inscripción', () => {
       const [form, setForm] = useState({
         division: 'Open',
         category: 'Raw',
+        declaredWeightClass: '75',
         estimatedWeight: '83',
+        competitionBestTotalKg: '500',
         paymentMethod: 'manual_link',
       })
       return (
@@ -605,7 +692,9 @@ describe('RegisterPage — link de pago de inscripción', () => {
       const [form, setForm] = useState({
         division: 'Open',
         category: 'Raw',
+        declaredWeightClass: '75',
         estimatedWeight: '83',
+        competitionBestTotalKg: '500',
         paymentMethod: 'manual_link',
       })
       return (
@@ -777,8 +866,8 @@ describe('RegisterPage — cambiar de medio sobre una orden abierta', () => {
     await waitFor(() =>
       expect(screen.getByRole('radiogroup', { name: /^División$/i })).toBeTruthy(),
     )
-    expect(screen.getByRole('radiogroup', { name: /^Modalidad$/i })).toBeTruthy()
-    // La categoría de peso: su label es "Categoría" (`pages.register.bodyWeight`).
+    expect(screen.getByRole('radiogroup', { name: /^Categoría de competencia$/i })).toBeTruthy()
+    // El peso corporal declarado (`pages.register.bodyWeight`).
     expect(document.querySelector('input[name="estimatedWeight"]')).toBeTruthy()
     // Y el selector de medio sigue estando: los datos se corrigen sin perder el
     // motivo por el que se entró a esta vista.

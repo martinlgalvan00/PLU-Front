@@ -200,10 +200,10 @@
 }
 
 /* ---- Toast de sesión ----
-   Recibo editorial discreto bajo el header, centrado en el viewport
-   para que se lea igual en público y privado sin tapar la navegación.
-   Eyebrow + nombre, acción como enlace y cierre. Un único filete
-   inferior se consume con DISMISS_MS. */
+   Recibo editorial bajo el header, centrado en el viewport: no tapa la
+   navegación y no se esconde contra la cuenta. Emblema, eyebrow + nombre,
+   acción como enlace y cierre. Un único filete inferior se consume con
+   DISMISS_MS. */
 .session-notice {
   align-items: flex-start;
   justify-content: center;
@@ -219,12 +219,12 @@
   border: 1px solid var(--plu-glass-border);
   border-radius: 22px;
   box-shadow: var(--plu-glass-shadow);
-  max-width: min(100%, 372px);
+  max-width: min(92vw, 420px);
   overflow: hidden;
-  padding: 16px 14px 18px 16px;
+  padding: 16px;
   pointer-events: auto;
   position: relative;
-  width: 100%;
+  width: fit-content;
 }
 
 .session-notice--out .session-notice__card {
@@ -341,7 +341,7 @@
   flex: none;
   height: 28px;
   justify-content: center;
-  margin: -2px -2px 0 0;
+  margin: -2px -2px 0 2px;
   position: relative;
   transition:
     background-color var(--motion-fast, 160ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
@@ -422,10 +422,6 @@
   .session-notice {
     padding-inline: var(--space-3, 12px);
   }
-
-  .session-notice__card {
-    max-width: 100%;
-  }
 }
 
 /* El spinner del estado "verificando" es el único loop de la tarjeta y
@@ -482,6 +478,28 @@
 
 .admin-toasts__item--error {
   --toast-accent: var(--color-danger-text, var(--color-brand-red));
+}
+
+.admin-toasts__item--warning {
+  --toast-accent: var(--color-warning-text);
+}
+
+.admin-toasts__item--info {
+  --toast-accent: var(--color-brand-celeste);
+}
+
+/* Tiempo que le queda: se congela al pasar el mouse o tomar el foco, igual
+   que el auto-cierre. Sin movimiento, la barra no aparece. */
+.admin-toasts__timer {
+  background: color-mix(in oklab, var(--toast-accent) 55%, transparent);
+  border-radius: 0 0 12px 12px;
+  bottom: 0;
+  display: none;
+  height: 2px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  transform-origin: left center;
 }
 
 .admin-toasts__icon {
@@ -570,6 +588,38 @@
 @media (prefers-reduced-motion: no-preference) {
   .admin-toasts__item {
     animation: admin-toast-in var(--motion-base, 240ms) var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
+
+  .admin-toasts__item[data-leaving] {
+    animation: admin-toast-out 180ms var(--ease-in-out, ease) both;
+    pointer-events: none;
+  }
+
+  .admin-toasts__timer {
+    animation: admin-toast-timer var(--toast-duration, 5000ms) linear both;
+    display: block;
+  }
+
+  .admin-toasts__item:hover .admin-toasts__timer,
+  .admin-toasts__item:focus-within .admin-toasts__timer {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes admin-toast-out {
+  to {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+@keyframes admin-toast-timer {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
   }
 }
 

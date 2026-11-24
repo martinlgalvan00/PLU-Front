@@ -19,6 +19,28 @@ const ROUTES_DIR = resolve('server/routes')
 const ROUTE_FILES = readdirSync(ROUTES_DIR).filter((file) => file.endsWith('.js'))
 const APP = readFileSync(resolve('server/app.js'), 'utf8')
 
+function collectMountedRouteNames(source, seen = new Set()) {
+  const names = []
+  for (const match of source.matchAll(
+    /routes\/([A-Za-z0-9_-]+)\.js|from ['"]\.\/([A-Za-z0-9_-]+)\.js['"]/g,
+  )) {
+    const name = match[1] || match[2]
+    if (!name || seen.has(name)) continue
+    seen.add(name)
+    names.push(name)
+    try {
+      names.push(
+        ...collectMountedRouteNames(readFileSync(resolve(ROUTES_DIR, `${name}.js`), 'utf8'), seen),
+      )
+    } catch {
+      // El import no es un archivo de server/routes.
+    }
+  }
+  return names
+}
+
+const MOUNTED_ROUTES = new Set(collectMountedRouteNames(APP))
+
 const ROUTE_RE = /router\.(get|post|put|patch|delete)\(\s*(['"`])([^'"`]+)\2/g
 
 /**
@@ -100,10 +122,7 @@ describe('superficie de la API', () => {
   it('cada archivo de rutas esta montado en la aplicacion', () => {
     // Un router que nadie monta es peor que uno que falta: parece cubierto,
     // tiene tests que pasan y no responde en produccion.
-    const sinMontar = ROUTE_FILES.filter((file) => {
-      const nombre = file.replace(/\.js$/, '')
-      return !new RegExp(`routes/${nombre}\\.js`).test(APP)
-    })
+    const sinMontar = ROUTE_FILES.filter((file) => !MOUNTED_ROUTES.has(file.replace(/\.js$/, '')))
 
     expect(sinMontar).toEqual([])
   })

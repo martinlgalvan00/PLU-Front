@@ -2,23 +2,27 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Clock, HelpCircle, XCircle } from 'lucide-react'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { useOfflineCheckinSync } from './useOfflineCheckinSync.js'
-import { useBroadcastTopic } from './useBroadcastTopic.js'
 import { buildEventTicketAddonReport } from '../lib/ticketAddons.js'
-import { parseCredentialScan } from '../lib/credentialQr.js'
-import { getFeedbackTone, playCheckinFeedback } from '../lib/checkinFeedback.js'
-import {
-  enqueueCheckin,
-  findInAllowlist,
-  findMatchesInAllowlist,
-} from '../lib/offlineCheckinDb.js'
+import { buildCredentialUrl, parseCredentialScan } from '../lib/credentialQr.js'
 import {
   checkinLookupQuery,
   needsCheckinLookup,
   parseManualCheckinCode,
 } from '../lib/manualCheckinCode.js'
+import { prepareCheckinScan } from '../lib/doorSpokenCode.js'
+import { announceCheckinVerdict } from '../lib/doorCodeSpeech.js'
+import { getFeedbackTone, playCheckinFeedback } from '../lib/checkinFeedback.js'
+import { isSnapshotFresh } from '../lib/checkinSyncConfig.js'
+import {
+  enqueueCheckin,
+  findInAllowlist,
+  findMatchesInAllowlist,
+  getAllowlist,
+} from '../lib/offlineCheckinDb.js'
 import { lookupCheckinCredentials } from '../services/ticketApi.js'
 import { credentialOpensZone } from '../services/securityZoneService.js'
 import { TICKET_VALIDITY_STATUS, ticketValidityStatus } from '../lib/ticketValidity.js'
+import { ticketRequiresLiveDoor } from '../lib/ticketValidityPolicy.js'
 import {
   applyTicketZoneOutcome,
   buildTicketRow,
@@ -27,31 +31,22 @@ import {
   resolveCredentialScan,
 } from '../services/checkinScanService.js'
 import {
+  applyServerAdmissions,
   buildCheckinRows,
   filterCheckinRows,
   mapAllowlistToCheckinSources,
   summarizeCheckinRows,
 } from '../services/checkinWorkspaceService.js'
-import { getEventCheckinAllowlist } from '../services/athleteApi.js'
+import { resolveDoorScan } from '../services/checkinScanBudget.js'
+import { downloadAllowlist as refreshCheckinAllowlist } from '../services/offlineCheckinSync.js'
 import { reportScanAttempt } from '../services/checkinTelemetry.js'
 import { classifyCheckinFailure, isRetryableCheckinFailure } from '../services/checkinFailure.js'
+import { runDoorAttempts } from '../services/doorRetry.js'
+import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
+import { readCheckinBroadcastSlug } from '../services/checkinRealtime.js'
 
 const MAX_SCAN_HISTORY = 15
 const COUNTER_REFRESH_MS = 30_000
-// Con Realtime conectado los avisos traen los cambios al instante: el sondeo
-// queda como red de seguridad, más espaciado.
-const COUNTER_REFRESH_LIVE_MS = 120_000
-// La lista de la puerta (y la offline) se baja entera: en plena entrada no
-// puede repetirse en cada aviso. Con varias puertas en el mismo wifi, releerla
-// por cada ingreso agotaba el límite de pedidos por IP y los escaneos mismos
-// empezaban a rebotar con 429.
-const ALLOWLIST_REFRESH_MIN_MS = 20_000
-const OPS_EVENTS = ['checkin-changed', 'tickets-changed']
-// Ventana de agrupado de los avisos de la puerta: el aviso de un ingreso llega
-// también a la puerta que lo registró (lo emite la base), así que en hora pico
-// hay uno cada pocos segundos. Contadores al día en <5 s, una relectura por
-// ventana como mucho.
-const OPS_REALTIME_OPTIONS = { debounceMs: 1500, maxWaitMs: 5000 }
 const FEEDBACK_STORAGE_KEY = 'plu-checkin-feedback'
 
 export const TYPE_FILTERS = [
@@ -65,6 +60,7 @@ export const STATUS_FILTERS = [
   ['all', 'admin.checkin.filterAllStatuses'],
   ['ready', 'admin.checkin.filterReady'],
   ['done', 'admin.checkin.filterDone'],
+  ['unpaid', 'admin.checkin.filterUnpaid'],
   ['pending', 'admin.checkin.filterPending'],
   // Sólo aparece cuando hay algo que cobrar: ver `statusOptions`.
   ['to_validate', 'admin.checkin.filterToValidate'],
@@ -75,6 +71,7 @@ const STATUS_FILTER_COUNT_KEYS = Object.freeze({
   all: 'total',
   ready: 'ready',
   done: 'done',
+  unpaid: 'unpaid',
   pending: 'pending',
   to_validate: 'toValidate',
 })
@@ -95,9 +92,12 @@ export const SCAN_VERDICT_META = {
   // del puesto venció. Se muestran como lo que son, nunca como "no encontrada".
   service_unavailable: { Icon: AlertTriangle, tone: 'warning' },
   session_expired: { Icon: XCircle, tone: 'danger' },
+  door_malformed: { Icon: HelpCircle, tone: 'warning' },
   // Búsqueda por DNI con más de una credencial (entrenador, o entrada +
   // inscripción): no es un veredicto, es "elegí cuál".
   multiple_matches: { Icon: HelpCircle, tone: 'warning' },
+  rate_limited: { Icon: AlertTriangle, tone: 'warning' },
+  needs_online: { Icon: AlertTriangle, tone: 'warning' },
 }
 
 /**
@@ -128,6 +128,36 @@ function buildOfflineScanResult(found, zoneScope) {
   const alreadyUsed = Boolean(entry.checkedInAt) || entry.checkedInLocally
 
   if (kind === 'ticket') {
+    if (ticketRequiresLiveDoor(entry)) {
+      return applyTicketZoneOutcome(
+        {
+          kind: 'ticket',
+          outcome: 'needs_online',
+          offline: true,
+          canCheckIn: false,
+          qrToken: entry.qrToken,
+          status: entry.status,
+          row: {
+            id: `tkt-${entry.qrToken}`,
+            ticketCode: entry.ticketCode,
+            gateCode: entry.gateCode ?? null,
+            qrToken: entry.qrToken,
+            type: 'espectador',
+            name: entry.attendeeName,
+            document: entry.attendeeDni,
+            meta: entry.ticketTypeName ?? entry.ticketCode,
+            ticketTypeName: entry.ticketTypeName,
+            validityMode: entry.validityMode,
+            credentialLabel: entry.credentialLabel ?? null,
+            credentialScopes: entry.credentialScopes ?? [],
+            status: entry.status,
+            validFrom: entry.validFrom ?? null,
+            validUntil: entry.validUntil ?? null,
+          },
+        },
+        zoneScope,
+      )
+    }
     const validity = ticketValidityStatus(entry)
     const outcome = alreadyUsed
       ? 'already_used'
@@ -149,6 +179,7 @@ function buildOfflineScanResult(found, zoneScope) {
         row: {
           id: `tkt-${entry.qrToken}`,
           ticketCode: entry.ticketCode,
+          gateCode: entry.gateCode ?? null,
           qrToken: entry.qrToken,
           type: 'espectador',
           name: entry.attendeeName,
@@ -207,6 +238,12 @@ function readFeedbackPrefs() {
   }
 }
 
+/** `30111222` o `30.111.222`: forma de DNI tipeado, no de socio dictado. */
+function looksLikeTypedDni(raw) {
+  const value = String(raw ?? '').trim()
+  return /^\d{7,8}$/.test(value) || /^\d{1,2}\.\d{3}\.\d{3}$/.test(value)
+}
+
 function buildHistoryEntry(resolved, raw) {
   const name =
     resolved.row?.name ?? resolved.athlete?.fullName ?? resolved.ticket?.attendeeName ?? null
@@ -238,12 +275,17 @@ function buildHistoryEntry(resolved, raw) {
 export function useCheckInWorkspace({
   athletes,
   canCheckIn,
+  canEnableTickets = false,
+  canForceCheckIn = false,
   eventDays = [],
   eventSlug = 'pitbull-classic-2026',
+  onApproveTicketOrder,
   onCheckInRegistration,
   onCheckInTicket,
   onRedeemTicketAddon,
   onRefreshTickets,
+  onRejectTicketOrder,
+  memberships = [],
   payments = [],
   registrations,
   /** Puesto de quien opera. Nulo = no filtra zona (misma regla que el API). */
@@ -251,7 +293,7 @@ export function useCheckInWorkspace({
   ticketTypes = [],
   tickets,
 }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const [query, setQuery] = useState('')
   const [type, setType] = useState('all')
   const [day, setDay] = useState('all')
@@ -263,6 +305,8 @@ export function useCheckInWorkspace({
   // Un QR lento no puede pisar el resultado de uno más nuevo: con dos
   // escaneos seguidos la respuesta tardía mostraba la persona equivocada.
   const scanSeqRef = useRef(0)
+  // El ingreso ya se encoló o se confirmó: una respuesta tardía no lo reabre.
+  const scanSettledRef = useRef(false)
   const [highlightRowId, setHighlightRowId] = useState(null)
   const [scanHistory, setScanHistory] = useState([])
   const [activeHistoryId, setActiveHistoryId] = useState(null)
@@ -270,7 +314,14 @@ export function useCheckInWorkspace({
   const [redeemBusyId, setRedeemBusyId] = useState(null)
   const [redeemError, setRedeemError] = useState('')
   const [allowlistSources, setAllowlistSources] = useState(null)
+  const [localAdmittedIds, setLocalAdmittedIds] = useState(() => new Set())
   const offlineSync = useOfflineCheckinSync(eventSlug)
+  const noteSnapshot = offlineSync.noteSnapshot
+  const pullAllowlist = offlineSync.downloadAllowlist
+  const drainAndPull = offlineSync.reloadAndSync
+  const liveRefreshTimer = useRef(null)
+  const admissionBaselineSlug = useRef(null)
+  const admissionPullGen = useRef(0)
   const zoneScope = securityZone?.scope ?? null
 
   function persistFeedbackPrefs(next) {
@@ -299,94 +350,144 @@ export function useCheckInWorkspace({
     onRefreshTickets?.(eventSlug)
   }, [eventSlug, onRefreshTickets])
 
+  useEffect(() => {
+    if ((registrations?.length ?? 0) > 0 || !eventSlug) return undefined
+    let live = true
+
+    async function hydrate() {
+      let cached = null
+      try {
+        cached = await getAllowlist(eventSlug)
+      } catch {
+        cached = null
+      }
+      if (!live) return
+      if (cached) {
+        setAllowlistSources(mapAllowlistToCheckinSources(cached, eventSlug))
+        noteSnapshot?.(cached.downloadedAt)
+      }
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+      if (isSnapshotFresh(cached?.downloadedAt)) return
+      try {
+        const saved = await refreshCheckinAllowlist(eventSlug)
+        if (!live || !saved) return
+        setAllowlistSources(mapAllowlistToCheckinSources(saved, eventSlug))
+        noteSnapshot?.(saved.downloadedAt)
+      } catch {
+        // Sin red o sin permiso de bajarla: queda la foto que ya estaba.
+      }
+    }
+
+    hydrate()
+    return () => {
+      live = false
+    }
+  }, [eventSlug, noteSnapshot, registrations])
+
+  const applyAllowlist = useCallback(
+    (saved) => {
+      if (!saved || !eventSlug) return
+      setAllowlistSources(mapAllowlistToCheckinSources(saved, eventSlug))
+      noteSnapshot?.(saved.downloadedAt)
+    },
+    [eventSlug, noteSnapshot],
+  )
+
+  const reloadAndSync = useCallback(async () => {
+    if (!drainAndPull) return null
+    const saved = await drainAndPull()
+    applyAllowlist(saved)
+    return saved
+  }, [applyAllowlist, drainAndPull])
+
+  const refreshLiveCheckins = useCallback(() => {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+    if (liveRefreshTimer.current) window.clearTimeout(liveRefreshTimer.current)
+    liveRefreshTimer.current = window.setTimeout(() => {
+      liveRefreshTimer.current = null
+      onRefreshTickets?.(eventSlug)
+      Promise.resolve()
+        .then(() => pullAllowlist?.())
+        .then(applyAllowlist)
+        .catch(() => {})
+    }, 400)
+  }, [applyAllowlist, eventSlug, onRefreshTickets, pullAllowlist])
+
   // Con varias puertas abiertas los contadores sólo se movían con los ingresos
-  // de ESTE equipo. Se vuelven a pedir cada tanto, y sólo con la pestaña a la
-  // vista y con conexión: de fondo o sin señal sería gasto sin nadie mirando.
-  const [allowlistReloadKey, setAllowlistReloadKey] = useState(0)
-  const allowlistRefreshedAtRef = useRef(0)
-  const allowlistTrailingRef = useRef(null)
+  // de ESTE equipo. Cada tanto se piden de nuevo las entradas y la foto de
+  // ingresos, y sólo con la pestaña a la vista: de fondo o sin señal no aporta.
+  useEffect(() => {
+    if (!eventSlug || !onRefreshTickets) return undefined
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState !== 'visible' || !navigator.onLine) return
+      refreshLiveCheckins()
+    }, COUNTER_REFRESH_MS)
+    return () => window.clearInterval(intervalId)
+  }, [eventSlug, onRefreshTickets, refreshLiveCheckins])
 
   useEffect(
     () => () => {
-      if (allowlistTrailingRef.current) window.clearTimeout(allowlistTrailingRef.current)
+      if (liveRefreshTimer.current) window.clearTimeout(liveRefreshTimer.current)
     },
     [],
   )
 
-  // Un ingreso en otra puerta, una entrada cancelada o aprobada, una invitación
-  // nueva: la base avisa por `ticket-ops:<slug>` (sin datos) y acá se relee.
-  // Si este puesto tiene la lista offline bajada, también se refresca, así una
-  // cancelación llega a la puerta que después se quede sin señal.
-  const refreshAllowlists = useCallback(() => {
-    allowlistRefreshedAtRef.current = Date.now()
-    if ((registrations?.length ?? 0) === 0) setAllowlistReloadKey((key) => key + 1)
-    if (offlineSync.lastDownloadedAt && navigator.onLine) {
-      void offlineSync.downloadAllowlist().catch(() => {})
-    }
-  }, [offlineSync, registrations])
-  // El timeout de la relectura final tiene que usar el estado del momento en
-  // que corre (lista offline bajada o no), no el de cuando se programó.
-  const refreshAllowlistsRef = useRef(refreshAllowlists)
-  refreshAllowlistsRef.current = refreshAllowlists
-
-  const handleOpsChange = useCallback(() => {
-    if (!eventSlug) return
-    // Lo liviano (contadores y entradas) en cada ventana de avisos.
-    onRefreshTickets?.(eventSlug)
-    // Lo pesado (la lista completa), como mucho cada 20 s; si cae dentro de la
-    // ventana, queda una relectura al final para no perder el último cambio
-    // (una cancelación tiene que llegar a la lista offline).
-    const elapsed = Date.now() - allowlistRefreshedAtRef.current
-    if (elapsed >= ALLOWLIST_REFRESH_MIN_MS) {
-      refreshAllowlists()
-    } else if (!allowlistTrailingRef.current) {
-      allowlistTrailingRef.current = window.setTimeout(() => {
-        allowlistTrailingRef.current = null
-        refreshAllowlistsRef.current()
-      }, ALLOWLIST_REFRESH_MIN_MS - elapsed)
-    }
-  }, [eventSlug, onRefreshTickets, refreshAllowlists])
-
-  const opsRealtime = useBroadcastTopic(
-    eventSlug ? `ticket-ops:${eventSlug}` : null,
-    OPS_EVENTS,
-    handleOpsChange,
-    OPS_REALTIME_OPTIONS,
-  )
-
   useEffect(() => {
-    if (!eventSlug || !onRefreshTickets) return undefined
-    const intervalId = window.setInterval(
-      () => {
-        if (document.visibilityState !== 'visible' || !navigator.onLine) return
-        onRefreshTickets(eventSlug)
-      },
-      opsRealtime.connected ? COUNTER_REFRESH_LIVE_MS : COUNTER_REFRESH_MS,
-    )
-    return () => window.clearInterval(intervalId)
-  }, [eventSlug, onRefreshTickets, opsRealtime.connected])
-
-  useEffect(() => {
-    if ((registrations?.length ?? 0) > 0 || !eventSlug) return undefined
-    let live = true
-    getEventCheckinAllowlist(eventSlug)
-      .then((data) => {
-        if (live) setAllowlistSources(mapAllowlistToCheckinSources(data, eventSlug))
+    const hasLiveList = (registrations?.length ?? 0) > 0 || (tickets?.length ?? 0) > 0
+    if (!eventSlug || !hasLiveList || admissionBaselineSlug.current === eventSlug) return
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+    admissionBaselineSlug.current = eventSlug
+    const generation = ++admissionPullGen.current
+    Promise.resolve()
+      .then(() => pullAllowlist?.())
+      .then((saved) => {
+        if (admissionPullGen.current !== generation) return
+        applyAllowlist(saved)
       })
       .catch(() => {
-        // Si la relectura falla se conserva lo último que se vio (no se pisa
-        // con null): vaciar la lista por un corte momentáneo dejaría la puerta
-        // sin nadie a quien buscar.
+        if (admissionPullGen.current === generation) admissionBaselineSlug.current = null
       })
-    return () => {
-      live = false
-    }
-  }, [allowlistReloadKey, eventSlug, registrations])
+  }, [applyAllowlist, eventSlug, pullAllowlist, registrations?.length, tickets?.length])
 
-  const allRows = useMemo(
-    () =>
+  useEffect(() => {
+    if (!eventSlug || !isSupabaseConfigured) return undefined
+    let disposed = false
+    let client = null
+    let channel = null
+
+    void getSupabaseClient()
+      .then((supabase) => {
+        if (disposed || !supabase) return
+        client = supabase
+        channel = supabase
+          .channel(`event-checkin:${eventSlug}`, { config: { broadcast: { self: false } } })
+          .on('broadcast', { event: 'checkin-changed' }, (message) => {
+            if (readCheckinBroadcastSlug(message) !== eventSlug) return
+            void refreshLiveCheckins()
+          })
+          // Una entrada cancelada, aprobada o una invitación nueva (20271124110000):
+          // mismo tópico y mismo contrato sin datos. La relectura refresca la
+          // lista viva y la offline, así una cancelación llega a la puerta que
+          // después se quede sin señal.
+          .on('broadcast', { event: 'tickets-changed' }, (message) => {
+            if (readCheckinBroadcastSlug(message) !== eventSlug) return
+            void refreshLiveCheckins()
+          })
+          .subscribe()
+      })
+      .catch(() => {})
+
+    return () => {
+      disposed = true
+      if (client && channel) void client.removeChannel(channel)
+    }
+  }, [eventSlug, refreshLiveCheckins])
+
+  const allRows = useMemo(() => {
+    const rows = applyServerAdmissions(
       buildCheckinRows({
         athletes: athletes?.length ? athletes : (allowlistSources?.athletes ?? []),
+        memberships,
         payments,
         registrations: registrations?.length
           ? registrations
@@ -395,8 +496,43 @@ export function useCheckInWorkspace({
         eventSlug,
         ticketTypes,
       }),
-    [allowlistSources, athletes, eventSlug, payments, registrations, ticketTypes, tickets],
-  )
+      allowlistSources,
+    )
+    if (localAdmittedIds.size === 0) return rows
+    return rows.map((row) =>
+      localAdmittedIds.has(row.id) ? { ...row, status: 'usada' } : row,
+    )
+  }, [
+    allowlistSources,
+    athletes,
+    eventSlug,
+    memberships,
+    localAdmittedIds,
+    payments,
+    registrations,
+    ticketTypes,
+    tickets,
+  ])
+
+  useEffect(() => {
+    setScanResult((current) => {
+      if (!current?.canCheckIn) return current
+      const match = allRows.find((row) => {
+        if (current.kind === 'registration') return row.registrationId === current.registrationId
+        if (current.kind === 'ticket') return Boolean(row.qrToken) && row.qrToken === current.qrToken
+        return false
+      })
+      if (!match || match.status !== 'usada' || !match.checkedInAt || match.checkedInAt === 'offline') {
+        return current
+      }
+      return {
+        ...current,
+        outcome: 'already_used',
+        canCheckIn: false,
+        status: 'usada',
+      }
+    })
+  }, [allRows])
 
   const statusCounts = useMemo(() => summarizeCheckinRows(allRows, eventDays), [allRows, eventDays])
 
@@ -432,7 +568,11 @@ export function useCheckInWorkspace({
       STATUS_FILTERS
         // "Por cobrar" no es un estado permanente de la puerta: sin órdenes
         // abiertas el filtro sería una opción que siempre da cero.
-        .filter(([value]) => value !== 'to_validate' || filteredScopeCounts.toValidate > 0)
+        .filter(([value]) => {
+          if (value === 'to_validate') return filteredScopeCounts.toValidate > 0
+          if (value === 'unpaid') return filteredScopeCounts.unpaid > 0
+          return true
+        })
         .map(([value, key]) => [
           value,
           t(key),
@@ -446,208 +586,290 @@ export function useCheckInWorkspace({
     [allRows, checkinStatus, credential, day, query, type],
   )
 
-  const runParsedScan = useCallback(
-    async (parsed, raw) => {
-      const scanSeq = ++scanSeqRef.current
-      const isStale = () => scanSeq !== scanSeqRef.current
-      setScanBusy(true)
-      setScanResult(null)
+  // El carril del escaneo: la búsqueda por DNI elige una credencial y la manda
+  // por acá como si hubiera sido el QR. Ref para no depender del orden de las
+  // declaraciones (handleScan se declara después).
+  const handleScanRef = useRef(null)
 
-      try {
-        // `staff` pide la proyección con documento: el workspace solo se
-        // renderiza detrás de admin.checkin.execute, que es el mismo permiso
-        // que exige el endpoint.
-        const resolved = await resolveCredentialScan(parsed, {
-          defaultEventSlug: eventSlug,
-          staff: canCheckIn,
-          zoneScope,
-        })
-        if (isStale()) return
-        const historyEntry = buildHistoryEntry(resolved, raw)
-        setScanResult(resolved)
-        setRedeemError('')
-        prependHistoryEntry(historyEntry)
-        playCheckinFeedback(resolved.outcome ?? 'invalid', feedbackPrefs)
-        if (resolved.row?.id) {
-          setHighlightRowId(resolved.row.id)
-        }
-        reportScanAttempt({
-          eventSlug,
-          kind: resolved.kind ?? 'unknown',
-          outcome: resolved.outcome ?? 'invalid',
-          qrToken: resolved.qrToken ?? null,
-        })
-      } catch (error) {
-        if (isStale()) return
-        const failure = classifyCheckinFailure(error)
-
-        if (isRetryableCheckinFailure(error)) {
-          // Sin red, 429 o 5xx: se valida contra la lista descargada. Si no hay
-          // lista, se dice que el servicio no contestó en vez de acusar al QR.
-          const found = await findInAllowlist(eventSlug, parsed.code)
-          if (isStale()) return
-          const offlineResult = found
-            ? buildOfflineScanResult(found, zoneScope)
-            : { outcome: 'service_unavailable', offline: true }
-          setScanResult(offlineResult)
-          setRedeemError('')
-          prependHistoryEntry(buildHistoryEntry(offlineResult, raw))
-          playCheckinFeedback(offlineResult.outcome ?? 'invalid', feedbackPrefs)
-          if (offlineResult.row?.id) setHighlightRowId(offlineResult.row.id)
-          reportScanAttempt({
-            eventSlug,
-            kind: offlineResult.kind ?? 'unknown',
-            outcome: offlineResult.outcome ?? 'invalid',
-            qrToken: offlineResult.qrToken ?? null,
-            offline: true,
-          })
-          setScanBusy(false)
-          return
-        }
-
-        console.error('checkin scan:', error)
-        const failedOutcome = failure === 'auth' ? 'session_expired' : 'not_found'
-        const failedResult = { outcome: failedOutcome }
-        setScanResult(failedResult)
-        prependHistoryEntry(buildHistoryEntry(failedResult, raw))
-        playCheckinFeedback(failedOutcome, feedbackPrefs)
-        // Una sesión vencida no es un intento sobre ese QR: no ensucia el reporte.
-        if (failure !== 'auth') {
-          reportScanAttempt({ eventSlug, kind: 'unknown', outcome: 'not_found' })
-        }
-      } finally {
-        if (!isStale()) setScanBusy(false)
-      }
-    },
-    [canCheckIn, eventSlug, feedbackPrefs, zoneScope],
-  )
-
-  /**
-   * Muestra un resultado que no salió de resolver un QR (búsqueda manual sin
-   * coincidencias, varias coincidencias, sesión vencida): mismo historial y
-   * misma alerta que un escaneo.
-   */
-  const showScanOutcome = useCallback(
+  const showLookupOutcome = useCallback(
     (result, raw) => {
       setScanResult(result)
       setRedeemError('')
-      const entry = buildHistoryEntry(result, raw)
-      setScanHistory((current) => [entry, ...current].slice(0, MAX_SCAN_HISTORY))
-      setActiveHistoryId(entry.id)
+      prependHistoryEntry(buildHistoryEntry(result, raw))
       playCheckinFeedback(result.outcome ?? 'invalid', feedbackPrefs)
     },
+    // prependHistoryEntry sólo usa setters estables.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [feedbackPrefs],
   )
 
   /**
-   * El guardia eligió una credencial (o la búsqueda dio una sola). Online sigue
-   * por el carril del escaneo con el token que hubiera traído el QR: pago,
-   * vigencia, zona y uso único se validan igual que con la cámara. Offline se
-   * valida contra la lista descargada, como un QR sin señal.
+   * El guardia eligió una credencial (o la búsqueda dio una sola): sigue por
+   * el escaneo con el token que hubiera traído el QR. Online u offline lo
+   * resuelve el mismo handleScan (reintentos, lista descargada, anuncio).
    */
   const selectScanMatch = useCallback(
-    async (match, raw = match?.ticketCode ?? match?.document ?? '') => {
+    async (match) => {
       if (!match?.code) return
-      if (match.entry) {
-        const offlineResult = buildOfflineScanResult(
-          { kind: match.kind, entry: match.entry },
-          zoneScope,
-        )
-        showScanOutcome(offlineResult, raw)
-        if (offlineResult.row?.id) setHighlightRowId(offlineResult.row.id)
-        reportScanAttempt({
-          eventSlug,
-          kind: offlineResult.kind ?? 'unknown',
-          outcome: offlineResult.outcome ?? 'invalid',
-          qrToken: offlineResult.qrToken ?? null,
-          offline: true,
-        })
-        return
-      }
-      await runParsedScan(
-        { code: match.code, eventSlug, type: match.kind === 'ticket' ? 'ticket' : null },
-        raw,
-      )
+      const url = buildCredentialUrl({
+        code: match.code,
+        eventSlug: match.kind === 'ticket' ? eventSlug : null,
+        type: match.kind === 'ticket' ? 'ticket' : null,
+      })
+      await handleScanRef.current?.(url)
     },
-    [eventSlug, runParsedScan, showScanOutcome, zoneScope],
+    [eventSlug],
   )
 
   /**
-   * "El QR no escanea": número impreso en la entrada o DNI -> credencial(es)
-   * de este evento. Una sola sigue directo; varias se le muestran al guardia
-   * para que elija; ninguna es "no encontrada", con la pista de qué se buscó.
+   * DNI o número impreso de la compra -> credencial(es) de este evento. Una
+   * sola sigue directo; varias se muestran para elegir; ninguna es "no
+   * encontrada" con la pista de qué se buscó. Sin red, la misma búsqueda contra
+   * la lista descargada.
    */
   const runManualLookup = useCallback(
-    async (manual, raw) => {
+    async (manual, raw, { fallbackOnEmpty = false } = {}) => {
       const scanSeq = ++scanSeqRef.current
       const isStale = () => scanSeq !== scanSeqRef.current
       const query = checkinLookupQuery(manual)
       setScanBusy(true)
       setScanResult(null)
-
       try {
         let matches
         try {
           matches = await lookupCheckinCredentials(eventSlug, query)
         } catch (error) {
-          if (isStale()) return
+          if (isStale()) return true
           if (classifyCheckinFailure(error) === 'auth') {
-            showScanOutcome({ outcome: 'session_expired' }, raw)
-            return
+            showLookupOutcome({ outcome: 'session_expired' }, raw)
+            return true
           }
           if (!isRetryableCheckinFailure(error)) throw error
-          // Sin red: la misma búsqueda contra la lista descargada.
           matches = await findMatchesInAllowlist(eventSlug, query)
-          if (isStale()) return
+          if (isStale()) return true
           if (!matches) {
-            showScanOutcome({ outcome: 'service_unavailable', offline: true }, raw)
-            return
+            if (fallbackOnEmpty) return false
+            showLookupOutcome({ outcome: 'service_unavailable', offline: true }, raw)
+            return true
           }
         }
-        if (isStale()) return
-
+        if (isStale()) return true
         if (matches.length === 1) {
-          await selectScanMatch(matches[0], raw)
-          return
+          setScanBusy(false)
+          await selectScanMatch(matches[0])
+          return true
         }
         if (matches.length === 0) {
-          showScanOutcome({ outcome: 'not_found', manualQuery: manual }, raw)
+          // Un DNI que también podría ser un número de socio cantado: si no es
+          // ninguna entrada ni inscripción, sigue por el camino del socio.
+          if (fallbackOnEmpty) return false
+          showLookupOutcome({ outcome: 'not_found', manualQuery: manual }, raw)
           reportScanAttempt({ eventSlug, kind: 'unknown', outcome: 'not_found' })
-          return
+          return true
         }
-        showScanOutcome({ outcome: 'multiple_matches', matches, manualQuery: manual }, raw)
+        showLookupOutcome({ outcome: 'multiple_matches', matches, manualQuery: manual }, raw)
+        return true
       } catch (error) {
-        if (isStale()) return
+        if (isStale()) return true
         console.error('checkin manual lookup:', error)
-        showScanOutcome({ outcome: 'not_found', manualQuery: manual }, raw)
+        if (fallbackOnEmpty) return false
+        showLookupOutcome({ outcome: 'not_found', manualQuery: manual }, raw)
+        return true
       } finally {
         if (!isStale()) setScanBusy(false)
       }
     },
-    [eventSlug, selectScanMatch, showScanOutcome],
+    [eventSlug, selectScanMatch, showLookupOutcome],
   )
 
   const handleScan = useCallback(
     async (raw) => {
-      const manual = parseManualCheckinCode(raw)
-      if (needsCheckinLookup(manual)) {
-        await runManualLookup(manual, raw)
+      const prepared = prepareCheckinScan(raw)
+      const scanRaw =
+        prepared.kind === 'door' || prepared.kind === 'member'
+          ? prepared.display
+          : prepared.raw || String(raw ?? '')
+
+      if (prepared.kind === 'malformed') {
+        const invalidResult = {
+          outcome: 'door_malformed',
+          reason: prepared.reason ?? 'length',
+          heard: prepared.heard ?? 0,
+          repairs: prepared.repairs ?? ['speech'],
+        }
+        setScanResult(invalidResult)
+        prependHistoryEntry(buildHistoryEntry(invalidResult, scanRaw))
+        playCheckinFeedback('door_malformed', feedbackPrefs)
+        if (feedbackPrefs.soundEnabled) announceCheckinVerdict({ outcome: 'door_malformed' }, { locale })
+        reportScanAttempt({ eventSlug, kind: 'unknown', outcome: 'door_malformed' })
         return
       }
 
-      const parsed = parseCredentialScan(raw)
+      // DNI o número impreso de la compra: puede ser más de una credencial.
+      // El código de puerta (XXX-XXX) y el de socio ya los resolvió arriba
+      // `prepareCheckinScan`; esto es sólo lo que cayó como texto suelto.
+      if (prepared.kind === 'credential' && !prepared.parsed?.type) {
+        const manual = parseManualCheckinCode(scanRaw)
+        if (needsCheckinLookup(manual)) {
+          await runManualLookup(manual, scanRaw)
+          return
+        }
+      }
+      // Un DNI tipeado (7-8 dígitos pegados o con puntos) también se lee como
+      // número de socio cantado (`30111222` = año 2030, serial 111222). Primero
+      // se busca como DNI; si no es nadie, sigue como socio. El socio dictado
+      // con espacio (`26 865`) no pasa por acá.
+      if (prepared.kind === 'member' && looksLikeTypedDni(raw)) {
+        const manual = parseManualCheckinCode(raw)
+        if (manual?.kind === 'dni') {
+          const handled = await runManualLookup(manual, scanRaw, { fallbackOnEmpty: true })
+          if (handled) return
+          setScanBusy(false)
+        }
+      }
+
+      const parsed =
+        prepared.kind === 'credential' || prepared.kind === 'member'
+          ? prepared.parsed
+          : parseCredentialScan(scanRaw)
       if (!parsed?.code) {
         const invalidResult = { outcome: 'invalid' }
         setScanResult(invalidResult)
-        prependHistoryEntry(buildHistoryEntry(invalidResult, raw))
+        prependHistoryEntry(buildHistoryEntry(invalidResult, scanRaw))
         playCheckinFeedback('invalid', feedbackPrefs)
+        if (feedbackPrefs.soundEnabled) announceCheckinVerdict({ outcome: 'invalid' }, { locale })
         reportScanAttempt({ eventSlug, kind: 'unknown', outcome: 'invalid' })
         return
       }
-      await runParsedScan(parsed, raw)
+
+      const scanSeq = ++scanSeqRef.current
+      scanSettledRef.current = false
+      const isStale = () => scanSeq !== scanSeqRef.current
+      setScanBusy(true)
+      setScanResult(null)
+
+      let shownOutcome = null
+      const publish = (result, { correct = false } = {}) => {
+        if (isStale() || scanSettledRef.current) return
+        const next =
+          prepared.kind === 'door' && result
+            ? {
+                ...result,
+                gateCode: result.gateCode || result.ticket?.gateCode || result.row?.gateCode || prepared.display,
+                repairs: result.repairs ?? prepared.repairs,
+              }
+            : result
+        const nextOutcome = next.outcome ?? 'invalid'
+        const sameVerdict = correct && shownOutcome === nextOutcome
+        shownOutcome = nextOutcome
+        setScanResult(next)
+        setRedeemError('')
+        if (sameVerdict) return
+        if (correct) {
+          setScanHistory((current) => {
+            const [latest, ...rest] = current
+            if (!latest || latest.raw !== scanRaw) return current
+            if (latest.outcome === 'queued_offline' || latest.outcome === 'checked_in') return current
+            const entry = buildHistoryEntry(next, scanRaw)
+            return [{ ...entry, id: latest.id, scannedAt: latest.scannedAt }, ...rest]
+          })
+        } else {
+          prependHistoryEntry(buildHistoryEntry(next, scanRaw))
+        }
+        playCheckinFeedback(nextOutcome, feedbackPrefs)
+        if (feedbackPrefs.soundEnabled) {
+          announceCheckinVerdict(
+            {
+              outcome: nextOutcome,
+              kind: next.kind,
+              name: next.row?.name ?? next.athlete?.fullName ?? next.ticket?.attendeeName,
+              credentialLabel: next.row?.credentialLabel ?? next.ticket?.credentialLabel,
+            },
+            { locale },
+          )
+        }
+        if (result.row?.id) setHighlightRowId(result.row.id)
+        if (result.outcome !== 'session_expired') {
+          reportScanAttempt({
+            eventSlug,
+            kind: result.kind ?? 'unknown',
+            outcome: result.outcome ?? 'invalid',
+            qrToken: result.qrToken ?? null,
+            offline: Boolean(result.offline),
+          })
+        }
+      }
+
+      const publishFailure = (error) => {
+        const failure = classifyCheckinFailure(error)
+        if (isRetryableCheckinFailure(error)) return false
+        console.error('checkin scan:', error)
+        const failedOutcome = failure === 'auth' ? 'session_expired' : 'not_found'
+        publish({ outcome: failedOutcome })
+        return true
+      }
+
+      try {
+        // `staff` pide la proyección con documento: el workspace solo se
+        // renderiza detrás de admin.checkin.execute, que es el mismo permiso
+        // que exige el endpoint. Si la red no contesta enseguida, se muestra
+        // la foto local y el servidor corrige después.
+        const decision = await resolveDoorScan({
+          online: typeof navigator === 'undefined' || navigator.onLine !== false,
+          readLocal: () => findInAllowlist(eventSlug, parsed.code),
+          readNetwork: () =>
+            resolveCredentialScan(parsed, {
+              defaultEventSlug: eventSlug,
+              staff: canCheckIn,
+              zoneScope,
+            }),
+          onNetwork: (late) => {
+            if (isStale() || checkInLockRef.current || scanSettledRef.current) return
+            if (late.source === 'network') {
+              publish(late.value, { correct: true })
+              return
+            }
+            publishFailure(late.error)
+          },
+        })
+        if (isStale()) return
+        if (decision.source === 'network') {
+          publish(decision.value)
+          return
+        }
+        if (decision.source === 'network-error') {
+          if (publishFailure(decision.error)) return
+          const found = await findInAllowlist(eventSlug, parsed.code)
+          if (isStale()) return
+          if (found) {
+            publish(buildOfflineScanResult(found, zoneScope))
+            return
+          }
+          const lockedDoorCode =
+            classifyCheckinFailure(decision.error) === 'rate_limited' &&
+            /códigos incorrectos/i.test(String(decision.error?.message ?? ''))
+          publish(
+            lockedDoorCode
+              ? { outcome: 'rate_limited', gateCode: prepared.display ?? null }
+              : { outcome: 'service_unavailable', offline: true },
+          )
+          return
+        }
+        publish(
+          decision.local
+            ? buildOfflineScanResult(decision.local, zoneScope)
+            : { outcome: 'service_unavailable', offline: true },
+        )
+      } catch (error) {
+        if (isStale()) return
+        publishFailure(error)
+      } finally {
+        if (!isStale()) setScanBusy(false)
+      }
     },
-    [eventSlug, feedbackPrefs, runManualLookup, runParsedScan],
+    [canCheckIn, eventSlug, feedbackPrefs, locale, runManualLookup, zoneScope],
   )
+  handleScanRef.current = handleScan
 
   function handleHistorySelect(item) {
     setActiveHistoryId(item.id)
@@ -659,17 +881,95 @@ export function useCheckInWorkspace({
     }
   }
 
+  function rememberAdmitted(rowId) {
+    if (!rowId) return
+    setLocalAdmittedIds((current) => {
+      if (current.has(rowId)) return current
+      const next = new Set(current)
+      next.add(rowId)
+      return next
+    })
+  }
+
+  async function queueAdmission(row) {
+    await enqueueCheckin({
+      eventSlug,
+      kind: row.type === 'atleta' ? 'registration' : 'ticket',
+      qrToken: row.type === 'atleta' ? null : (row.qrToken ?? null),
+      registrationId: row.type === 'atleta' ? row.registrationId : null,
+      gate: securityZone?.name ?? null,
+      label: row.ticketCode || row.name || null,
+    })
+    rememberAdmitted(row.id)
+    scanSettledRef.current = true
+    playCheckinFeedback('queued_offline', feedbackPrefs)
+    offlineSync.refreshCounts?.()
+  }
+
   async function handleCheckIn(row) {
+    if (!canCheckIn || checkInLockRef.current) return
+    checkInLockRef.current = true
+    setHighlightRowId(row.id)
+
+    try {
+      await admitFromList(row)
+    } finally {
+      checkInLockRef.current = false
+    }
+  }
+
+  async function admitFromList(row) {
     if (row.type === 'atleta') {
-      const result = await onCheckInRegistration(row.registrationId)
-      if (result?.outcome === 'ok') {
-        playCheckinFeedback('checkin_ok', feedbackPrefs)
-        if (activeHistoryId) markHistoryCheckedIn(activeHistoryId)
-        setScanResult((current) =>
-          current?.row?.id === row.id
-            ? { ...current, outcome: 'checked_in', canCheckIn: false, status: 'usada' }
-            : current,
-        )
+      if (!offlineSync.isOnline) {
+        await queueAdmission(row)
+        return
+      }
+      try {
+        const result = await runDoorAttempts(() => onCheckInRegistration(row.registrationId))
+        if (result?.outcome === 'ok' || result?.outcome === 'already_used') {
+          rememberAdmitted(row.id)
+          playCheckinFeedback(
+            result.outcome === 'ok' ? 'checkin_ok' : 'already_used',
+            feedbackPrefs,
+          )
+          if (activeHistoryId) markHistoryCheckedIn(activeHistoryId)
+          if (result.outcome === 'already_used') {
+            setScanResult({
+              kind: 'registration',
+              outcome: 'already_used',
+              canCheckIn: false,
+              registrationId: row.registrationId,
+              status: 'usada',
+              row: { ...row, status: 'usada' },
+            })
+          }
+          return
+        }
+        const rejected =
+          result?.outcome === 'not_paid'
+            ? 'not_ready'
+            : result?.outcome === 'not_found'
+              ? 'not_found'
+              : result?.outcome === 'forbidden'
+                ? 'not_ready'
+                : null
+        if (rejected) {
+          playCheckinFeedback(rejected, feedbackPrefs)
+          setScanResult({
+            kind: 'registration',
+            outcome: rejected,
+            canCheckIn: false,
+            registrationId: row.registrationId,
+            status: row.status,
+            row,
+          })
+        }
+      } catch (error) {
+        if (isRetryableCheckinFailure(error)) {
+          await queueAdmission(row)
+          return
+        }
+        console.error('checkin registration:', error)
       }
       return
     }
@@ -709,31 +1009,53 @@ export function useCheckInWorkspace({
       return
     }
 
-    const result = await onCheckInTicket(row.qrToken)
-    onRefreshTickets?.(eventSlug)
-
-    if (result?.outcome === 'ok') {
-      playCheckinFeedback('checkin_ok', feedbackPrefs)
-      if (activeHistoryId) markHistoryCheckedIn(activeHistoryId)
-      setScanResult((current) =>
-        current?.row?.id === row.id
-          ? { ...current, outcome: 'checked_in', canCheckIn: false, status: 'usada' }
-          : current,
-      )
+    if (!offlineSync.isOnline) {
+      if (ticketRequiresLiveDoor(row)) {
+        blockLiveDoorOffline(row)
+        return
+      }
+      await queueAdmission(row)
       return
     }
 
-    const uiOutcome = CHECKIN_REJECTION_UI_OUTCOME[result?.outcome]
-    if (uiOutcome) {
-      playCheckinFeedback(uiOutcome, feedbackPrefs)
-      setScanResult({
-        kind: 'ticket',
-        outcome: uiOutcome,
-        canCheckIn: false,
-        qrToken: row.qrToken,
-        status: row.status,
-        row,
-      })
+    try {
+      const result = await runDoorAttempts(() => onCheckInTicket(row.qrToken))
+      onRefreshTickets?.(eventSlug)
+
+      if (result?.outcome === 'ok') {
+        rememberAdmitted(row.id)
+        playCheckinFeedback('checkin_ok', feedbackPrefs)
+        if (activeHistoryId) markHistoryCheckedIn(activeHistoryId)
+        setScanResult((current) =>
+          current?.row?.id === row.id
+            ? { ...current, outcome: 'checked_in', canCheckIn: false, status: 'usada' }
+            : current,
+        )
+        return
+      }
+
+      const uiOutcome = CHECKIN_REJECTION_UI_OUTCOME[result?.outcome]
+      if (uiOutcome) {
+        playCheckinFeedback(uiOutcome, feedbackPrefs)
+        setScanResult({
+          kind: 'ticket',
+          outcome: uiOutcome,
+          canCheckIn: false,
+          qrToken: row.qrToken,
+          status: row.status,
+          row,
+        })
+      }
+    } catch (error) {
+      if (isRetryableCheckinFailure(error)) {
+        if (ticketRequiresLiveDoor(row)) {
+          blockLiveDoorOffline(row)
+          return
+        }
+        await queueAdmission(row)
+        return
+      }
+      console.error('checkin ticket:', error)
     }
   }
 
@@ -768,13 +1090,21 @@ export function useCheckInWorkspace({
       // palito, 5xx, 429) el guardia quedaba con "inválido" y la persona sin
       // entrar. Se encola igual: si el servidor sí lo registró, la
       // sincronización recibe PLU06 y queda como conflicto benigno.
-      if (isRetryableCheckinFailure(error) && hasTarget) {
+      if (
+        isRetryableCheckinFailure(error) &&
+        hasTarget &&
+        !ticketRequiresLiveDoor(scanResult.ticket ?? scanResult.row)
+      ) {
         try {
           await queueScanOffline()
           return
         } catch (queueError) {
           console.error('checkin queue:', queueError)
         }
+      }
+      if (ticketRequiresLiveDoor(scanResult.ticket ?? scanResult.row) && isRetryableCheckinFailure(error)) {
+        blockLiveDoorOffline(scanResult.row ?? scanResult.ticket)
+        return
       }
       const failedOutcome = classifyCheckinFailure(error) === 'auth' ? 'session_expired' : 'invalid'
       playCheckinFeedback(failedOutcome, feedbackPrefs)
@@ -787,14 +1117,18 @@ export function useCheckInWorkspace({
     }
   }
 
-  async function queueScanOffline() {
+  async function queueScanOffline({ force = null, reason = null } = {}) {
     await enqueueCheckin({
       eventSlug,
       kind: scanResult.kind,
       qrToken: scanResult.kind === 'ticket' ? scanResult.qrToken : null,
       registrationId: scanResult.kind === 'registration' ? scanResult.registrationId : null,
       gate: securityZone?.name ?? null,
+      label: scanResult.row?.ticketCode || scanResult.row?.name || null,
+      force,
+      reason,
     })
+    scanSettledRef.current = true
     playCheckinFeedback('queued_offline', feedbackPrefs)
     if (activeHistoryId) {
       setScanHistory((current) =>
@@ -819,14 +1153,35 @@ export function useCheckInWorkspace({
     offlineSync.refreshCounts()
   }
 
+  function blockLiveDoorOffline(row) {
+    playCheckinFeedback('needs_online', feedbackPrefs)
+    setScanResult({
+      kind: 'ticket',
+      outcome: 'needs_online',
+      offline: true,
+      canCheckIn: false,
+      qrToken: row?.qrToken ?? null,
+      status: row?.status,
+      row,
+    })
+  }
+
   async function runScanCheckIn() {
+    const liveDoorTicket = scanResult.ticket ?? scanResult.row
+    if (
+      (scanResult.offline || !offlineSync.isOnline) &&
+      (scanResult.outcome === 'needs_online' || ticketRequiresLiveDoor(liveDoorTicket))
+    ) {
+      blockLiveDoorOffline(scanResult.row ?? liveDoorTicket)
+      return
+    }
     if (scanResult.offline || !offlineSync.isOnline) {
       await queueScanOffline()
       return
     }
 
     if (scanResult.kind === 'ticket') {
-      const result = await onCheckInTicket(scanResult.qrToken)
+      const result = await runDoorAttempts(() => onCheckInTicket(scanResult.qrToken))
       onRefreshTickets?.(eventSlug)
       if (result?.outcome === 'ok' || result?.outcome === 'already_used') {
         playCheckinFeedback(result.outcome === 'ok' ? 'checkin_ok' : 'already_used', feedbackPrefs)
@@ -855,7 +1210,7 @@ export function useCheckInWorkspace({
     }
 
     if (scanResult.kind === 'registration') {
-      const result = await onCheckInRegistration(scanResult.registrationId)
+      const result = await runDoorAttempts(() => onCheckInRegistration(scanResult.registrationId))
       if (result?.outcome === 'ok') {
         playCheckinFeedback('checkin_ok', feedbackPrefs)
         if (activeHistoryId) markHistoryCheckedIn(activeHistoryId)
@@ -869,7 +1224,7 @@ export function useCheckInWorkspace({
     setRedeemBusyId(addonId)
     setRedeemError('')
     try {
-      const result = await onRedeemTicketAddon(scanResult.qrToken, addonId)
+      const result = await runDoorAttempts(() => onRedeemTicketAddon(scanResult.qrToken, addonId))
       if (result?.error) {
         setRedeemError(result.error)
         return
@@ -906,8 +1261,103 @@ export function useCheckInWorkspace({
   const scanTicketPaid =
     scanResult?.kind === 'ticket' &&
     (['pagada', 'usada'].includes(scanResult.ticket?.status) ||
+      ['pagada', 'usada'].includes(scanResult.row?.status) ||
       scanResult.status === 'usada' ||
       Boolean(scanResult.ticket?.checkedInAt))
+
+  async function handleForceCheckIn(force, reason) {
+    if (!canForceCheckIn || !scanResult?.qrToken || scanBusy) return
+    setScanBusy(true)
+    try {
+      if (!offlineSync.isOnline) {
+        if (ticketRequiresLiveDoor(scanResult.ticket ?? scanResult.row)) {
+          blockLiveDoorOffline(scanResult.row ?? scanResult.ticket)
+          return
+        }
+        await queueScanOffline({ force, reason })
+        return
+      }
+      let result
+      try {
+        result = await runDoorAttempts(() => onCheckInTicket(scanResult.qrToken, { force, reason }))
+      } catch (error) {
+        if (isRetryableCheckinFailure(error)) {
+          if (ticketRequiresLiveDoor(scanResult.ticket ?? scanResult.row)) {
+            blockLiveDoorOffline(scanResult.row ?? scanResult.ticket)
+            return
+          }
+          await queueScanOffline({ force, reason })
+          return
+        }
+        throw error
+      }
+      onRefreshTickets?.(eventSlug)
+      if (result?.outcome === 'ok') {
+        playCheckinFeedback('checkin_ok', feedbackPrefs)
+        setScanResult({
+          ...scanResult,
+          outcome: 'checked_in',
+          canCheckIn: false,
+          status: 'usada',
+        })
+        return
+      }
+      if (result?.outcome === 'forbidden') {
+        throw new Error(t('admin.checkin.scanner.outcome.not_ready'))
+      }
+      throw new Error(result?.error || t('admin.checkin.scanner.outcome.invalid'))
+    } finally {
+      setScanBusy(false)
+    }
+  }
+
+  async function handleEnableTicket(orderId, reason) {
+    if (!canEnableTickets || !onApproveTicketOrder) return
+    setScanBusy(true)
+    try {
+      const result = await runDoorAttempts(() =>
+        onApproveTicketOrder(orderId, { overrideReason: reason }),
+      )
+      if (result?.error) throw new Error(result.error)
+      onRefreshTickets?.(eventSlug)
+      setScanResult((current) =>
+        current
+          ? {
+              ...current,
+              outcome: 'ready',
+              canCheckIn: true,
+              status: 'pagada',
+              row: current.row ? { ...current.row, status: 'pagada' } : current.row,
+            }
+          : current,
+      )
+    } finally {
+      setScanBusy(false)
+    }
+  }
+
+  async function handleRejectTicket(orderId, reason) {
+    if (!canEnableTickets || !onRejectTicketOrder) return
+    setScanBusy(true)
+    try {
+      const result = await runDoorAttempts(() => onRejectTicketOrder(orderId, reason))
+      if (result?.error) throw new Error(result.error)
+      onRefreshTickets?.(eventSlug)
+      setScanResult((current) =>
+        current
+          ? {
+              ...current,
+              outcome: 'not_ready',
+              canCheckIn: false,
+              status: 'cancelada',
+              row: current.row ? { ...current.row, status: 'cancelada' } : current.row,
+            }
+          : current,
+      )
+    } finally {
+      setScanBusy(false)
+    }
+  }
 
   return {
     activeHistoryId,
@@ -922,18 +1372,21 @@ export function useCheckInWorkspace({
     dayOptions,
     feedbackPrefs,
     handleCheckIn,
+    handleEnableTicket,
+    handleForceCheckIn,
     handleHistorySelect,
+    handleRejectTicket,
     handleRedeemAddon,
     handleScan,
-    handleScanCheckIn,
     selectScanMatch,
+    handleScanCheckIn,
     highlightRowId,
     offlineSync,
-    realtimeConnected: opsRealtime.connected,
     persistFeedbackPrefs,
     query,
     redeemBusyId,
     redeemError,
+    reloadAndSync,
     rows,
     scanBusy,
     scanHistory,

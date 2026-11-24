@@ -8,6 +8,9 @@
 
 import { BRAND } from './brand.js'
 
+/** Misma vista previa en la credencial de afiliación y en el pase del recorrido, para reusar el PNG. */
+export const HOME_PREVIEW_CREDENTIAL_CODE = 'PREV-HOME-MEMBER'
+
 /**
  * Arma la URL pública de verificación de una credencial.
  * @param {{ code: string, eventSlug?: string, type?: 'ticket' }} params
@@ -64,6 +67,23 @@ export function resolveCredentialCode({ athlete, membership, latestMembership } 
   )
 }
 
+const CREDENTIAL_TOKEN_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+/**
+ * Lo que se puede leer en la credencial. El token opaco va dentro del QR;
+ * imprimirlo como si fuera un número de socio lo degrada a un identificador
+ * de sistema. El número de socio, si existe, sí se muestra.
+ * @param {string | null | undefined} code
+ * @returns {string | null}
+ */
+export function credentialDisplayCode(code) {
+  if (typeof code !== 'string') return null
+  const trimmed = code.trim()
+  if (!trimmed || CREDENTIAL_TOKEN_PATTERN.test(trimmed)) return null
+  return trimmed
+}
+
 function blobToDataUrl(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -81,21 +101,132 @@ function blobToDataUrl(blob) {
  * @param {string} url
  * @returns {Promise<string>}
  */
-function renderPlainQr(url) {
+function loadQrCode() {
   // qrcode pesa ~60 KB y solo se necesita al generar (credencial/share):
   // dynamic import para que readCredentialParams/parseCredentialScan no lo
   // arrastren al chunk inicial vía App.jsx o el scanner.
-  return import('qrcode').then((module) => {
-    const QRCode = module.default ?? module
-    return QRCode.toDataURL(url, {
+  return import('qrcode').then((module) => module.default ?? module)
+}
+
+/**
+ * Zona muda en módulos. Con 1, el PNG compartido o impreso queda pegado al
+ * borde y el lector de la puerta lo mezcla con el fondo. 4 es el mínimo
+ * que el estándar pide para poder escanear.
+ */
+export const CREDENTIAL_QR_QUIET_MODULES = 4
+
+/** Margen en píxeles del QR de marca (512 px). Cubre al menos 4 módulos. */
+export const CREDENTIAL_QR_BRANDED_QUIET_PX = 48
+
+function renderPlainQr(url) {
+  return loadQrCode().then((QRCode) =>
+    QRCode.toDataURL(url, {
       width: 320,
-      margin: 1,
+      margin: CREDENTIAL_QR_QUIET_MODULES,
+      errorCorrectionLevel: 'M',
       color: {
         dark: '#0d0e11',
         light: '#ffffff',
       },
-    })
+    }),
+  )
+}
+
+/**
+ * Última red: SVG, sin canvas ni logo. `toDataURL` y el QR de marca usan
+ * canvas; en algunos celulares ese canvas no existe o el isotipo no carga, y
+ * la entrada quedaba con el ícono vacío. Un SVG escanea igual en la puerta.
+ */
+function renderVectorQr(url) {
+  return loadQrCode().then((QRCode) =>
+    QRCode.toString(url, {
+      type: 'svg',
+      margin: CREDENTIAL_QR_QUIET_MODULES,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#0d0e11', light: '#ffffff' },
+    }).then((svg) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`),
+  )
+}
+
+const BRANDED_QR_TIMEOUT_MS = 1600
+const QR_RENDER_PX = 512
+const QR_SEAL_PX = 256
+
+function withTimeout(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('qr-timeout')), ms)
+    promise.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (error) => {
+        clearTimeout(timer)
+        reject(error)
+      },
+    )
   })
+}
+
+let stylingLibraryPromise = null
+let sealPromise = null
+let brandedRenderer = null
+let renderQueue = Promise.resolve()
+
+function loadQrCodeStyling() {
+  stylingLibraryPromise ??= import('qr-code-styling').then((module) => module.default ?? module)
+  return stylingLibraryPromise
+}
+
+/**
+ * El emblema se aplana una sola vez sobre un disco blanco. Sin eso, cada
+ * credencial volvía a decodificar el PNG y los módulos transparentes del
+ * borde se mezclaban con el código.
+ * @returns {Promise<string>}
+ */
+function loadQrSeal() {
+  if (sealPromise) return sealPromise
+  if (typeof document === 'undefined') return Promise.reject(new Error('qr-seal'))
+
+  sealPromise = new Promise((resolve, reject) => {
+    const image = new Image()
+    image.decoding = 'async'
+    image.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = QR_SEAL_PX
+        canvas.height = QR_SEAL_PX
+        const context = canvas.getContext('2d')
+        if (!context) throw new Error('qr-seal')
+        context.clearRect(0, 0, QR_SEAL_PX, QR_SEAL_PX)
+        context.fillStyle = '#ffffff'
+        context.beginPath()
+        context.arc(QR_SEAL_PX / 2, QR_SEAL_PX / 2, QR_SEAL_PX / 2, 0, Math.PI * 2)
+        context.fill()
+        const inset = 18
+        context.drawImage(image, inset, inset, QR_SEAL_PX - inset * 2, QR_SEAL_PX - inset * 2)
+        resolve(canvas.toDataURL('image/png'))
+      } catch (error) {
+        reject(error)
+      }
+    }
+    image.onerror = () => reject(new Error('qr-seal'))
+    image.src = BRAND.qrLogoUrl
+  }).catch((error) => {
+    sealPromise = null
+    throw error
+  })
+
+  return sealPromise
+}
+
+function enqueueRender(task) {
+  const run = renderQueue.then(task, task)
+  renderQueue = run.then(
+    () => undefined,
+    () => undefined,
+  )
+  return run
 }
 
 /**
@@ -105,39 +236,46 @@ function renderPlainQr(url) {
  * Nivel de corrección de errores 'H' (máximo) porque el isotipo tapa el
  * centro del código: sin eso el logo degrada el escaneo. `hideBackgroundDots`
  * limpia los módulos que quedarían debajo del emblema, así el lector no
- * intenta interpretar píxeles del logo como datos.
+ * intenta interpretar píxeles del logo como datos. Los tres ojos quedan
+ * cuadrados: son lo que el lector engancha, y redondearlos de más hace
+ * fallar cámaras que el QR plano sí leen.
+ *
+ * Un solo renderer, en fila: varias credenciales en la misma pantalla no
+ * arman varios canvas a la vez.
  *
  * @param {string} url
  * @returns {Promise<string>}
  */
-function renderBrandedQr(url) {
-  return import('qr-code-styling').then(async (module) => {
-    const QRCodeStyling = module.default ?? module
-    const qr = new QRCodeStyling({
-      width: 320,
-      height: 320,
+async function renderBrandedQr(url) {
+  const [QRCodeStyling, seal] = await Promise.all([loadQrCodeStyling(), loadQrSeal()])
+
+  if (!brandedRenderer) {
+    brandedRenderer = new QRCodeStyling({
+      width: QR_RENDER_PX,
+      height: QR_RENDER_PX,
       type: 'canvas',
       data: url,
-      margin: 8,
+      margin: CREDENTIAL_QR_BRANDED_QUIET_PX,
       qrOptions: { errorCorrectionLevel: 'H' },
-      // El isotipo ocupa ~70 px dentro de un QR de 320 px. Usar el PNG de
-      // captura 1024x1024 retenía varios MB decodificados sin sumar detalle.
-      image: BRAND.qrLogoUrl,
+      image: seal,
       imageOptions: {
         crossOrigin: 'anonymous',
         hideBackgroundDots: true,
-        imageSize: 0.22,
-        margin: 4,
+        imageSize: 0.2,
+        margin: 8,
       },
       dotsOptions: { type: 'rounded', color: '#0d0e11' },
-      cornersSquareOptions: { type: 'extra-rounded', color: '#0d0e11' },
+      cornersSquareOptions: { type: 'square', color: '#0d0e11' },
       cornersDotOptions: { type: 'dot', color: '#0d0e11' },
       backgroundOptions: { color: '#ffffff' },
     })
-    const blob = await qr.getRawData('png')
-    if (!blob) throw new Error('No se pudo generar el QR estilizado.')
-    return blobToDataUrl(blob)
-  })
+  } else {
+    brandedRenderer.update({ data: url })
+  }
+
+  const blob = await brandedRenderer.getRawData('png')
+  if (!blob) throw new Error('No se pudo generar el QR estilizado.')
+  return blobToDataUrl(blob)
 }
 
 /**
@@ -147,9 +285,9 @@ function renderBrandedQr(url) {
  *
  * Antes convivían dos generadores —uno plano para casi todo y uno de marca
  * solo para el panel—: la misma persona veía dos QR distintos según por dónde
- * entrara. Ahora hay uno solo, y el plano quedó como red de contención
- * (`renderPlainQr`) para que un fallo del tratamiento nunca deje a alguien sin
- * código en la puerta del meet.
+ * entrara. Ahora hay uno solo. Si la marca no llega (canvas, isotipo o
+ * tiempo), queda el PNG plano y, si tampoco hay canvas, un SVG. Un QR que
+ * escanea gana contra uno de marca que a veces no existe.
  *
  * Cachea por URL para no re-encodear cuando preview + capture montan
  * dos EventShareCard en el mismo flujo de share (pico CPU en mobile).
@@ -159,6 +297,7 @@ function renderBrandedQr(url) {
  */
 const QR_CACHE_MAX_ENTRIES = 24
 const qrDataUrlCache = new Map()
+const qrResolvedCache = new Map()
 
 function rememberQr(url, pending) {
   // Map conserva orden de inserción: al volver a usar una entrada la movemos
@@ -169,7 +308,19 @@ function rememberQr(url, pending) {
   while (qrDataUrlCache.size > QR_CACHE_MAX_ENTRIES) {
     const oldestUrl = qrDataUrlCache.keys().next().value
     qrDataUrlCache.delete(oldestUrl)
+    qrResolvedCache.delete(oldestUrl)
   }
+}
+
+/**
+ * El PNG ya dibujado, si existe. Sirve para pintar la credencial en el primer
+ * frame, sin vaciar la placa y sin volver a encolar el canvas.
+ * @param {string | null | undefined} url
+ * @returns {string | null}
+ */
+export function peekCredentialQr(url) {
+  if (!url) return null
+  return qrResolvedCache.get(url) ?? null
 }
 
 export function generateCredentialQr(url) {
@@ -179,12 +330,23 @@ export function generateCredentialQr(url) {
     return cached
   }
 
-  const pending = renderBrandedQr(url)
-    .catch(() => renderPlainQr(url))
-    .catch((error) => {
-      qrDataUrlCache.delete(url)
-      throw error
-    })
+  // Marca primero, con techo de tiempo: si el isotipo o el canvas no responden,
+  // no dejamos la puerta esperando. PNG plano y, si tampoco hay canvas, SVG.
+  // El techo corre dentro de la fila, no mientras se espera turno.
+  const pending = enqueueRender(() =>
+    withTimeout(renderBrandedQr(url), BRANDED_QR_TIMEOUT_MS)
+      .catch(() => renderPlainQr(url))
+      .catch(() => renderVectorQr(url))
+      .then((dataUrl) => {
+        qrResolvedCache.set(url, dataUrl)
+        return dataUrl
+      })
+      .catch((error) => {
+        qrDataUrlCache.delete(url)
+        qrResolvedCache.delete(url)
+        throw error
+      }),
+  )
 
   rememberQr(url, pending)
   return pending
@@ -231,37 +393,110 @@ export function buildRandomPreviewCredentialCode(prefix = 'PREV-MEMBERS') {
  * Lee los params de verificación desde la URL actual (si los hay).
  * @returns {{ code: string, eventSlug: string | null, type: string | null } | null}
  */
+const SCAN_INVISIBLES = /[\u200B-\u200D\uFEFF\u00A0]/g
+const UUID_CODE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function cleanScanText(raw) {
+  return String(raw ?? '')
+    .replace(SCAN_INVISIBLES, '')
+    .trim()
+    .replace(/^<+|>+$/g, '')
+    .replace(/^['"]+|['"]+$/g, '')
+    .trim()
+}
+
+/**
+ * Claves con las que se puede buscar un código opaco. Un UUID compara igual
+ * en mayúsculas o minúsculas (la base lo castea así); un código de socio no.
+ * @param {string | null | undefined} code
+ * @returns {string[]}
+ */
+export function credentialLookupKeys(code) {
+  const value = String(code ?? '').trim()
+  if (!value) return []
+  const compact = value.replace(/\s+/g, '')
+  if (!UUID_CODE.test(compact)) return [value]
+  const lower = compact.toLowerCase()
+  return lower === value ? [lower] : [value, lower]
+}
+
+function canonicalCredentialCode(code) {
+  const keys = credentialLookupKeys(code)
+  return keys[keys.length - 1] ?? ''
+}
+
+function readParam(params, name) {
+  const wanted = name.toLowerCase()
+  for (const [key, value] of params) {
+    if (key.toLowerCase() === wanted) return value
+  }
+  return null
+}
+
+function paramsFromSearch(search) {
+  const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search)
+  const code = canonicalCredentialCode(readParam(params, 'credencial'))
+  if (!code) return null
+  return {
+    code,
+    eventSlug: readParam(params, 'evento')?.trim() || null,
+    type: readParam(params, 'tipo')?.trim().toLowerCase() || null,
+  }
+}
+
+function paramsFromUrl(value) {
+  try {
+    const url = value.includes('://') ? new URL(value) : new URL(value, 'https://plu-arg.com')
+    const found = paramsFromSearch(url.search)
+    if (found) return found
+    const hash = url.hash.replace(/^#\/?/, '')
+    if (!hash || !/credencial=/i.test(hash)) return null
+    return paramsFromSearch(hash.startsWith('?') ? hash : `?${hash}`)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Saca `credencial`, `evento` y `tipo` de una URL. Null si el texto no es
+ * un enlace de credencial: un token pelado no entra acá.
+ * @param {string} value
+ * @returns {{ code: string, eventSlug: string | null, type: string | null } | null}
+ */
+function credentialParamsFromUrl(value) {
+  const direct = paramsFromUrl(value)
+  if (direct) return direct
+  if (!/credencial=/i.test(value)) return null
+  const query = value.includes('?') ? value.slice(value.indexOf('?')) : `?${value}`
+  return paramsFromSearch(query)
+}
+
+/**
+ * Lee los params de verificación desde la URL actual (si los hay).
+ * @returns {{ code: string, eventSlug: string | null, type: string | null } | null}
+ */
 export function readCredentialParams() {
   if (typeof window === 'undefined') return null
-  const params = new URLSearchParams(window.location.search)
-  const code = params.get('credencial')
-  if (!code) return null
-  return { code, eventSlug: params.get('evento'), type: params.get('tipo') }
+  return credentialParamsFromUrl(window.location.href)
 }
 
 /**
  * Interpreta el texto crudo de un escaneo QR o pegado manual.
- * Acepta URL completa con query params o solo el código/token.
+ * Acepta la URL (aunque el lector cambie mayúsculas, comillas o el hash),
+ * o el token pelado. Una URL que no es una credencial no se manda a buscar.
  * @param {string} raw
  * @returns {{ code: string, eventSlug: string | null, type: string | null } | null}
  */
 export function parseCredentialScan(raw) {
-  const value = raw?.trim()
+  const value = cleanScanText(raw)
   if (!value) return null
 
-  try {
-    const url = value.includes('://') ? new URL(value) : new URL(value, 'https://plu-arg.com')
-    const code = url.searchParams.get('credencial')
-    if (code) {
-      return {
-        code,
-        eventSlug: url.searchParams.get('evento'),
-        type: url.searchParams.get('tipo'),
-      }
-    }
-  } catch {
-    // No era una URL — seguimos con el valor plano.
-  }
+  const fromUrl = credentialParamsFromUrl(value)
+  if (fromUrl) return fromUrl
+  if (value.includes('://')) return null
 
-  return { code: value, eventSlug: null, type: null }
+  const code = canonicalCredentialCode(value)
+  if (!code) return null
+  return { code, eventSlug: null, type: null }
 }

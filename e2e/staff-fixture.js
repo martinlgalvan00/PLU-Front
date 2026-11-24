@@ -49,6 +49,10 @@ async function wipeStaleGateStaff(prisma) {
   await prisma.user.deleteMany({
     where: { email: { startsWith: 'e2e-security-ui-' } },
   })
+  // Organizadores: sus eventos asignados (UserEventAccess) caen en cascada.
+  await prisma.user.deleteMany({
+    where: { email: { startsWith: 'e2e-org-' } },
+  })
   await prisma.eventSecurityZone.deleteMany({ where: { eventSlug: { startsWith: 'e2e-' } } })
 }
 
@@ -150,6 +154,42 @@ export async function seedSecurityStaff({ run, eventId, eventSlug }) {
       adminEmail,
       adminPassword: GATE_PASSWORD,
     }
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+
+/**
+ * Un organizador con acceso SOLO a los eventos que se le pasan. El rol de sistema
+ * `organizador_evento` lo crea la migración 20261218100000 (el schema de e2e la aplica
+ * con `prisma migrate deploy`).
+ */
+export async function seedOrganizer({ run, events }) {
+  const prisma = createPrisma()
+  try {
+    const role = await prisma.accessRole.findUnique({ where: { key: 'organizador_evento' } })
+    if (!role) {
+      throw new Error('Falta AccessRole organizador_evento: aplicá la migración 20261218100000.')
+    }
+    const email = `e2e-org-${run}@pluarg.test`
+    await prisma.user.deleteMany({ where: { email } })
+    await prisma.user.create({
+      data: {
+        email,
+        passwordHash: await hashPassword(GATE_PASSWORD),
+        role: 'operador_plu_arg',
+        status: 'active',
+        mustChangePassword: false,
+        accessRoleId: role.id,
+        eventAccess: {
+          create: events.map(({ eventId, eventSlug }) => ({ eventId, eventSlug })),
+        },
+        profile: {
+          create: { firstName: 'E2E', lastName: 'Organizador', displayName: 'E2E Organizador' },
+        },
+      },
+    })
+    return { organizerEmail: email, organizerPassword: GATE_PASSWORD }
   } finally {
     await prisma.$disconnect()
   }

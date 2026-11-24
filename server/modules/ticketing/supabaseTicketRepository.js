@@ -1,14 +1,75 @@
-import { createHash, randomBytes } from 'node:crypto'
+import { createHash, createHmac, randomBytes } from 'node:crypto'
 import { HttpError } from '../../lib/errors.js'
 import {
   assertSupabaseResult,
+  isMissingRelation,
   isMissingSchemaColumn,
   requireSupabaseClient,
 } from '../../lib/supabaseRpc.js'
 import { PROOF_BUCKET } from '../../lib/supabaseAdmin.js'
 import { aggregateCapacity, aggregateRevenue, bucketByDay } from './ticketSalesAggregation.js'
+import { legacyEmailClaim } from './accountTickets.js'
 
 const hash = (value) => createHash('sha256').update(value).digest('hex')
+// El mostrador no manda token. Si cada reintento inventa uno nuevo, la RPC
+// rechaza la clave de idempotencia ("ya pertenece a otra solicitud") y una
+// venta en efectivo queda creada pero sin acreditar: el QR no sirve en la
+// puerta. La misma clave tiene que producir el mismo token en cualquier
+// instancia. El secreto de entorno permite rotarlo; sin él, el pepper fijo
+// mantiene el acuerdo entre procesos.
+const STAFF_TICKET_TOKEN_PEPPER =
+  process.env.TICKET_ORDER_TOKEN_SECRET || 'plu-staff-ticket-order-v1'
+
+/**
+ * Ventana que usa el pre-chequeo de Node antes de `staff_check_in_ticket`.
+ *
+ * `tickets.valid_from/until` quedan congelados al emitir la entrada. La
+ * vigencia que abre la puerta sale de `resolve_ticket_type_access_window`,
+ * y esa función mira primero la excepción de acceso. Si el pre-chequeo lee
+ * las columnas congeladas, un QR reabierto para hoy responde PLU14 y la RPC
+ * —que sí dejaría pasar— no llega a correr.
+ */
+export function ticketWindowForCheckIn(row) {
+  if (!row) return null
+  const override =
+    row.access_override_enabled === true &&
+    row.access_override_valid_from &&
+    row.access_override_valid_until
+  return {
+    id: row.id,
+    event_id: row.event_id,
+    status: row.status ?? null,
+    valid_from: override ? row.access_override_valid_from : (row.valid_from ?? null),
+    valid_until: override ? row.access_override_valid_until : (row.valid_until ?? null),
+  }
+}
+
+export function staffTicketAccessToken(idempotencyKey) {
+  const key = String(idempotencyKey ?? '')
+  if (key.length < 16) {
+    throw new Error('Falta una clave de idempotencia valida.')
+  }
+  return createHmac('sha256', STAFF_TICKET_TOKEN_PEPPER).update(key).digest('base64url')
+}
+
+function resolveOrderAccessToken(data) {
+  const provided = typeof data.accessToken === 'string' ? data.accessToken.trim() : ''
+  if (provided.length >= 32) return provided
+  if (data.staffActor) return staffTicketAccessToken(data.idempotencyKey)
+  return randomBytes(32).toString('base64url')
+}
+
+// El QR lleva un UUID (el código de puerta se traduce antes). Cualquier otra
+// cosa no puede ser una entrada: es "no encontrada", no un error de la base.
+// Sin este corte el cast fallaba (22P02 -> 503) y la puerta leía "sin
+// conexión con el servidor" ante un código mal tipeado.
+const QR_TOKEN_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+function assertQrTokenShape(qrToken) {
+  if (!QR_TOKEN_RE.test(String(qrToken ?? ''))) {
+    throw new HttpError(404, 'Entrada no encontrada.')
+  }
+}
+
 const ORDER_ACCESS_SELECT = 'id,provider'
 // Misma proyección para la cola de pendientes y para el historial completo:
 // las dos pantallas arman la misma fila (orden + evento + asistentes), solo
@@ -16,7 +77,7 @@ const ORDER_ACCESS_SELECT = 'id,provider'
 const TICKET_ORDER_BASE_COLUMNS = `
   id, event_id, buyer_name, buyer_email, buyer_phone, amount, currency,
   provider, manual_payment_channel, status, reference, payment_proof_path,
-  payment_proof_uploaded_at, created_at, updated_at,
+  payment_proof_uploaded_at, rejected_at, created_at, updated_at,
   event:events(slug,title),
   tickets(attendee_name,attendee_dni)
 `
@@ -24,15 +85,225 @@ const TICKET_ORDER_BASE_COLUMNS = `
 // poder leer sin ella si la API se despliega antes que la migración: una
 // columna faltante no puede dejar a Finanzas sin la lista de cobros.
 const TICKET_ORDER_LIFECYCLE_COLUMNS = `
-  rejection_reason, rejected_at, cancellation_reason, cancelled_at,
+  rejection_reason, cancellation_reason, cancelled_at,
   cancelled_from_status, reinstated_at, courtesy_label
 `
 const TICKET_ORDER_SELECT = `${TICKET_ORDER_BASE_COLUMNS}, ${TICKET_ORDER_LIFECYCLE_COLUMNS}`
 const PENDING_MANUAL_ORDER_SELECT = TICKET_ORDER_BASE_COLUMNS
 const OPEN_TICKET_ORDER_STATUSES = ['creado', 'pendiente']
+// "Por validar" también muestra la transferencia que el vencimiento canceló
+// con el archivo todavía adjunto. El cron ya no las come; las que quedaron
+// canceladas siguen siendo trabajo de Finanzas, no historial.
+const OPEN_OR_HELD_PROOF =
+  'status.in.(creado,pendiente),and(status.eq.cancelado,provider.eq.manual,rejected_at.is.null,payment_proof_path.not.is.null)'
+const NOT_HELD_PROOF =
+  'provider.neq.manual,rejected_at.not.is.null,payment_proof_path.is.null'
+// Con la trazabilidad de 20271124100000: una orden que canceló una PERSONA
+// (`cancelled_at`) no es una retenida por el cron aunque tenga comprobante. No
+// vuelve a "Por validar"; se recupera con "volver a aceptar".
+const OPEN_OR_HELD_PROOF_LIFECYCLE =
+  'status.in.(creado,pendiente),and(status.eq.cancelado,provider.eq.manual,rejected_at.is.null,cancelled_at.is.null,payment_proof_path.not.is.null)'
+const NOT_HELD_PROOF_LIFECYCLE =
+  'provider.neq.manual,rejected_at.not.is.null,cancelled_at.not.is.null,payment_proof_path.is.null'
 // Igual que en el repo de atletas: sumar el importe pendiente sobre una
 // muestra acotada en vez de traer la tabla entera para un número.
 const OPEN_AMOUNT_SAMPLE_LIMIT = 500
+
+function isInvalidUuid(error) {
+  return (
+    error?.code === '22P02' ||
+    /invalid input syntax for type uuid/i.test(String(error?.message ?? ''))
+  )
+}
+
+/**
+ * Compra pública por referencia. El mail es el segundo factor; si viene vacío
+ * la firma del enlace ya lo reemplazó y no se filtra por comprador.
+ *
+ * Las jornadas y la ventana son un extra. Si esa relación o esas columnas
+ * todavía no están en la base, se reintenta con el select que ya devolvía el
+ * QR. La pantalla arma el día con lo que haya; nunca pierde la entrada.
+ */
+const BUYER_ORDER_SELECTS = [
+  'id, status, reference, buyer_email, event:events(title, slug, starts_at, venue, ticket_reveal_lead_minutes)',
+  'id, status, reference, buyer_email, event:events(title, slug, starts_at, venue)',
+  'id, status, reference, buyer_email, event:events(title, slug)',
+]
+
+const BUYER_TICKET_DAYS =
+  'ticket_types(name, ticket_type_days(event_days(label, date, day_index)))'
+const BUYER_TICKET_CORE =
+  'id, order_id, bundle_id, ticket_code, qr_token, attendee_name, status, credential_label, credential_scopes, is_primary_credential, addons'
+
+const BUYER_TICKET_SELECTS = [
+  `${BUYER_TICKET_CORE}, gate_code, attendee_dni, valid_from, valid_until, qr_validity_mode, access_activated_at, ${BUYER_TICKET_DAYS}`,
+  `${BUYER_TICKET_CORE}, attendee_dni, valid_from, valid_until, ${BUYER_TICKET_DAYS}`,
+  `${BUYER_TICKET_CORE}, gate_code, attendee_dni, valid_from, valid_until, ticket_types(name)`,
+  `${BUYER_TICKET_CORE}, attendee_dni, valid_from, valid_until, ticket_types(name)`,
+  `${BUYER_TICKET_CORE}, ticket_types(name)`,
+]
+
+function buyerReadCanRetry(error) {
+  if (!error) return false
+  if (isMissingSchemaColumn(error) || isMissingRelation(error)) return true
+  const message = String(error.message ?? '')
+  return error.code === 'PGRST201' || /could not embed|more than one relationship/i.test(message)
+}
+
+async function readWithFallback(attempts, fallback) {
+  let last = null
+  for (const attempt of attempts) {
+    const result = await attempt()
+    if (!result?.error) return result?.data ?? null
+    last = result
+    if (!buyerReadCanRetry(result.error)) break
+  }
+  return assertSupabaseResult(last, fallback)
+}
+
+async function loadBuyerOrder(client, reference, email) {
+  const order = await readWithFallback(
+    BUYER_ORDER_SELECTS.map(
+      (columns) => () => {
+        let query = client.from('ticket_orders').select(columns).eq('reference', reference)
+        if (email) query = query.ilike('buyer_email', email)
+        return query.maybeSingle()
+      },
+    ),
+    'No se pudo buscar la orden.',
+  )
+  if (!order) return null
+  const tickets =
+    (await readWithFallback(
+      BUYER_TICKET_SELECTS.map(
+        (columns) => () =>
+          client.from('tickets').select(columns).eq('order_id', order.id).order('created_at'),
+      ),
+      'No se pudieron leer las entradas de la orden.',
+    )) ?? []
+  return { order, tickets }
+}
+
+const ACCOUNT_ORDER_LIMIT = 50
+const ACCOUNT_TICKET_LIMIT = 200
+
+const ATTENDEE_EVENT_EMBEDS = [
+  'order:ticket_orders(id, status, reference, event:events(title, slug, starts_at, venue, ticket_reveal_lead_minutes))',
+  'order:ticket_orders(id, status, reference, event:events(title, slug, starts_at, venue))',
+]
+const ATTENDEE_TICKET_SELECTS = ATTENDEE_EVENT_EMBEDS.flatMap((embed) =>
+  BUYER_TICKET_SELECTS.map((columns) => `${columns}, ${embed}`),
+)
+
+function ownerColumnMissing(error) {
+  if (!isMissingSchemaColumn(error)) return false
+  return /buyer_athlete_id|buyer_staff_user_id|attendee_document_key/i.test(
+    String(error?.message ?? ''),
+  )
+}
+
+/**
+ * Lectura de la cuenta. Si la columna del dueño todavía no existe, devuelve
+ * vacío en vez de tumbar la pantalla: la compra pública no depende de esto.
+ */
+async function readAccountRows(attempts, fallback) {
+  let last = null
+  for (const attempt of attempts) {
+    const result = await attempt()
+    if (!result?.error) return result?.data ?? []
+    last = result
+    if (ownerColumnMissing(result.error)) return []
+    if (!buyerReadCanRetry(result.error)) break
+  }
+  if (last?.error && (ownerColumnMissing(last.error) || isMissingSchemaColumn(last.error))) {
+    return []
+  }
+  return (await assertSupabaseResult(last, fallback)) ?? []
+}
+
+function mergeOrders(lists) {
+  const seen = new Set()
+  const merged = []
+  for (const order of lists.flat()) {
+    if (!order?.id || seen.has(order.id)) continue
+    seen.add(order.id)
+    merged.push(order)
+  }
+  return merged
+}
+
+async function loadOrdersForAccount(client, account) {
+  const column = account.kind === 'staff' ? 'buyer_staff_user_id' : 'buyer_athlete_id'
+  const owned = await readAccountRows(
+    BUYER_ORDER_SELECTS.map(
+      (columns) => () =>
+        client
+          .from('ticket_orders')
+          .select(columns)
+          .eq(column, account.id)
+          .order('created_at', { ascending: false })
+          .limit(ACCOUNT_ORDER_LIMIT),
+    ),
+    'No se pudieron leer las compras de la cuenta.',
+  )
+  const email = legacyEmailClaim(account)
+  if (!email) return owned ?? []
+  const legacy = await readAccountRows(
+    BUYER_ORDER_SELECTS.map(
+      (columns) => () =>
+        client
+          .from('ticket_orders')
+          .select(columns)
+          .is('buyer_athlete_id', null)
+          .is('buyer_staff_user_id', null)
+          .ilike('buyer_email', email)
+          .order('created_at', { ascending: false })
+          .limit(ACCOUNT_ORDER_LIMIT),
+    ),
+    'No se pudieron leer las compras anteriores de la cuenta.',
+  )
+  return mergeOrders([owned ?? [], legacy ?? []])
+}
+
+async function loadTicketsForOrders(client, orderIds) {
+  if (!orderIds.length) return []
+  return readAccountRows(
+    BUYER_TICKET_SELECTS.map(
+      (columns) => () =>
+        client
+          .from('tickets')
+          .select(columns)
+          .in('order_id', orderIds)
+          .order('created_at')
+          .limit(ACCOUNT_TICKET_LIMIT),
+    ),
+    'No se pudieron leer las entradas de la cuenta.',
+  )
+}
+
+async function loadAttendeeTickets(client, documentKeys, ownedOrderIds) {
+  const keys = [...new Set((documentKeys ?? []).filter(Boolean))]
+  if (!keys.length) return []
+  const rows =
+    (await readAccountRows(
+      ATTENDEE_TICKET_SELECTS.map(
+        (columns) => () =>
+          client
+            .from('tickets')
+            .select(columns)
+            .in('attendee_document_key', keys)
+            .order('created_at', { ascending: false })
+            .limit(ACCOUNT_TICKET_LIMIT),
+      ),
+      'No se pudieron leer las entradas a tu nombre.',
+    )) ?? []
+  return rows
+    .filter((row) => row?.order?.id && !ownedOrderIds.has(row.order.id))
+    .map((row) => {
+      const { order, ...ticket } = row
+      return { order, ticket }
+    })
+}
 
 function mapTicketOrderRow(order) {
   return {
@@ -66,10 +337,34 @@ export function createSupabaseTicketRepository(client) {
     return order
   }
 
-  function queryOrders(columns, { statuses, channel, query, sort = 'recent', limit = 200 } = {}) {
+  function queryOrders(
+    columns,
+    {
+      statuses,
+      channel,
+      query,
+      eventId = null,
+      sort = 'recent',
+      limit = 200,
+      includeHeldProof = false,
+      excludeHeldProof = false,
+    } = {},
+    { lifecycle = true } = {},
+  ) {
+    const openOrHeld = lifecycle ? OPEN_OR_HELD_PROOF_LIFECYCLE : OPEN_OR_HELD_PROOF
+    const notHeld = lifecycle ? NOT_HELD_PROOF_LIFECYCLE : NOT_HELD_PROOF
     let builder = client.from('ticket_orders').select(columns)
 
-    if (Array.isArray(statuses) && statuses.length > 0) builder = builder.in('status', statuses)
+    if (eventId) builder = builder.eq('event_id', eventId)
+
+    if (includeHeldProof) {
+      builder = builder.or(openOrHeld)
+    } else if (excludeHeldProof) {
+      if (Array.isArray(statuses) && statuses.length > 0) builder = builder.in('status', statuses)
+      builder = builder.or(notHeld)
+    } else if (Array.isArray(statuses) && statuses.length > 0) {
+      builder = builder.in('status', statuses)
+    }
 
     // El canal sólo tiene sentido para `manual`: fijarlo sin fijar el
     // proveedor dejaría pasar filas de Mercado Pago con el campo en null.
@@ -95,7 +390,7 @@ export function createSupabaseTicketRepository(client) {
 
   return {
     async createOrder(data) {
-      const accessToken = data.accessToken ?? randomBytes(32).toString('base64url')
+      const accessToken = resolveOrderAccessToken(data)
       const result = await rpc(
         'create_ticket_order_v3',
         {
@@ -120,6 +415,46 @@ export function createSupabaseTicketRepository(client) {
       return { ...result, orderAccessToken: accessToken }
     },
     /**
+     * La compra ya existe. El id de la cuenta sale de la sesión, nunca del
+     * body. Si la columna todavía no está, la compra sigue y el mail
+     * verificado puede reclamarla después.
+     * No pisa un dueño ya grabado: un reintento no se la lleva otra cuenta.
+     */
+    async attachBuyerAccount(orderId, account) {
+      if (!orderId || !account?.id) return null
+      const column = account.kind === 'staff' ? 'buyer_staff_user_id' : 'buyer_athlete_id'
+      const result = await client
+        .from('ticket_orders')
+        .update({ [column]: account.id })
+        .eq('id', orderId)
+        .is('buyer_athlete_id', null)
+        .is('buyer_staff_user_id', null)
+      if (result?.error && isMissingSchemaColumn(result.error)) return null
+      assertSupabaseResult(result, 'No se pudo asociar la compra a la cuenta.')
+      return { [column]: account.id }
+    },
+    async listTicketsForAccount(account) {
+      const orders = await loadOrdersForAccount(client, account)
+      const orderIds = orders.map((order) => order.id)
+      const tickets = await loadTicketsForOrders(client, orderIds)
+      const byOrder = new Map()
+      for (const ticket of tickets ?? []) {
+        const list = byOrder.get(ticket.order_id) ?? []
+        list.push(ticket)
+        byOrder.set(ticket.order_id, list)
+      }
+      const buyerOrders = orders.map((order) => ({
+        order,
+        tickets: byOrder.get(order.id) ?? [],
+      }))
+      const attendeeTickets = await loadAttendeeTickets(
+        client,
+        account.documentKeys,
+        new Set(orderIds),
+      )
+      return { buyerOrders, attendeeTickets }
+    },
+    /**
      * Medios de cobro propios de los tipos que entran en una compra. Se lee
      * antes de crear la orden porque el canal se elige una sola vez para toda
      * la compra: si un tipo del carrito no lo acepta, la orden entera rebota
@@ -138,8 +473,20 @@ export function createSupabaseTicketRepository(client) {
         ) ?? []
       )
     },
-    verify: (qrToken) =>
-      rpc('get_ticket_by_qr_token', { p_qr_token: qrToken }, 'No se pudo verificar la entrada.'),
+    verify: async (qrToken) => {
+      assertQrTokenShape(qrToken)
+      return rpc('get_ticket_by_qr_token', { p_qr_token: qrToken }, 'No se pudo verificar la entrada.')
+    },
+    async findQrTokenByGateCode(gateCode) {
+      const result = await client
+        .from('tickets')
+        .select('qr_token')
+        .eq('gate_code', gateCode)
+        .maybeSingle()
+      if (result.error && isMissingSchemaColumn(result.error)) return null
+      const row = assertSupabaseResult(result, 'No se pudo resolver el código de puerta.')
+      return row?.qr_token ?? null
+    },
     availability: (eventSlug) =>
       rpc(
         'get_event_ticket_availability',
@@ -171,6 +518,26 @@ export function createSupabaseTicketRepository(client) {
         'No se pudo descargar la lista de ingreso.',
       ),
     /**
+     * Sello corto de la lista. Si la función todavía no está en esta base
+     * (migración sin aplicar), devolvemos null y el endpoint baja el JSON
+     * completo en vez de dejar la puerta sin lista.
+     */
+    async allowlistRevision(eventSlug) {
+      try {
+        const revision = await rpc(
+          'staff_get_event_checkin_allowlist_revision',
+          { p_event_slug: eventSlug },
+          'No se pudo revisar la lista de ingreso.',
+        )
+        if (revision == null || revision === '') return null
+        return String(revision)
+      } catch (error) {
+        const code = error?.details?.code ?? error?.code
+        if (code === 'PGRST202' || code === '42883') return null
+        throw error
+      }
+    },
+    /**
      * Resuelve el evento server-side a partir del slug. La ingesta de
      * telemetría de escaneo (`POST /checkin/scan-events`) nunca acepta un
      * eventId del cuerpo del request -- lo derivable de una cuenta cuyo
@@ -182,6 +549,25 @@ export function createSupabaseTicketRepository(client) {
         'No se pudo resolver el evento.',
       )
       return event?.id ?? null
+    },
+    /**
+     * Lectura corta antes de acreditar. `staff_check_in_ticket` vuelve a
+     * validar pago, vigencia y zona; acá hace falta el evento para el
+     * alcance del operador y la ventana efectiva para el pre-chequeo de
+     * Node. Un UUID inválido es "no encontrada"; un error de base se propaga.
+     */
+    async locateTicketForCheckIn(qrToken) {
+      if (!qrToken || !QR_TOKEN_RE.test(String(qrToken))) return null
+      const result = await client
+        .from('tickets')
+        .select(
+          'id, event_id, status, valid_from, valid_until, access_override_enabled, access_override_valid_from, access_override_valid_until',
+        )
+        .eq('qr_token', qrToken)
+        .maybeSingle()
+      if (result.error && isInvalidUuid(result.error)) return null
+      const row = assertSupabaseResult(result, 'No se pudo resolver la entrada.')
+      return ticketWindowForCheckIn(row)
     },
     /**
      * Ídem para el ticket: un dispositivo de puerta reporta el código que
@@ -220,19 +606,17 @@ export function createSupabaseTicketRepository(client) {
      */
     async lookupCheckinCredentials(
       eventId,
-      { ticketCode = null, dni = null, doorCode = null } = {},
+      { ticketCode = null, dni = null } = {},
     ) {
       const ticketQuery = client
         .from('tickets')
         .select(
-          'qr_token, ticket_code, door_code, attendee_name, attendee_dni, credential_label, status, is_primary_credential, ticket_types(name)',
+          'qr_token, ticket_code, gate_code, attendee_name, attendee_dni, credential_label, status, is_primary_credential, ticket_types(name)',
         )
         .eq('event_id', eventId)
-      const filtered = doorCode
-        ? ticketQuery.eq('door_code', doorCode)
-        : ticketCode
-          ? ticketQuery.eq('ticket_code', ticketCode)
-          : ticketQuery.eq('attendee_dni', dni)
+      const filtered = ticketCode
+        ? ticketQuery.eq('ticket_code', ticketCode)
+        : ticketQuery.eq('attendee_dni', dni)
       const tickets = assertSupabaseResult(
         await filtered
           .order('created_at', { ascending: true })
@@ -244,7 +628,7 @@ export function createSupabaseTicketRepository(client) {
         kind: 'ticket',
         code: ticket.qr_token,
         ticketCode: ticket.ticket_code,
-        doorCode: ticket.door_code ?? null,
+        gateCode: ticket.gate_code ?? null,
         name: ticket.attendee_name,
         document: ticket.attendee_dni,
         label: ticket.credential_label ?? ticket.ticket_types?.name ?? null,
@@ -279,7 +663,7 @@ export function createSupabaseTicketRepository(client) {
               kind: 'registration',
               code: athlete.credential_token,
               ticketCode: null,
-              doorCode: null,
+              gateCode: null,
               name: athlete.full_name,
               document: athlete.document_id,
               label: null,
@@ -326,6 +710,23 @@ export function createSupabaseTicketRepository(client) {
         { p_qr_token: qrToken, p_gate: gate || 'Puerta', p_actor: actor, p_zone_scope: zoneScope },
         'No se pudo registrar el ingreso.',
       ),
+    /**
+     * Un ingreso que saltea solo vigencia o zona. La RPC no reescribe la
+     * credencial y audita `ticket.checked_in_override`.
+     */
+    checkInForce: (qrToken, gate, actor, zoneScope, force, reason) =>
+      rpc(
+        'staff_force_check_in_ticket',
+        {
+          p_qr_token: qrToken,
+          p_gate: gate || 'Puerta',
+          p_actor: actor,
+          p_zone_scope: zoneScope,
+          p_force: force,
+          p_reason: reason,
+        },
+        'No se pudo registrar la excepción de ingreso.',
+      ),
     async getRegistrationEventId(registrationId) {
       const registration = assertSupabaseResult(
         await client
@@ -358,29 +759,59 @@ export function createSupabaseTicketRepository(client) {
      * aleatoriedad (`TORD-` + 6 bytes al azar); exigir también el mail evita
      * que alcance con adivinarla sola.
      */
-    async findOrderByReferenceAndEmail(reference, email) {
+    findOrderByReferenceAndEmail(reference, email) {
+      return loadBuyerOrder(client, reference, email)
+    },
+    findOrderByReference(reference) {
+      return loadBuyerOrder(client, reference, null)
+    },
+    /**
+     * Orden lista para el mail de confirmación: reenvío de staff (por id) o
+     * del comprador (referencia + mail). No devuelve el token de acceso.
+     */
+    async findOrderForConfirmation({ orderId = null, reference = null, email = null } = {}) {
+      let orderQuery = client
+        .from('ticket_orders')
+        .select(
+          'id, event_id, status, buyer_name, buyer_email, reference, updated_at, event:events(id, title, slug, starts_at, venue)',
+        )
+      if (orderId) orderQuery = orderQuery.eq('id', orderId)
+      else {
+        orderQuery = orderQuery.eq('reference', reference)
+        if (email) orderQuery = orderQuery.ilike('buyer_email', email)
+      }
       const order = assertSupabaseResult(
-        await client
-          .from('ticket_orders')
-          .select('id, status, reference, buyer_email, event:events(title, slug)')
-          .eq('reference', reference)
-          .ilike('buyer_email', email)
-          .maybeSingle(),
-        'No se pudo buscar la orden.',
+        await orderQuery.maybeSingle(),
+        'No se pudo leer la orden.',
       )
       if (!order) return null
+      const ticketColumns =
+        'id, order_id, ticket_code, qr_token, attendee_name, status, credential_label, is_primary_credential, ticket_types(name)'
+      const withGate = await client
+        .from('tickets')
+        .select(ticketColumns.replace('qr_token,', 'qr_token, gate_code,'))
+        .eq('order_id', order.id)
+        .order('created_at')
       const tickets =
         assertSupabaseResult(
-          await client
-            .from('tickets')
-            .select(
-              'id, order_id, bundle_id, ticket_code, door_code, qr_token, attendee_name, status, credential_label, credential_scopes, is_primary_credential, addons, ticket_types(name)',
-            )
-            .eq('order_id', order.id)
-            .order('created_at'),
+          withGate.error && isMissingSchemaColumn(withGate.error)
+            ? await client
+                .from('tickets')
+                .select(ticketColumns)
+                .eq('order_id', order.id)
+                .order('created_at')
+            : withGate,
           'No se pudieron leer las entradas de la orden.',
         ) ?? []
-      return { order, tickets }
+      return { order, tickets, event: order.event ?? null }
+    },
+    /**
+     * La pestaña que acaba de pagar todavía tiene el token de la compra.
+     * Con eso lee el QR ya acreditado, sin volver a pedir el mail.
+     */
+    async findOrderForBuyer(orderId, accessToken) {
+      await requireOrderAccess(orderId, accessToken)
+      return this.findOrderForConfirmation({ orderId })
     },
     async listPending() {
       const rows = assertSupabaseResult(
@@ -402,11 +833,26 @@ export function createSupabaseTicketRepository(client) {
      * consulta (mismo criterio que `listPaymentOrders` del lado atleta): quien
      * mira "aprobadas" no necesita que le lleguen las 500 pendientes primero.
      */
+    /** Órdenes de entradas de UN evento (panel de cobros del organizador). */
+    async listOrdersForEvent(eventId, { limit = 200 } = {}) {
+      const rows = assertSupabaseResult(
+        await client
+          .from('ticket_orders')
+          .select(TICKET_ORDER_SELECT)
+          .eq('event_id', eventId)
+          .order('created_at', { ascending: false })
+          .limit(limit),
+        'No se pudieron listar las ordenes de entradas del evento.',
+      )
+      return rows.map(mapTicketOrderRow)
+    },
     async listOrders(filters = {}) {
-      const run = (columns) => queryOrders(columns, filters)
-      let result = await run(TICKET_ORDER_SELECT)
+      let result = await queryOrders(TICKET_ORDER_SELECT, filters, { lifecycle: true })
+      // API desplegada antes que la migración de trazabilidad: se lee con la
+      // proyección y los filtros de siempre en vez de dejar a Finanzas sin
+      // la lista de cobros.
       if (result.error && isMissingSchemaColumn(result.error)) {
-        result = await run(TICKET_ORDER_BASE_COLUMNS)
+        result = await queryOrders(TICKET_ORDER_BASE_COLUMNS, filters, { lifecycle: false })
       }
       const rows = assertSupabaseResult(result, 'No se pudieron listar las ordenes de entradas.')
       return rows.map(mapTicketOrderRow)
@@ -416,24 +862,52 @@ export function createSupabaseTicketRepository(client) {
      * base y no sobre las filas que ya viajaron al navegador -- mismo patrón
      * que `paymentOrderCounts` del lado atleta.
      */
-    async orderCounts() {
-      const scoped = () => client.from('ticket_orders').select('id', { count: 'exact', head: true })
+    async orderCounts({ eventId = null } = {}) {
+      const scoped = () => {
+        let builder = client.from('ticket_orders').select('id', { count: 'exact', head: true })
+        if (eventId) builder = builder.eq('event_id', eventId)
+        return builder
+      }
 
-      const [pendingRes, approvedRes, rejectedRes, cancelledRes, totalRes, pendingAmounts] =
+      let pendingAmountsQuery = client
+        .from('ticket_orders')
+        .select('amount')
+        .in('status', OPEN_TICKET_ORDER_STATUSES)
+      if (eventId) pendingAmountsQuery = pendingAmountsQuery.eq('event_id', eventId)
+
+      // Retenidas por el cron, no canceladas por una persona (ver
+      // OPEN_OR_HELD_PROOF_LIFECYCLE). Sin la columna, el criterio de siempre.
+      const heldProofBase = () =>
+        scoped()
+          .eq('status', 'cancelado')
+          .eq('provider', 'manual')
+          .is('rejected_at', null)
+          .not('payment_proof_path', 'is', null)
+      const heldProofQuery = heldProofBase()
+        .is('cancelled_at', null)
+        .then((result) =>
+          result.error && isMissingSchemaColumn(result.error) ? heldProofBase() : result,
+        )
+
+      const [pendingRes, approvedRes, rejectedRes, cancelledRes, heldProofRes, totalRes, pendingAmounts] =
         await Promise.all([
           scoped().in('status', OPEN_TICKET_ORDER_STATUSES),
           scoped().eq('status', 'aprobado'),
           scoped().eq('status', 'rechazado'),
           scoped().eq('status', 'cancelado'),
+          heldProofQuery,
           scoped(),
-          client
-            .from('ticket_orders')
-            .select('amount')
-            .in('status', OPEN_TICKET_ORDER_STATUSES)
-            .limit(OPEN_AMOUNT_SAMPLE_LIMIT),
+          pendingAmountsQuery.limit(OPEN_AMOUNT_SAMPLE_LIMIT),
         ])
 
-      for (const response of [pendingRes, approvedRes, rejectedRes, cancelledRes, totalRes]) {
+      for (const response of [
+        pendingRes,
+        approvedRes,
+        rejectedRes,
+        cancelledRes,
+        heldProofRes,
+        totalRes,
+      ]) {
         assertSupabaseResult(response, 'No se pudieron contar las ordenes de entradas.')
       }
       const amounts = assertSupabaseResult(
@@ -441,11 +915,15 @@ export function createSupabaseTicketRepository(client) {
         'No se pudo sumar lo pendiente de cobro.',
       )
 
+      const heldProof = heldProofRes.count ?? 0
       return {
         pending: pendingRes.count ?? 0,
+        heldProof,
         aprobado: approvedRes.count ?? 0,
         rechazado: rejectedRes.count ?? 0,
-        cancelado: cancelledRes.count ?? 0,
+        // Las que tienen comprobante viven en "Por validar", no en el historial
+        // de canceladas. Así los chips no cuentan dos veces la misma orden.
+        cancelado: Math.max(0, (cancelledRes.count ?? 0) - heldProof),
         all: totalRes.count ?? 0,
         openAmount: (amounts ?? []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0),
         openAmountTruncated: (pendingRes.count ?? 0) > (amounts?.length ?? 0),
@@ -517,12 +995,38 @@ export function createSupabaseTicketRepository(client) {
       const rows = assertSupabaseResult(await builder, 'No se pudo leer la serie de ventas.')
       return bucketByDay(rows ?? [], fromISO, toISO)
     },
-    async approve(orderId, actor) {
-      return rpc(
-        'staff_approve_ticket_order',
-        { p_order_id: orderId, p_actor: actor ?? null },
-        'No se pudo aprobar la orden.',
+    async approve(orderId, actor, { overrideReason = null } = {}) {
+      const order = assertSupabaseResult(
+        await client
+          .from('ticket_orders')
+          .select('provider, status, payment_proof_path, manual_payment_channel')
+          .eq('id', orderId)
+          .maybeSingle(),
+        'No se pudo leer la orden.',
       )
+      if (!order) throw new HttpError(404, 'Orden no encontrada.')
+      if (order.provider !== 'manual') {
+        throw new HttpError(400, 'Mercado Pago solo se acredita por webhook.')
+      }
+      const trimmedOverride =
+        typeof overrideReason === 'string' ? overrideReason.trim() || null : null
+      const hasProof =
+        typeof order.payment_proof_path === 'string' && order.payment_proof_path.trim().length > 0
+      const isCash = order.manual_payment_channel === 'cash_pitbull'
+      // Sin archivo, transferencia y Wise no se acreditan. El motivo viaja a la
+      // RPC, que lo vuelve a exigir y lo deja en la bitácora. El efectivo no lo pide.
+      if (!hasProof && !isCash && !trimmedOverride) {
+        throw new HttpError(
+          409,
+          'Para aprobar una transferencia sin comprobante hay que indicar un motivo.',
+        )
+      }
+      const approvalArgs = {
+        p_order_id: orderId,
+        p_actor: actor ?? null,
+      }
+      if (trimmedOverride) approvalArgs.p_override_reason = trimmedOverride
+      return rpc('staff_approve_ticket_order', approvalArgs, 'No se pudo aprobar la orden.')
     },
     async reject(orderId, reason, actor) {
       return rpc(
@@ -620,14 +1124,27 @@ export function createSupabaseTicketRepository(client) {
         'No se pudo leer la orden.',
       )
     },
-    /** Entradas acreditadas que le pertenecen a una cuenta (por DNI o mail verificado). */
-    async listForAthlete(athleteId) {
-      return (
-        (await rpc(
-          'athlete_list_my_tickets',
-          { p_athlete_id: athleteId },
-          'No se pudieron leer tus entradas.',
-        )) ?? []
+    /**
+     * Vuelve a pendiente una orden manual que el vencimiento canceló con el
+     * comprobante ya cargado. No acredita: Finanzas sigue aprobando por el
+     * camino de siempre. La RPC rechaza un rechazo explícito de staff.
+     */
+    async reopen(orderId, reason, actor) {
+      return rpc(
+        'staff_reopen_cancelled_ticket_order',
+        { p_order_id: orderId, p_actor: actor ?? null, p_reason: reason ?? null },
+        'No se pudo reabrir la orden.',
+      )
+    },
+    /**
+     * Reabre y acredita en la misma transacción. El mail lo manda la ruta,
+     * igual que una aprobación común: esta función no habla con el proveedor.
+     */
+    async settleCancelled(orderId, reason, actor) {
+      return rpc(
+        'staff_settle_cancelled_ticket_order',
+        { p_order_id: orderId, p_actor: actor ?? null, p_reason: reason ?? null },
+        'No se pudo acreditar la orden.',
       )
     },
     async createProofUpload(orderId, accessToken, fileName) {

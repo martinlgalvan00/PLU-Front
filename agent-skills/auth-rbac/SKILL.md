@@ -40,6 +40,23 @@ Definidos en `src/lib/constants.js` → `ROLES` y en Prisma `enum UserRole`:
 | Admin PLU ARG | `admin_plu_arg` | ✅ | ✅ | Operación completa Argentina |
 | Operador PLU ARG | `operador_plu_arg` | ✅ | ❌ | Día a día sin usuarios |
 | PLU USA lectura | `viewer_plu_usa` | ❌ | ❌ | Export y consulta |
+| Organizador | `organizador_evento` | solo sus eventos | ❌ (sí `event_team`) | Shell exclusivo; grants en `UserEventAccess` |
+
+### Organizador (cuenta por evento)
+
+1. El alcance sale de `AccessRole.scope = event` (migración + seed). Fallback legacy:
+   clave `organizador_evento` vía `resolveAccessRoleScope`.
+2. PLU invita o cambia rol **y** asigna `eventIds` en el mismo acto
+   (Usuarios o workspace del evento → “Organizadores del evento”).
+3. Sesión serializa `scope`, `eventScoped: true` + `eventAccess`.
+4. Frontend: `OrganizerAppPage` (no `AdminPage`); 0/1/N eventos → empty / workspace / home.
+5. API: `server/lib/eventScope.js` filtra y niega fuera del grant.
+
+### Paquetes de permisos
+
+Atajos operativos en Roles (`PERMISSION_PACKAGES` + `RolePackageBar`): Control de
+evento, Cobros, Equipo de puerta, Check-in, Personas, Resultados, Exportaciones.
+Expanden a claves del catálogo con las mismas dependencias que el editor fino.
 
 ### 2. API de permisos (`src/lib/roles.js`)
 
@@ -143,10 +160,14 @@ const userCanExportPluUsa = canExportPluUsa(role)
 | Archivo | Rol |
 |---------|-----|
 | `src/lib/roles.js` | Funciones can* |
+| `src/lib/permissions.js` | Matriz, `isEventScopedSession`, secciones |
 | `src/lib/constants.js` | Definición `ROLES` |
 | `src/hooks/useAppData.js` | Estado `role`, flags derivados |
 | `src/pages/AdminPage.jsx` | UI condicionada por permisos |
-| `prisma/schema.prisma` | `User`, `UserRole`, `AuditLog` |
+| `src/pages/OrganizerAppPage.jsx` | Shell exclusivo del organizador |
+| `server/lib/eventScope.js` | Alcance por evento en API |
+| `prisma/schema.prisma` | `User`, `UserEventAccess`, `AccessRole` |
 | `tests/roles.test.js` | Tests unitarios RBAC |
+| `tests/organizerAppPage.render.test.jsx` | Landing 0/1/N |
 | `.env.example` | `AUTH_SECRET` |
-| `server/index.js` | Futuro middleware auth |
+| `server/middleware/auth.js` | `requirePermission` + scope |

@@ -96,15 +96,66 @@ export function createPrismaDouble(users, { events = [], zones = [] } = {}) {
     event: {
       findUnique: async ({ where }) => events.find((event) => event.id === where.id) ?? null,
     },
+    // Eventos asignados a cuentas de rol por evento (Prisma: UserEventAccess).
+    userEventAccess: {
+      findMany: async ({ where } = {}) => {
+        const ids = where?.userId?.in ?? (where?.userId ? [where.userId] : null)
+        return users
+          .filter((user) => !ids || ids.includes(user.id))
+          .flatMap((user) => (user.eventAccess ?? []).map((grant) => ({ userId: user.id, ...grant })))
+      },
+      deleteMany: async ({ where }) => {
+        let count = 0
+        for (const user of users.filter((item) => !where?.userId || item.id === where.userId)) {
+          const grants = user.eventAccess ?? []
+          const notIn = where?.eventId?.notIn
+          // `notIn`: se borra todo lo que NO está en la lista; sin él, todo.
+          const keep = notIn ? grants.filter((grant) => notIn.includes(grant.eventId)) : []
+          count += grants.length - keep.length
+          user.eventAccess = keep
+        }
+        return { count }
+      },
+      createMany: async ({ data }) => {
+        for (const row of data) {
+          const user = users.find((item) => item.id === row.userId)
+          user.eventAccess = [
+            ...(user.eventAccess ?? []),
+            { eventId: row.eventId, eventSlug: row.eventSlug },
+          ]
+        }
+        return { count: data.length }
+      },
+      updateMany: async ({ where, data }) => {
+        const user = users.find((item) => item.id === where.userId)
+        for (const grant of user?.eventAccess ?? []) {
+          if (grant.eventId === where.eventId) Object.assign(grant, data)
+        }
+        return { count: 1 }
+      },
+    },
     user: {
       findUnique: async ({ where }) => {
         if (where.email) return users.find((user) => user.email === where.email) ?? null
         return users.find((user) => user.id === where.id) ?? null
       },
+      findFirst: async ({ where } = {}) =>
+        users.find((user) => {
+          if (where?.eventId && user.eventId !== where.eventId) return false
+          if (where?.eventSlug && user.eventSlug !== where.eventSlug) return false
+          if (where?.role && user.role !== where.role) return false
+          if (where?.securityAccessCode && user.securityAccessCode !== where.securityAccessCode) {
+            return false
+          }
+          return true
+        }) ?? null,
       findMany: async ({ where }) => {
         const emailFilter = where?.email?.in
         return users.filter((user) => {
-          if (where?.role && user.role !== where.role) return false
+          if (where?.role) {
+            const allowed = where.role.in ?? [where.role]
+            if (!allowed.includes(user.role)) return false
+          }
           if (where?.eventId && user.eventId !== where.eventId) return false
           if (emailFilter && !emailFilter.includes(user.email)) return false
           return true
@@ -217,6 +268,10 @@ export async function buildStaffUser({
   email = 'staff-integration@pluarg.test',
   eventId = null,
   eventSlug = null,
+  // Rol "por evento" (organizador): lista de `{ eventId, eventSlug }` a los que
+  // la cuenta tiene acceso. Con esta opción la cuenta nace con el rol de sistema
+  // `organizador_evento`; sin ella, todo sigue como antes.
+  eventAccess = null,
 } = {}) {
   const userKey = email
     .toLowerCase()
@@ -233,6 +288,17 @@ export async function buildStaffUser({
     eventId,
     eventSlug,
     event: eventId ? { id: eventId, slug: eventSlug } : null,
+    ...(eventAccess
+      ? {
+          role: 'operador_plu_arg',
+          accessRole: {
+            key: 'organizador_evento',
+            name: 'Organizador',
+            active: true,
+          },
+          eventAccess,
+        }
+      : {}),
   }
 }
 

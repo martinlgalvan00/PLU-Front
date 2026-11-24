@@ -1,69 +1,74 @@
-# Export PLU — CSV / XLSX / Consolidado USA
+# Export PLU — CSV / XLS / Consolidado USA
 
 ## Objetivo
 
-Generar **exportaciones** de datos operativos (CSV admin) y **consolidado PLU USA** (formato normalizado para federación hermana), con nombres de columnas estables, descarga en browser y registro de export en DB (futuro).
+Generar **exportaciones** de datos operativos (CSV/XLS admin), **consolidado PLU USA** y
+**planilla Lifters** (estilo LiftingCast, estilada), con join real de atletas, completitud
+y avisos de perfil para pedir datos faltantes en Mi cuenta.
 
 ## Cuándo usarla
 
 - Modificar columnas o formato de export.
-- Agregar export XLSX además de CSV.
-- Implementar permisos de export por rol (`canExport`, `canExportPluUsa`).
-- Normalizar nombres de atletas para integración internacional.
-- Depurar datos incorrectos en archivos descargados.
+- Depurar fechas de nacimiento u otros campos vacíos en el archivo.
+- Cambiar permisos (`admin.exports.admin`, `admin.exports.plu_usa`).
+- Ajustar tope de filas o filtro por evento.
 
 ## Entradas requeridas
 
 | Entrada | Fuente |
 |---------|--------|
-| registrations | Estado en `useAppData` |
-| athletes | Array completo |
-| memberships | Afiliaciones |
-| payments | Pagos |
-| Rol usuario | Para habilitar tipo de export |
+| type | `admin` \| `plu_usa` |
+| format | `csv` \| `xls` |
+| eventSlug | Opcional; filtro del panel de Inscripciones |
+| Rol | `admin.exports.admin` / `admin.exports.plu_usa` |
 
 ## Salidas esperadas
 
-- Archivo CSV descargado en browser (`createCsv`).
-- Filas admin con datos operativos combinados.
-- Filas PLU USA con `first_name`, `last_name`, códigos y fechas ISO.
-- (Futuro) XLSX con hoja única o múltiple.
-- (Futuro) Registro en modelo `Export` de Prisma.
+- Archivo CSV (BOM UTF-8) o SpreadsheetML `.xls` vía `GET /api/athletes/admin/export`.
+- Fechas en `YYYY-MM-DD` (`normalizeExportDate`).
+- Header `X-PLU-Export-Truncated: 1` si se alcanzó el tope (5000).
+- Demo mode: builders locales desde el estado en memoria.
 
-## Procedimiento paso a paso
+## Procedimiento
 
-### 1. Servicio de export (`src/services/exportService.js`)
-
-**Funciones principales:**
+### 1. Lógica compartida (`shared/exportRows.js` + `shared/ageDivision.js`)
 
 | Función | Propósito |
 |---------|-----------|
-| `createCsv(filename, rows)` | Genera Blob y dispara download |
-| `buildAdminExportRows(...)` | Join registration + athlete + membership + payment |
-| `buildPluUsaExportRows(...)` | Formato consolidado internacional |
+| `normalizeExportDate` / `toCalendarDate` | ISO / DD-MM-YYYY → `YYYY-MM-DD` (día real, sin TZ) |
+| `normalizeCompetitionDivision` | Aliases legacy → lexikon (`Sub-Junior`→`Youth`, etc.) |
+| `ageOnDate` / `resolveCompetitionDivision` | Edad al evento → franja natural |
+| `resolveDivisionExportFields` | `division` + inscrita + mismatch duro + Open upgrade |
+| `buildAdminExportRows` | Join registration + athlete + membership + payment |
+| `buildPluUsaExportRows` | Formato consolidado internacional |
+| `serializeCsv` / `serializeSpreadsheet` | Texto puro (browser y server) |
 
-### 2. Export admin (CSV operativo)
+**División en Excel:** se rellena al exportar (no pisa DB). Edad de referencia =
+`registration.eventStartsAt` (desde `events.starts_at`) o día del export. Género
+va en columna aparte.
 
-Columnas actuales (`buildAdminExportRows`):
+Browser: `src/services/exportService.js` (`createCsv`, `createSpreadsheet`, `downloadBlob`).
+
+### 2. Endpoint server-side
 
 ```
-atleta, documento, email, telefono, pais, provincia, ciudad, gimnasio,
-sexo, division, categoria, peso, codigo_afiliado, estado_afiliacion,
+GET /api/athletes/admin/export?type=admin|plu_usa&format=csv|xls&eventSlug=
+```
+
+- Repo: `adminExportDataset` en `supabaseAthleteRepository.js` (join `athlete:athletes(...)`,
+  páginas de 1000 hasta 5000).
+- Guard: `admin.exports.admin` \| `admin.exports.plu_usa`.
+- No usa el snapshot del panel (`ADMIN_SNAPSHOT_DEFAULT_LIMIT = 400`).
+
+### 3. Columnas admin
+
+```
+atleta, documento, email, telefono, pais, provincia, ciudad, gimnasio, sexo,
+fecha_nacimiento, division, categoria, peso, codigo_afiliado, estado_afiliacion,
 evento, estado_inscripcion, estado_pago, referencia_pago
 ```
 
-Invocación desde `useAppData.exportAdminCsv`:
-
-```javascript
-const rows = buildAdminExportRows(registrations, athletes, memberships, payments)
-createCsv('plu-arg-inscripciones.csv', rows)
-```
-
-**Permiso:** `canEdit(role)` — botón disabled si viewer.
-
-### 3. Export PLU USA (consolidado)
-
-Columnas (`buildPluUsaExportRows`):
+### 4. Columnas PLU USA
 
 ```
 member_code, first_name, last_name, document_id, birth_date, gender,
@@ -72,124 +77,65 @@ membership_year, membership_status, membership_start, membership_expiration,
 event_name, registration_status, payment_status
 ```
 
-**Normalización de nombres:**
+**Limitación:** `first_name`/`last_name` se parten de `fullName`.
 
-```javascript
-const nameParts = athlete.fullName.trim().split(/\s+/)
-first_name: nameParts.slice(0, -1).join(' ')
-last_name: nameParts.slice(-1).join(' ')
-```
+### 5. UI
 
-**Limitación conocida:** nombres compuestos o un solo token pueden mal-partirse — mejorar con campo explícito `firstName`/`lastName` en schema (futuro).
+Botones en `RegistrationsSection`: pasan `eventSlug` del filtro activo.
+Studio Lifters: presets + filtro de filas + highlight/freeze + hoja Summary gaps
+(`shared/liftersExport.js` + `src/lib/liftersExportStudio.js`, localStorage).
+Toasts en `useAppData` para vacío / error / truncado.
 
-### 4. Mapeo de valores para USA
+### 6. Excel sin dependencia
 
-| Campo local | Campo export | Notas |
-|-------------|--------------|-------|
-| `athlete.sex` | `gender` | Masculino/Femenino → M/F (mejora futura) |
-| `athlete.province` | `state` | |
-| `membership.year` | `membership_year` | |
-| `membership.status` | `membership_status` | Normalizar enum español |
-| `registration.event` | `event_name` | |
-
-### 5. Agregar XLSX (futuro)
-
-Dependencia sugerida: `sheetjs` (xlsx) o `exceljs`.
-
-```javascript
-import * as XLSX from 'xlsx'
-
-export function createXlsx(filename, rows, sheetName = 'Export') {
-  const ws = XLSX.utils.json_to_sheet(rows)
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, sheetName)
-  XLSX.writeFile(wb, filename)
-}
-```
-
-Evaluar costo/beneficio antes de agregar dependencia — CSV cubre MVP.
-
-### 6. UI en Admin
-
-```jsx
-<button onClick={onExportAdmin} disabled={!canEdit}>
-  CSV admin
-</button>
-<button onClick={onExportPluUsa}>
-  PLU USA
-</button>
-```
-
-Iconos: `Download`, `FileSpreadsheet` (lucide-react).
-
-### 7. Registro de export (Prisma)
-
-```prisma
-model Export {
-  type      String   // admin | plu_usa
-  format    String   // csv | xlsx
-  filters   Json?
-  filePath  String?  // si se guarda en storage
-  createdBy String?
-}
-```
-
-Loguear al exportar para auditoría.
-
-### 8. Escape CSV
-
-`createCsv` escapa comillas dobles RFC-style:
-
-```javascript
-const escape = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`
-```
-
-Verificar caracteres especiales en nombres con acentos (UTF-8 BOM opcional para Excel Windows).
+`serializeSpreadsheet` / `createSpreadsheet` (SpreadsheetML 2003). No agregar `xlsx`
+salvo pedido explícito.
 
 ## Validaciones
 
-- No exportar si `rows.length === 0` (`createCsv` retorna `false`).
-- PLU USA export permitido para `viewer_plu_usa` (`canExportPluUsa`).
-- Admin export bloqueado para viewers.
-- Fechas en formato ISO consistente.
-- Sin datos sensibles extra (passwords, tokens).
-- Encoding UTF-8; considerar `\uFEFF` BOM para Excel.
+- 404 si no hay filas.
+- 403 sin permiso de export.
+- Fechas ISO de calendario (no timestamps crudos).
+- Encoding UTF-8 + BOM en CSV.
+- Tests: `tests/exportService.test.js`.
 
 ## Errores comunes
 
 | Error | Síntoma | Fix |
 |-------|---------|-----|
-| Join por athleteId falla | Filas con campos undefined | Verificar IDs en seed |
-| Nombres mal partidos | last_name vacío o incorrecto | Campos first/last en DB |
-| Excel no abre UTF-8 | Caracteres rotos | Agregar BOM |
-| Export sin permiso | Viewer descarga admin | Chequear `canEdit` |
-| Estados en español e inglés | Columnas inconsistentes | Mapper de normalización |
-| Archivo vacío | Sin registrations | Mensaje UI "sin datos" |
+| Export desde snapshot viejo | DOB vacío / filas a medias | Usar endpoint `/admin/export`, no el array del panel |
+| Admin sin `fecha_nacimiento` | Columna ausente | Verificar `buildAdminExportRows` en `shared/exportRows.js` |
+| Join sin atleta | Campos vacíos | Dataset server trae `athlete` embebido |
+| Truncado a 5000 | Header `X-PLU-Export-Truncated` | Filtrar por `eventSlug` |
+| Excel rompe acentos | Caracteres raros | BOM en `serializeCsv` |
 
 ## Checklist de aceptación
 
-- [ ] CSV admin descarga con todas las columnas documentadas
-- [ ] CSV PLU USA con formato estable
+- [ ] CSV admin incluye `fecha_nacimiento`
+- [ ] PLU USA `birth_date` en `YYYY-MM-DD`
+- [ ] `division` calculada por DOB (+ `eventStartsAt`) en admin / PLU USA / Lifters
+- [ ] Columnas inscrita + desajuste; Lifters resalta mismatch en azul
+- [ ] Export server-side no depende de la ventana de 400
+- [ ] Filtro de evento del panel se aplica al download
+- [ ] Toast si no hay datos
 - [ ] Permisos RBAC respetados
-- [ ] Nombres normalizados (documentar limitaciones)
-- [ ] Escape CSV correcto con comillas en datos
-- [ ] Botones en AdminPage funcionan
-- [ ] (Futuro) XLSX si se acordó con PLU USA
-- [ ] (Futuro) Log en tabla Export
+- [ ] `npm test -- tests/ageDivision.test.js tests/exportService.test.js tests/liftersExport.test.js` ok
 
-## Referencias oficiales
+## Referencias
 
 - [RFC 4180 — CSV](https://www.rfc-editor.org/rfc/rfc4180)
-- [SheetJS docs](https://docs.sheetjs.com/) (si se agrega XLSX)
-- `docs/EXPORTS.md` (crear/mantener)
+- [`docs/EXPORTS.md`](../../docs/EXPORTS.md)
 
-## Archivos del proyecto relacionados
+## Archivos relacionados
 
 | Archivo | Rol |
 |---------|-----|
-| `src/services/exportService.js` | Lógica export |
-| `src/hooks/useAppData.js` | exportAdminCsv, exportPluUsaCsv |
-| `src/pages/AdminPage.jsx` | Botones export |
-| `src/lib/roles.js` | canExport, canExportPluUsa |
-| `prisma/schema.prisma` | Model Export |
-| `tests/` | Agregar tests buildPluUsaExportRows (futuro) |
+| `shared/ageDivision.js` | Edad → división PLU |
+| `shared/exportRows.js` | Builders + serialize |
+| `src/services/exportService.js` | Download browser |
+| `src/services/athleteApi.js` | `downloadAdminExport` |
+| `src/hooks/useAppData.js` | `exportAdminCsv` / `exportPluUsaCsv` |
+| `src/pages/admin/RegistrationsSection.jsx` | Botones + eventSlug |
+| `server/routes/athletes.js` | `GET /admin/export` |
+| `server/modules/athletes/supabaseAthleteRepository.js` | `adminExportDataset` |
+| `tests/exportService.test.js` | Unit tests |

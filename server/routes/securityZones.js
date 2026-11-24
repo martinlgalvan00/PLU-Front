@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { validateBody } from '../lib/validate.js'
+import { assertEventAccess } from '../lib/eventScope.js'
 import { requirePermission } from '../middleware/auth.js'
 import { staffLimiter } from '../middleware/rateLimit.js'
 
@@ -97,7 +98,12 @@ export function createSecurityZoneRoutes({ getPrisma }) {
   const router = Router()
   // Mismo permiso que el alta de cuentas de seguridad: quien puede crear el
   // equipo es quien puede organizarlo.
-  const guard = requirePermission('admin.users.write', { prisma: getPrisma() })
+  // Zonas del evento. `admin.users.write` está reservado a Super Admin y Administrador;
+  // un organizador gestiona las zonas de SUS eventos con `admin.event_team.write`.
+  const guard = requirePermission('admin.users.write', { prisma: getPrisma() }, {
+    eventScoped: true,
+    scopedPermissions: ['admin.event_team.write'],
+  })
 
   async function listZones(eventId) {
     const zones = await getPrisma().eventSecurityZone.findMany({
@@ -118,6 +124,7 @@ export function createSecurityZoneRoutes({ getPrisma }) {
     try {
       const eventId = String(req.query.eventId ?? '')
       if (!eventId) throw new HttpError(400, 'Falta eventId.')
+      assertEventAccess(req, { eventId })
       res.json({ zones: await listZones(eventId) })
     } catch (error) {
       next(error)
@@ -133,6 +140,8 @@ export function createSecurityZoneRoutes({ getPrisma }) {
       try {
         const { eventId, eventSlug, name, scope, shiftStart, shiftEnd, sortOrder } =
           req.validatedBody
+        // Id y slug del pedido tienen que ser del MISMO evento asignado.
+        assertEventAccess(req, { eventId, slug: eventSlug })
 
         const existing = await getPrisma().eventSecurityZone.count({ where: { eventId } })
         if (existing >= 20) {
@@ -173,6 +182,7 @@ export function createSecurityZoneRoutes({ getPrisma }) {
     async (req, res, next) => {
       try {
         const zone = await requireZone(req.params.zoneId)
+        assertEventAccess(req, { eventId: zone.eventId })
         const { name, scope, shiftStart, shiftEnd, sortOrder } = req.validatedBody
 
         await getPrisma().eventSecurityZone.update({
@@ -194,6 +204,7 @@ export function createSecurityZoneRoutes({ getPrisma }) {
   router.delete('/:zoneId', ...guard, staffLimiter, async (req, res, next) => {
     try {
       const zone = await requireZone(req.params.zoneId)
+      assertEventAccess(req, { eventId: zone.eventId })
       // La FK es ON DELETE SET NULL: las cuentas asignadas no se borran, quedan
       // pendientes de zona. Borrar una zona nunca puede dejar sin acceso a
       // alguien que ya está en la puerta.
@@ -213,6 +224,7 @@ export function createSecurityZoneRoutes({ getPrisma }) {
     async (req, res, next) => {
       try {
         const { eventId, eventSlug } = req.validatedBody
+        assertEventAccess(req, { eventId, slug: eventSlug })
         const current = await getPrisma().eventSecurityZone.findMany({
           where: { eventId },
           select: { name: true },
@@ -245,6 +257,9 @@ export function createSecurityZoneRoutes({ getPrisma }) {
         if (!user || user.role !== 'seguridad_plu_arg') {
           throw new HttpError(404, 'Usuario de seguridad no encontrado.')
         }
+        // Solo cuentas de SUS eventos: sin esto un organizador podría mover a la puerta
+        // de otro meet a una cuenta que no es suya.
+        assertEventAccess(req, { eventId: user.eventId })
 
         const { zoneId } = req.validatedBody
         if (zoneId) {

@@ -408,7 +408,7 @@ export default function EventShareCard({
              escaneo. Bordes planos, que html2canvas rasteriza sin sorpresas. */
           <div className="share-card__qr-block">
             <div className="share-card__qr-chip">
-              <img src={qrSrc} alt="" className="share-card__qr-img" />
+              <img src={qrSrc} alt="" className="share-card__qr-img" decoding="async" />
             </div>
             <span className="share-card__qr-mark share-card__qr-mark--tl" aria-hidden />
             <span className="share-card__qr-mark share-card__qr-mark--tr" aria-hidden />

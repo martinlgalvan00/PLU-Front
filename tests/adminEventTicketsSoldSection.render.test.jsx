@@ -3,6 +3,16 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import AdminEventTicketsSoldSection from '../src/components/admin/AdminEventTicketsSoldSection.jsx'
 
+const resendTicketOrder = vi.fn()
+
+vi.mock('../src/services/ticketApi.js', async () => {
+  const actual = await vi.importActual('../src/services/ticketApi.js')
+  return {
+    ...actual,
+    resendTicketOrder: (...args) => resendTicketOrder(...args),
+  }
+})
+
 /**
  * Cobertura de "Entradas vendidas" (capítulo nuevo en Ventas, dentro del
  * workspace del evento): filtro por tipo de entrada y por estado, búsqueda
@@ -263,5 +273,30 @@ describe('AdminEventTicketsSoldSection', () => {
   it('sin ventas todavía, muestra el estado vacío', async () => {
     renderSection({ fetchTickets: vi.fn().mockResolvedValue({ tickets: [] }) })
     await waitFor(() => expect(screen.getByText('Todavía no hay entradas vendidas')).toBeTruthy())
+  })
+
+  it('reenvía la credencial de una entrada paga sin abrir el QR', async () => {
+    resendTicketOrder.mockResolvedValue({ status: 'sent' })
+    renderSection({
+      fetchTickets: vi.fn().mockResolvedValue({
+        tickets: [
+          ticket(),
+          ticket({
+            id: 'tk-unpaid',
+            attendeeName: 'Sin Pagar',
+            status: 'pendiente_pago',
+            qrToken: '',
+            order: { id: 'ord-2', buyerName: 'Sin Pago', status: 'pendiente' },
+          }),
+        ],
+      }),
+    })
+
+    const resend = await screen.findByRole('button', { name: 'Reenviar la credencial a Juan Operador' })
+    expect(screen.queryByRole('button', { name: /Reenviar la credencial a Sin Pago/i })).toBeNull()
+    fireEvent.click(resend)
+
+    await waitFor(() => expect(resendTicketOrder).toHaveBeenCalledWith('ord-1'))
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

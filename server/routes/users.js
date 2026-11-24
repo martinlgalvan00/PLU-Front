@@ -1,13 +1,24 @@
+import { randomUUID } from 'node:crypto'
 import { Router } from 'express'
-import { getRoleHierarchyLevel } from '../../src/lib/permissions.js'
-import { buildStaffInvitationUrl } from '../../src/lib/staffInvitationRoute.js'
-import { updateUserAccessRoleSchema } from '../../src/lib/schemas/accessControl.js'
+import { getRoleHierarchyLevel, isEventScopedRole } from '../../src/lib/permissions.js'
+import {
+  buildPendingInviteEmail,
+  buildStaffInvitationUrl,
+  isPendingInviteEmail,
+  PENDING_INVITE_NAME,
+} from '../../src/lib/staffInvitationRoute.js'
+import {
+  bulkUserAccessRoleSchema,
+  updateUserAccessRoleSchema,
+} from '../../src/lib/schemas/accessControl.js'
 import {
   createStaffUserSchema,
   resetStaffPasswordSchema,
   updateStaffUserStatusSchema,
 } from '../../src/lib/schemas/auth.js'
+import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
+import { staffSessionCache } from '../lib/sessionCache.js'
 import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
@@ -26,6 +37,7 @@ import {
   TEMP_PASSWORD_TTL_DAYS,
   tempPasswordExpiry,
 } from '../services/passwordService.js'
+import { fetchSupabaseEventsByIds } from '../services/securityEventService.js'
 import { revokeSessionsForUser, serializeUser } from '../services/sessionService.js'
 import {
   createStaffInvitationToken,
@@ -63,6 +75,127 @@ async function auditRoleAssignment(prisma, { actorId, userId, beforeRoleKey, aft
       after: { roleKey: afterRoleKey },
     },
   })
+}
+
+/**
+ * Reemplaza el grant de eventos de un organizador. Los eventos viven en Supabase:
+ * se resuelven ahí (slug actual) antes de tocar Prisma.
+ */
+async function replaceUserEventAccess(prisma, getSupabaseAdmin, { userId, eventIds, actorId }) {
+  const uniqueIds = [...new Set(eventIds)]
+  const events = await fetchSupabaseEventsByIds(getSupabaseAdmin?.(), uniqueIds)
+  const missing = uniqueIds.filter((id) => !events.has(id))
+  if (missing.length > 0) {
+    throw new HttpError(400, 'Hay eventos que no existen.', {
+      code: 'EVENT_NOT_FOUND',
+      fields: { eventIds: 'Elegí eventos que existan.' },
+    })
+  }
+
+  const before =
+    typeof prisma.userEventAccess?.findMany === 'function'
+      ? await prisma.userEventAccess.findMany({
+          where: { userId },
+          select: { eventId: true, eventSlug: true },
+        })
+      : []
+  const alreadyAssigned = new Set(before.map((row) => row.eventId))
+
+  if (typeof prisma.userEventAccess?.deleteMany === 'function') {
+    await prisma.userEventAccess.deleteMany({
+      where: { userId, eventId: { notIn: uniqueIds } },
+    })
+  }
+  const toCreate = uniqueIds
+    .filter((id) => !alreadyAssigned.has(id))
+    .map((id) => ({
+      userId,
+      eventId: id,
+      eventSlug: events.get(id).slug,
+      grantedBy: actorId,
+    }))
+  if (toCreate.length > 0 && typeof prisma.userEventAccess?.createMany === 'function') {
+    await prisma.userEventAccess.createMany({ data: toCreate, skipDuplicates: true })
+  }
+  for (const row of before) {
+    const current = events.get(row.eventId)
+    if (current && current.slug !== row.eventSlug && typeof prisma.userEventAccess?.updateMany === 'function') {
+      await prisma.userEventAccess.updateMany({
+        where: { userId, eventId: row.eventId },
+        data: { eventSlug: current.slug },
+      })
+    }
+  }
+
+  const after =
+    typeof prisma.userEventAccess?.findMany === 'function'
+      ? await prisma.userEventAccess.findMany({
+          where: { userId },
+          select: { eventId: true, eventSlug: true },
+        })
+      : []
+
+  if (prisma.auditLog?.create) {
+    await prisma.auditLog.create({
+      data: {
+        action: 'user.event_access_changed',
+        entityType: 'user',
+        entityId: userId,
+        actorId,
+        before: { eventSlugs: before.map((row) => row.eventSlug) },
+        after: { eventSlugs: after.map((row) => row.eventSlug) },
+      },
+    })
+  }
+
+  return after
+}
+
+// Cola común del cambio de rol (individual y en lote): aplica el rol, lo deja en
+// auditoría y corta las sesiones abiertas para que el próximo request se
+// resuelva con la matriz nueva. Las validaciones previas son de quien llama.
+async function applyRoleChange(prisma, getSupabaseAdmin, { actorId, target, accessRole, eventIds }) {
+  const beforeRoleKey = target.accessRole?.key ?? target.role
+  const updated = await prisma.user.update({
+    where: { id: target.id },
+    data: {
+      role: accessRole.baseRole,
+      ...(prisma.accessRole ? { accessRole: { connect: { id: accessRole.id } } } : {}),
+      eventId: null,
+      eventSlug: null,
+    },
+    include: userInclude(),
+  })
+
+  await auditRoleAssignment(prisma, {
+    actorId,
+    userId: target.id,
+    beforeRoleKey,
+    afterRoleKey: accessRole.key,
+  })
+
+  // Salir del rol por evento borra sus eventos asignados: si no, volver a asignarlo
+  // meses después le devolvería en silencio acceso a eventos que ya no recordamos.
+  if (!isEventScopedRole(accessRole) && typeof prisma.userEventAccess?.deleteMany === 'function') {
+    await prisma.userEventAccess.deleteMany({ where: { userId: target.id } })
+  }
+
+  let eventAccess = []
+  if (isEventScopedRole(accessRole) && Array.isArray(eventIds) && eventIds.length > 0) {
+    eventAccess = await replaceUserEventAccess(prisma, getSupabaseAdmin, {
+      userId: target.id,
+      eventIds,
+      actorId,
+    })
+  }
+
+  await revokeSessionsForUser({ prisma, userId: target.id })
+
+  const user = serializeUser(updated.accessRole?.key ? updated : { ...updated, accessRole })
+  if (isEventScopedRole(accessRole)) {
+    return { ...user, eventAccess }
+  }
+  return user
 }
 
 async function auditStatusChange(prisma, { actorId, userId, beforeStatus, afterStatus }) {
@@ -147,6 +280,8 @@ export function createUserRoutes({
   // que un fallo de Brevo no puede tirar el request. La invitación se puede
   // reemitir desde Usuarios sin exponer contraseñas ni tokens en la respuesta.
   async function dispatchInvitation(payload) {
+    // Una invitación abierta no tiene destinatario: no hay a quién mandarle mail.
+    if (isPendingInviteEmail(payload.user?.email)) return false
     try {
       const result = await staffNotifications.notifyStaffInvitation(payload)
       return result?.status === 'sent' || result?.emailLog?.status === 'sent'
@@ -182,6 +317,16 @@ export function createUserRoutes({
     }
   }
 
+  // Sólo se devuelve cuando el panel lo pide (`returnLink`) y el request ya
+  // pasó el guard de escritura de usuarios: el enlace es una credencial de un
+  // solo uso y vence con la invitación.
+  function invitationLinkPayload(invitation, expiresAt) {
+    return {
+      invitationUrl: invitation.invitationUrl,
+      invitationExpiresAt: expiresAt.toISOString(),
+    }
+  }
+
   router.get('/', ...readGuard, staffLimiter, async (_req, res, next) => {
     try {
       const prismaClient = getPrisma()
@@ -190,6 +335,20 @@ export function createUserRoutes({
         include: userInclude(),
         orderBy: { createdAt: 'desc' },
       })
+      // Los eventos asignados viajan solo para cuentas de rol por evento: una consulta
+      // para todas, y ninguna si no hay organizadores.
+      const organizerIds = users
+        .filter((user) => isEventScopedRole(user.accessRole ?? user.accessRole?.key ?? user.role))
+        .map((user) => user.id)
+      if (organizerIds.length > 0 && typeof prismaClient.userEventAccess?.findMany === 'function') {
+        const grants = await prismaClient.userEventAccess.findMany({
+          where: { userId: { in: organizerIds } },
+          select: { userId: true, eventId: true, eventSlug: true },
+        })
+        for (const user of users) {
+          user.eventAccess = grants.filter((grant) => grant.userId === user.id)
+        }
+      }
       res.json({ users: users.map(serializeUser) })
     } catch (error) {
       next(error)
@@ -204,8 +363,11 @@ export function createUserRoutes({
     async (req, res, next) => {
       try {
         const prismaClient = getPrisma()
-        const { name, email, role: roleKey, sendEmail } = req.validatedBody
+        const { name, role: roleKey, sendEmail, returnLink, eventIds } = req.validatedBody
 
+        // Sin email es una invitación abierta: la cuenta nace con un email
+        // reservado y la persona completa el suyo al abrir el enlace.
+        const email = req.validatedBody.email ?? buildPendingInviteEmail(randomUUID())
         const existing = await prismaClient.user.findUnique({ where: { email } })
         if (existing) throw new HttpError(409, 'Ya existe un usuario con ese email.')
 
@@ -216,7 +378,7 @@ export function createUserRoutes({
           throw new HttpError(400, 'Las cuentas de Seguridad se crean desde un evento.')
         }
 
-        const { firstName, lastName } = splitName(name)
+        const { firstName, lastName } = splitName(name ?? PENDING_INVITE_NAME)
         const { passwordHash, passwordExpiresAt } = await issueInvitationCredential()
         const created = await prismaClient.user.create({
           data: {
@@ -246,6 +408,15 @@ export function createUserRoutes({
           reason: 'invitation',
         })
 
+        let eventAccess = []
+        if (isEventScopedRole(accessRole)) {
+          eventAccess = await replaceUserEventAccess(prismaClient, getSupabaseAdmin, {
+            userId: created.id,
+            eventIds,
+            actorId: req.auth.user.id,
+          })
+        }
+
         await recordIdentity(
           {
             action: 'account.created',
@@ -258,13 +429,18 @@ export function createUserRoutes({
             metadata: {
               accountKind: 'staff',
               channel: 'invitation',
+              openInvite: isPendingInviteEmail(email),
               roleKey: accessRole.key,
+              eventCount: eventAccess.length,
             },
           },
           req,
         )
 
-        const user = serializeUser(created.accessRole?.key ? created : { ...created, accessRole })
+        const user = {
+          ...serializeUser(created.accessRole?.key ? created : { ...created, accessRole }),
+          ...(isEventScopedRole(accessRole) ? { eventAccess } : {}),
+        }
         const invitation = buildInvitation({
           userId: created.id,
           passwordHash,
@@ -281,7 +457,67 @@ export function createUserRoutes({
             })
           : false
 
-        res.status(201).json({ user, emailed })
+        res.status(201).json({
+          user,
+          emailed,
+          ...(returnLink ? invitationLinkPayload(invitation, passwordExpiresAt) : {}),
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  // ── Eventos de una cuenta de rol por evento (organizador) ───────────────────
+  // Solo Super Admin y Administrador (`admin.users.write`): quién gestiona qué evento
+  // es una decisión de PLU, no del organizador. Los cambios valen al instante sin
+  // cerrarle la sesión: se purga su caché y el próximo request relee la lista.
+  const eventAccessSchema = z.object({ eventIds: z.array(z.string().uuid()).max(50) })
+
+  async function loadOrganizer(prismaClient, userId) {
+    const target = await prismaClient.user.findUnique({
+      where: { id: userId },
+      include: userInclude(),
+    })
+    if (!target) throw new HttpError(404, 'El usuario no existe.')
+    if (!isEventScopedRole(target.accessRole ?? target.accessRole?.key ?? target.role)) {
+      throw new HttpError(400, 'Solo las cuentas por evento tienen eventos asignados.')
+    }
+    return target
+  }
+
+  const readEventAccess = (prismaClient, userId) =>
+    prismaClient.userEventAccess.findMany({
+      where: { userId },
+      select: { eventId: true, eventSlug: true },
+    })
+
+  router.get('/:userId/event-access', ...readGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const prismaClient = getPrisma()
+      const target = await loadOrganizer(prismaClient, req.params.userId)
+      res.json({ eventAccess: await readEventAccess(prismaClient, target.id) })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.put(
+    '/:userId/event-access',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(eventAccessSchema),
+    async (req, res, next) => {
+      try {
+        const prismaClient = getPrisma()
+        const target = await loadOrganizer(prismaClient, req.params.userId)
+        const after = await replaceUserEventAccess(prismaClient, getSupabaseAdmin, {
+          userId: target.id,
+          eventIds: req.validatedBody.eventIds,
+          actorId: req.auth.user.id,
+        })
+        staffSessionCache.invalidateOwner(target.id)
+        res.json({ eventAccess: after })
       } catch (error) {
         next(error)
       }
@@ -318,32 +554,86 @@ export function createUserRoutes({
           throw new HttpError(400, 'Asigná Seguridad desde el evento correspondiente.')
         }
 
-        const beforeRoleKey = target.accessRole?.key ?? target.role
-        const updated = await prismaClient.user.update({
-          where: { id: target.id },
-          data: {
-            role: accessRole.baseRole,
-            ...(prismaClient.accessRole ? { accessRole: { connect: { id: accessRole.id } } } : {}),
-            eventId: null,
-            eventSlug: null,
-          },
-          include: userInclude(),
-        })
-
-        await auditRoleAssignment(prismaClient, {
+        const user = await applyRoleChange(prismaClient, getSupabaseAdmin, {
           actorId: req.auth.user.id,
-          userId: target.id,
-          beforeRoleKey,
-          afterRoleKey: accessRole.key,
+          target,
+          accessRole,
+          eventIds: req.validatedBody.eventIds,
         })
 
-        // El rol nuevo tiene que valer ya: se cortan las sesiones abiertas del
-        // usuario para que su próximo request se resuelva con la matriz nueva.
-        await revokeSessionsForUser({ prisma: prismaClient, userId: target.id })
+        res.json({ user })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
-        res.json({
-          user: serializeUser(updated.accessRole?.key ? updated : { ...updated, accessRole }),
-        })
+  // Cambio de rol de varias cuentas a la vez. Las reglas son las del individual
+  // (sin tocar la propia cuenta ni al Super Admin, sólo roles asignables por
+  // quien pide, Seguridad sólo desde su evento); lo que se valida una vez para
+  // todo el pedido (el rol) corta el request entero, y lo que depende de cada
+  // cuenta se reporta por cuenta sin frenar a las demás.
+  // Organizador queda fuera del lote: cada cuenta necesita sus propios eventos.
+  router.post(
+    '/bulk-role',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(bulkUserAccessRoleSchema),
+    async (req, res, next) => {
+      try {
+        const prismaClient = getPrisma()
+        const { userIds, roleKey } = req.validatedBody
+
+        const accessRole = await resolveAssignableRole(prismaClient, req.auth.user, roleKey)
+        if (accessRole.key === 'seguridad_plu_arg') {
+          throw new HttpError(400, 'Asigná Seguridad desde el evento correspondiente.')
+        }
+        if (isEventScopedRole(accessRole)) {
+          throw new HttpError(400, 'Un rol por evento se asigna de a una cuenta, con sus eventos.')
+        }
+
+        const results = []
+        for (const userId of userIds) {
+          try {
+            if (userId === req.auth.user.id) {
+              throw new HttpError(400, 'No podés cambiar tu propio rol.')
+            }
+            const target = await prismaClient.user.findUnique({
+              where: { id: userId },
+              include: userInclude(),
+            })
+            if (!target) throw new HttpError(404, 'El usuario no existe.')
+            if (target.role === 'admin_maximal') {
+              throw new HttpError(403, 'El rol del Super Admin no se modifica desde el panel.')
+            }
+            if (!STAFF_LIST_ROLES.includes(target.role)) {
+              throw new HttpError(400, 'Esa cuenta no se administra desde Usuarios.')
+            }
+
+            // Ya lo tiene: no hay nada que auditar ni motivo para cortarle la sesión.
+            if ((target.accessRole?.key ?? target.role) === accessRole.key) {
+              results.push({ userId, status: 'unchanged', user: serializeUser(target) })
+              continue
+            }
+
+            const user = await applyRoleChange(prismaClient, getSupabaseAdmin, {
+              actorId: req.auth.user.id,
+              target,
+              accessRole,
+            })
+            results.push({ userId, status: 'updated', user })
+          } catch (error) {
+            results.push({
+              userId,
+              status: 'failed',
+              // Un error que no es nuestro (la base) no se le muestra al operador.
+              error:
+                error instanceof HttpError ? error.message : 'No se pudo cambiar el rol.',
+            })
+          }
+        }
+
+        res.json({ results })
       } catch (error) {
         next(error)
       }
@@ -482,7 +772,13 @@ export function createUserRoutes({
             })
           : false
 
-        res.json({ user, emailed })
+        res.json({
+          user,
+          emailed,
+          ...(req.validatedBody.returnLink
+            ? invitationLinkPayload(invitation, passwordExpiresAt)
+            : {}),
+        })
       } catch (error) {
         next(error)
       }

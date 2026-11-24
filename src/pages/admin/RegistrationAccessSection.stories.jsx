@@ -283,3 +283,132 @@ export const EditorAbierto = {
     configure?.click()
   },
 }
+
+/** Doble de /api/payment-profiles para el panel de cuentas de cobro. */
+function mockPaymentProfiles({ oauthAvailable = true } = {}) {
+  const originalFetch = globalThis.fetch
+  const now = Date.now()
+  const day = 86_400_000
+  const profiles = {
+    mercado_pago: [
+      {
+        id: 'mp-1',
+        name: 'PLU · Pitbull Classic',
+        kind: 'mercado_pago',
+        active: true,
+        connectionStatus: 'connected',
+        config: {
+          connection: 'oauth',
+          accountNickname: 'PLUARGENTINA',
+          collectorId: '241983636',
+          liveMode: true,
+          expiresAt: new Date(now + 150 * day).toISOString(),
+        },
+        usage: {
+          events: [
+            { id: 'e1', title: 'Pitbull Classic 2026', finished: false },
+            { id: 'e2', title: 'Copa Nacional de Press', finished: false },
+          ],
+          shop: true,
+          pinnedOrders: 12,
+        },
+      },
+      {
+        id: 'mp-2',
+        name: 'Club anfitrión Rosario',
+        kind: 'mercado_pago',
+        active: true,
+        connectionStatus: 'expiring',
+        config: {
+          connection: 'oauth',
+          accountEmail: 'tesoreria@clubrosario.test',
+          collectorId: '55512345',
+          liveMode: true,
+          expiresAt: new Date(now + 9 * day).toISOString(),
+        },
+        usage: { events: [{ id: 'e3', title: 'Open Rosario', finished: false }], shop: false, pinnedOrders: 0 },
+      },
+      {
+        id: 'mp-3',
+        name: 'Cuenta de prueba',
+        kind: 'mercado_pago',
+        active: true,
+        connectionStatus: 'needs_reconnect',
+        config: { connection: 'oauth', accountNickname: 'TESTUSER77', liveMode: false, status: 'needs_reconnect' },
+        usage: { events: [], shop: false, pinnedOrders: 0 },
+      },
+      {
+        id: 'mp-4',
+        name: 'Credenciales 2025',
+        kind: 'mercado_pago',
+        active: false,
+        connectionStatus: 'manual',
+        config: { publicKey: 'APP_USR-7f1c2a90-aaaa', collectorId: '' },
+        usage: { events: [{ id: 'e0', title: 'Pitbull Classic 2025', finished: true }], shop: false, pinnedOrders: 40 },
+      },
+    ],
+    bank_transfer: [
+      {
+        id: 'bk-1',
+        name: 'Transferencia PLU',
+        kind: 'bank_transfer',
+        active: true,
+        config: { alias: 'plu.argentina.mp', cbu: '0000003100012345678901', holder: 'Powerlifting United Argentina' },
+        usage: { events: [{ id: 'e1', title: 'Pitbull Classic 2026', finished: false }], shop: false, pinnedOrders: 0 },
+      },
+    ],
+  }
+
+  globalThis.fetch = async (input, options = {}) => {
+    const url = String(input)
+    if (!url.includes('/api/payment-profiles')) return originalFetch(input, options)
+    const kind = new URL(url, 'http://local').searchParams.get('kind') ?? 'bank_transfer'
+    return new Response(
+      JSON.stringify({
+        profiles: profiles[kind] ?? [],
+        secretsKeyConfigured: true,
+        mercadoPagoOAuth: oauthAvailable
+          ? { available: true, missing: [] }
+          : { available: false, missing: ['MERCADO_PAGO_CLIENT_ID', 'MERCADO_PAGO_CLIENT_SECRET'] },
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    )
+  }
+  return () => {
+    globalThis.fetch = originalFetch
+  }
+}
+
+/** Cuentas de cobro: vinculadas por OAuth, por vencer, a reconectar y archivadas. */
+export const CuentasDeCobro = {
+  args: {
+    configuration: emptyConfiguration,
+    adminEvents,
+    canEdit: true,
+    canReadPaymentAccounts: true,
+    canEditPaymentAccounts: true,
+    onRefresh: () => {},
+    onSave: async () => ({}),
+  },
+  beforeEach: () => {
+    const restoreProfiles = mockPaymentProfiles()
+    const restoreSettings = mockPlatformSettings(defaultToggles)
+    return () => {
+      restoreSettings()
+      restoreProfiles()
+    }
+  },
+}
+
+/** Sin la app de Mercado Pago configurada en el servidor. */
+export const CuentasDeCobroSinOAuth = {
+  args: { ...CuentasDeCobro.args },
+  beforeEach: () => {
+    const restoreProfiles = mockPaymentProfiles({ oauthAvailable: false })
+    const restoreSettings = mockPlatformSettings(defaultToggles)
+    return () => {
+      restoreSettings()
+      restoreProfiles()
+    }
+  },
+}

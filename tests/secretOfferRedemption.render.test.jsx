@@ -103,6 +103,12 @@ const ATHLETE = {
   id: 'ath-1',
   fullName: 'Ana Torres',
   documentId: '30111222',
+  birthDate: '1994-04-12',
+  sex: 'Femenino',
+  phone: '1112345678',
+  country: 'Argentina',
+  province: 'Buenos Aires',
+  city: 'La Plata',
   photoUrl: null,
   credentialToken: 'a4f1c0de-0000-4000-8000-000000000001',
 }

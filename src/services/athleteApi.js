@@ -19,6 +19,12 @@ import { derivePaymentProgress } from '../lib/paymentProgress.js'
  * para no tener que reescribirlos.
  */
 
+function numericKg(value) {
+  if (value === null || value === undefined || value === '') return null
+  const total = Number(value)
+  return Number.isFinite(total) ? total : null
+}
+
 function toCamelAthlete(row) {
   if (!row) return row
   return {
@@ -31,12 +37,21 @@ function toCamelAthlete(row) {
     country: row.country,
     province: row.province,
     city: row.city,
+    streetAddress: row.street_address ?? row.streetAddress ?? '',
+    postalCode: row.postal_code ?? row.postalCode ?? '',
     gym: row.gym,
     sex: row.sex,
     division: row.division,
     category: row.category,
     estimatedWeight: row.estimated_weight,
-    bestTotalKg: row.declared_best_total_kg ?? row.bestTotalKg ?? null,
+    bestTotalKg: numericKg(row.declared_best_total_kg ?? row.bestTotalKg),
+    isFirstMeet:
+      (row.is_first_meet ?? row.isFirstMeet) === true
+        ? true
+        : (row.is_first_meet ?? row.isFirstMeet) === false
+          ? false
+          : null,
+    trainingBestTotalKg: numericKg(row.training_best_total_kg ?? row.trainingBestTotalKg),
     emergencyContactName: row.emergency_contact_name ?? row.emergencyContactName ?? '',
     emergencyContactPhone: row.emergency_contact_phone ?? row.emergencyContactPhone ?? '',
     instagramHandle: row.instagram_handle ?? row.instagramHandle ?? '',
@@ -54,6 +69,9 @@ function toCamelAthlete(row) {
     // `qrToken` de cada afiliación (que cambia con cada renovación y no existe
     // para un inscripto a un evento que no exige afiliación).
     credentialToken: row.credential_token ?? null,
+    documentsGrandfathered:
+      row.documents_grandfathered === true || row.documentsGrandfathered === true,
+    documents: (row.documents ?? []).map(toCamelAthleteDocument),
     ...(row.profile_notices !== undefined || row.profileNotices !== undefined
       ? {
           profileNotices: (row.profile_notices ?? row.profileNotices ?? []).map(
@@ -61,6 +79,17 @@ function toCamelAthlete(row) {
           ),
         }
       : {}),
+  }
+}
+
+function toCamelAthleteDocument(row) {
+  if (!row) return row
+  return {
+    kind: row.kind,
+    contentType: row.content_type ?? row.contentType ?? null,
+    sizeBytes: row.size_bytes ?? row.sizeBytes ?? null,
+    originalName: row.original_name ?? row.originalName ?? null,
+    uploadedAt: row.uploaded_at ?? row.uploadedAt ?? null,
   }
 }
 
@@ -176,8 +205,47 @@ function toCamelRegistrationEntry({ registration, event, checkIn, schedule }) {
     eventStartsAt: event?.starts_at ?? registration.event_starts_at ?? null,
     eventEndsAt: event?.ends_at ?? registration.event_ends_at ?? null,
     category: registration.category,
+    categories: [
+      registration.category,
+      ...(registration.additional_categories ?? registration.additionalCategories ?? []),
+    ].filter(Boolean),
     division: registration.division,
+    secondaryDivision: registration.secondary_division ?? registration.secondaryDivision ?? '',
+    modalities: registration.modalities ?? ['full_power'],
     bodyweight: registration.bodyweight_kg,
+    isFirstMeet:
+      (registration.is_first_meet ?? registration.isFirstMeet) === true
+        ? true
+        : (registration.is_first_meet ?? registration.isFirstMeet) === false
+          ? false
+          : null,
+    competitionBestTotalKg: numericKg(
+      registration.competition_best_total_kg ?? registration.competitionBestTotalKg,
+    ),
+    trainingBestTotalKg: numericKg(
+      registration.training_best_total_kg ?? registration.trainingBestTotalKg,
+    ),
+    declaredWeightClass:
+      registration.declared_weight_class ?? registration.declaredWeightClass ?? '',
+    officialWeightClass:
+      registration.official_weight_class ?? registration.officialWeightClass ?? '',
+    rosterFrozenAt:
+      event?.roster_frozen_at ??
+      registration.roster_frozen_at ??
+      registration.rosterFrozenAt ??
+      null,
+    weighInBodyweight:
+      registration.weigh_in_bodyweight_kg ?? registration.weighInBodyweight ?? null,
+    weighInRecordedAt: registration.weigh_in_recorded_at ?? registration.weighInRecordedAt ?? null,
+    weighInRecordedBy: registration.weigh_in_recorded_by ?? registration.weighInRecordedBy ?? '',
+    declaredWeightClassSetAt:
+      registration.declared_weight_class_set_at ?? registration.declaredWeightClassSetAt ?? null,
+    declaredWeightClassSetBy:
+      registration.declared_weight_class_set_by ?? registration.declaredWeightClassSetBy ?? '',
+    officialWeightClassSetAt:
+      registration.official_weight_class_set_at ?? registration.officialWeightClassSetAt ?? null,
+    officialWeightClassSetBy:
+      registration.official_weight_class_set_by ?? registration.officialWeightClassSetBy ?? '',
     publicVisible: registration.public_visible ?? registration.publicVisible ?? true,
     status: registration.status,
     paymentOrderId: registration.payment_order_id,
@@ -481,6 +549,59 @@ export async function fetchAdminPhotoUrls(paths = []) {
   return urls ?? {}
 }
 
+/**
+ * Descarga CSV/XLS del endpoint server-side (join athletes, sin ventana de 400).
+ * `eventSlug` acota al meet seleccionado en el panel.
+ * type=lifters + format=xls → planilla LiftingCast estilada.
+ */
+export async function downloadAdminExport({
+  type = 'admin',
+  format = 'csv',
+  eventSlug = null,
+  liftersOptions = null,
+} = {}) {
+  const params = new URLSearchParams()
+  params.set('type', type)
+  params.set('format', format)
+  if (eventSlug) params.set('eventSlug', eventSlug)
+  if (type === 'lifters' && liftersOptions && typeof liftersOptions === 'object') {
+    for (const [key, value] of Object.entries(liftersOptions)) {
+      if (value == null || value === '') continue
+      params.set(key, String(value))
+    }
+  }
+  const { blob, headers } = await apiRequest(`/api/athletes/admin/export?${params.toString()}`, {
+    responseType: 'blob',
+    timeoutMs: 120_000,
+  })
+  const disposition = headers?.get?.('Content-Disposition') ?? ''
+  const match = disposition.match(/filename="([^"]+)"/i)
+  const filename =
+    match?.[1] ??
+    (type === 'lifters'
+      ? `lifters-export.${format}`
+      : type === 'plu_usa'
+        ? `plu-usa-export.${format}`
+        : `plu-arg-admin-export.${format}`)
+  return {
+    blob,
+    filename,
+    truncated: headers?.get?.('X-PLU-Export-Truncated') === '1',
+    incomplete: Number(headers?.get?.('X-PLU-Export-Incomplete') || 0) || 0,
+    divisionMismatch: Number(headers?.get?.('X-PLU-Export-Division-Mismatch') || 0) || 0,
+    rowCount: Number(headers?.get?.('X-PLU-Export-Row-Count') || 0) || null,
+  }
+}
+
+/** Preview de completitud Lifters (sin descargar archivo). */
+export async function fetchLiftersExportReadiness({ eventSlug = null } = {}) {
+  const params = new URLSearchParams()
+  params.set('type', 'lifters')
+  params.set('format', 'json')
+  if (eventSlug) params.set('eventSlug', eventSlug)
+  return apiGet(`/api/athletes/admin/export?${params.toString()}`)
+}
+
 export async function registerAthlete(form) {
   const { athlete: row, emailVerification } = await apiPost('/api/athletes/register', {
     fullName: form.fullName,
@@ -510,6 +631,11 @@ export function checkAthleteAvailability({ email, documentId } = {}) {
   if (email) body.email = email
   if (documentId) body.documentId = documentId
   return apiPost('/api/athletes/check-availability', body)
+}
+
+export async function saveMembershipFile(file) {
+  const { athlete: row } = await apiPatch('/api/athletes/me/membership-file', file)
+  return { athlete: toCamelAthlete(row) }
 }
 
 export async function updateAthleteProfile(_athleteId, updates) {
@@ -639,8 +765,15 @@ export async function createMembershipOrder(
 export async function createCompetitionRegistration({
   eventSlug,
   division,
+  secondaryDivision,
+  modalities,
   category,
+  categories,
   bodyweightKg,
+  declaredWeightClass,
+  firstMeet = false,
+  competitionBestTotalKg,
+  trainingBestTotalKg,
   paymentMethod,
   idempotencyKey = crypto.randomUUID(),
   discountCode,
@@ -649,8 +782,15 @@ export async function createCompetitionRegistration({
   const result = await apiPost('/api/athletes/me/registrations', {
     eventSlug,
     division,
+    secondaryDivision: secondaryDivision || undefined,
+    modalities: modalities?.length ? modalities : undefined,
     category,
+    categories: categories?.length ? categories : undefined,
     bodyweightKg,
+    declaredWeightClass,
+    firstMeet: firstMeet === true,
+    competitionBestTotalKg: competitionBestTotalKg ?? null,
+    trainingBestTotalKg: trainingBestTotalKg ?? null,
     paymentMethod,
     idempotencyKey,
     discountCode: discountCode || undefined,
@@ -687,12 +827,20 @@ export async function previewDiscountCode({
   planCode,
   eventSlug,
   paymentMethod,
+  secondaryDivision,
+  categories,
+  modalities,
 } = {}) {
   const result = await apiPost('/api/athletes/me/discount-preview', {
     code,
     appliesTo,
     planCode: planCode || undefined,
     eventSlug: eventSlug || undefined,
+    // La segunda división suma el 50% a la base sobre la que se cotiza el cupón.
+    secondaryDivision: secondaryDivision || undefined,
+    categories: categories?.length ? categories : undefined,
+    // Cada modalidad extra suma el 50%: sin ellas el cupón cotiza otro número.
+    modalities: modalities?.length ? modalities : undefined,
     // Sin el canal, el servidor calcula el ahorro sobre el precio de catálogo
     // y muestra un número distinto al que se cobra durante la ventana Pitbull.
     paymentMethod: paymentMethod || undefined,
@@ -842,8 +990,15 @@ export async function deferAthleteFinancedPayment(orderId) {
 export async function createCompetitionRegistrationCombo({
   eventSlug,
   division,
+  secondaryDivision,
+  modalities,
   category,
+  categories,
   bodyweightKg,
+  declaredWeightClass,
+  firstMeet = false,
+  competitionBestTotalKg,
+  trainingBestTotalKg,
   paymentMethod,
   idempotencyKey = crypto.randomUUID(),
   membershipAccessCode,
@@ -854,8 +1009,15 @@ export async function createCompetitionRegistrationCombo({
   const result = await apiPost('/api/athletes/me/registration-combos', {
     eventSlug,
     division,
+    secondaryDivision: secondaryDivision || undefined,
+    modalities: modalities?.length ? modalities : undefined,
     category,
+    categories: categories?.length ? categories : undefined,
     bodyweightKg,
+    declaredWeightClass,
+    firstMeet: firstMeet === true,
+    competitionBestTotalKg: competitionBestTotalKg ?? null,
+    trainingBestTotalKg: trainingBestTotalKg ?? null,
     paymentMethod,
     idempotencyKey,
     discountCode: discountCode || undefined,
@@ -1274,6 +1436,71 @@ export async function deleteRegistrationRequest(registrationId) {
   return { deletedRegistration: result.deletedRegistration }
 }
 
+function weightClassPatch(registration) {
+  return {
+    id: registration.id,
+    athleteId: registration.athlete_id ?? registration.athleteId,
+    bodyweight: registration.bodyweight_kg ?? registration.bodyweight ?? null,
+    declaredWeightClass:
+      registration.declared_weight_class ?? registration.declaredWeightClass ?? '',
+    officialWeightClass:
+      registration.official_weight_class ?? registration.officialWeightClass ?? '',
+  }
+}
+
+/** Cambia solo la categoría declarada. No toca el peso corporal ni la oficial. */
+export async function correctRegistrationWeightClass(registrationId, declaredWeightClass) {
+  const { registration } = await apiPost(
+    `/api/athletes/admin/registrations/${encodeURIComponent(registrationId)}/weight-class`,
+    { declaredWeightClass },
+  )
+  return { registration: weightClassPatch(registration) }
+}
+
+/** Misma categoría declarada para varias inscripciones. Falla entero si alguna no sirve. */
+export async function correctRegistrationsWeightClass(registrationIds, declaredWeightClass) {
+  const result = await apiPost('/api/athletes/admin/registrations/weight-class/bulk', {
+    registrationIds,
+    declaredWeightClass,
+  })
+  return {
+    updated: (result.updated ?? []).map(weightClassPatch),
+  }
+}
+
+/** Peso medido en el pesaje. No toca el peso declarado ni la categoría. */
+export async function recordRegistrationWeighIn(registrationId, weighInBodyweightKg) {
+  const { registration } = await apiPost(
+    `/api/athletes/admin/registrations/${encodeURIComponent(registrationId)}/weigh-in`,
+    { weighInBodyweightKg },
+  )
+  return { registration: weightClassPatch(registration) }
+}
+
+/** Categoría confirmada en el pesaje. Puede quedar vacía para borrarla. */
+export async function correctOfficialWeightClass(registrationId, officialWeightClass) {
+  const { registration } = await apiPost(
+    `/api/athletes/admin/registrations/${encodeURIComponent(registrationId)}/official-weight-class`,
+    { officialWeightClass },
+  )
+  return { registration: weightClassPatch(registration) }
+}
+
+/** Cierra o reabre el padrón de un evento después del pesaje. */
+export async function setEventRosterFrozen(eventSlug, frozen) {
+  const { event } = await apiPost(
+    `/api/athletes/admin/events/${encodeURIComponent(eventSlug)}/roster-freeze`,
+    { frozen },
+  )
+  return {
+    event: {
+      id: event.id,
+      slug: event.slug,
+      rosterFrozenAt: event.roster_frozen_at ?? null,
+    },
+  }
+}
+
 /** Publica u oculta una inscripción del padrón público del evento. */
 export async function setRegistrationPublicVisibility(registrationId, publicVisible) {
   const { registration } = await apiPost(
@@ -1326,6 +1553,24 @@ export async function checkInRegistration(registrationId, gate) {
   }
 }
 
-export async function getEventCheckinAllowlist(eventSlug) {
-  return apiGet(`/api/tickets/allowlist/${encodeURIComponent(eventSlug)}`)
+export async function getEventCheckinAllowlist(eventSlug, { etag = null } = {}) {
+  const result = await apiGetMeta(`/api/tickets/allowlist/${encodeURIComponent(eventSlug)}`, {
+    etag,
+  })
+  return {
+    notModified: result.notModified,
+    etag: result.etag,
+    data: result.data,
+  }
+}
+
+/**
+ * "Enviar credenciales" de un evento: el mail con el QR adjunto a los
+ * confirmados que todavía no lo recibieron. Con `dryRun` solo cuenta.
+ */
+export async function sendEventCredentials(eventSlug, { dryRun = false, resend = false } = {}) {
+  return apiPost(`/api/athletes/admin/events/${encodeURIComponent(eventSlug)}/credentials/send`, {
+    dryRun,
+    resend,
+  })
 }

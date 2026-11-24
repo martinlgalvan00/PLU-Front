@@ -298,3 +298,64 @@ export function ChoiceField({
     </fieldset>
   )
 }
+
+/**
+ * Varias opciones a la vez (casillas), con el mismo aspecto que `ChoiceField`.
+ * `options`: `[valor, texto]`. `onChange` recibe la lista nueva de valores.
+ */
+export function CheckboxGroupField({
+  className = '',
+  disabled = false,
+  error,
+  hint,
+  label,
+  name,
+  onChange,
+  options = [],
+  values = [],
+}) {
+  const errorId = `${name}-error`
+  const hintId = `${name}-hint`
+  const fieldClass = ['field', 'field--choice', className, error ? 'is-invalid' : '']
+    .filter(Boolean)
+    .join(' ')
+  const describedBy = [error ? errorId : '', hint ? hintId : ''].filter(Boolean).join(' ')
+
+  return (
+    <fieldset
+      className={fieldClass}
+      aria-describedby={describedBy || undefined}
+      aria-invalid={Boolean(error)}
+    >
+      <legend className="field__label">{label}</legend>
+      <div className="field__choices">
+        {options.map(([value, text]) => {
+          const active = values.includes(value)
+          return (
+            <label key={value} className={`field__choice${active ? ' is-active' : ''}`.trim()}>
+              <input
+                checked={active}
+                disabled={disabled}
+                name={name}
+                type="checkbox"
+                value={value}
+                onChange={() => onChange(value, !active)}
+              />
+              <span className="field__choice-text">{text}</span>
+            </label>
+          )
+        })}
+      </div>
+      {hint ? (
+        <span className="field__hint" id={hintId}>
+          {hint}
+        </span>
+      ) : null}
+      {error ? (
+        <span className="field__error" id={errorId} role="alert" title={error}>
+          {error}
+        </span>
+      ) : null}
+    </fieldset>
+  )
+}

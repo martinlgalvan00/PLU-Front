@@ -528,3 +528,141 @@ describe('alta de staff (/api/users)', () => {
     }
   })
 })
+
+describe('cambio de rol en lote (/api/users/bulk-role)', () => {
+  const staff = (id, overrides = {}) => ({
+    id,
+    email: `${id}@pluarg.test`,
+    passwordHash: null,
+    role: 'operador_plu_arg',
+    status: 'active',
+    profile: { firstName: id, lastName: 'PLU' },
+    eventId: null,
+    eventSlug: null,
+    ...overrides,
+  })
+
+  async function bulk(prisma, body, { login = true } = {}) {
+    const target = listen(createApp({ prisma, env: ENV }))
+    try {
+      const cookie = login ? await loginAdmin(target.url) : undefined
+      const response = await fetch(`${target.url}/api/users/bulk-role`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify(body),
+      })
+      return { status: response.status, body: await response.json() }
+    } finally {
+      await target.close()
+    }
+  }
+
+  it('cambia el rol de varias cuentas, las audita y les corta la sesión', async () => {
+    const prisma = createPrismaDouble([await buildAdmin(), staff('usr-a'), staff('usr-b')])
+    const revoked = []
+    prisma.session.updateMany = async ({ where }) => {
+      revoked.push(where.userId)
+      return { count: 1 }
+    }
+
+    const { status, body } = await bulk(prisma, {
+      userIds: ['usr-a', 'usr-b'],
+      roleKey: 'plu_arg',
+    })
+
+    expect(status).toBe(200)
+    expect(body.results.map(({ userId, status: result }) => [userId, result])).toEqual([
+      ['usr-a', 'updated'],
+      ['usr-b', 'updated'],
+    ])
+    expect(body.results[0].user).toMatchObject({ id: 'usr-a', roleKey: 'plu_arg' })
+    expect(body.results[0].user.permissions).toContain('admin.events.read')
+    expect(revoked.sort()).toEqual(['usr-a', 'usr-b'])
+    const assigned = prisma._state.auditLogs.filter(
+      ({ action }) => action === 'user.access_role_assigned',
+    )
+    expect(assigned.map(({ entityId }) => entityId).sort()).toEqual(['usr-a', 'usr-b'])
+    expect(assigned[0].after).toEqual({ roleKey: 'plu_arg' })
+  })
+
+  it('reporta por cuenta lo que no se puede, sin frenar a las demás', async () => {
+    const prisma = createPrismaDouble([
+      await buildAdmin(),
+      staff('usr-ok'),
+      staff('usr-ya', {
+        accessRole: { key: 'plu_arg', name: 'PLU', baseRole: 'operador_plu_arg' },
+      }),
+      staff('usr-owner', { role: 'admin_maximal' }),
+      staff('usr-gate', { role: 'seguridad_plu_arg' }),
+    ])
+    const revoked = []
+    prisma.session.updateMany = async ({ where }) => {
+      revoked.push(where.userId)
+      return { count: 1 }
+    }
+
+    const { status, body } = await bulk(prisma, {
+      userIds: ['usr-admin', 'usr-owner', 'usr-gate', 'usr-fantasma', 'usr-ya', 'usr-ok'],
+      roleKey: 'plu_arg',
+    })
+
+    expect(status).toBe(200)
+    const byId = Object.fromEntries(body.results.map((item) => [item.userId, item]))
+    expect(byId['usr-admin']).toMatchObject({ status: 'failed', error: /propio rol/ })
+    expect(byId['usr-owner']).toMatchObject({ status: 'failed', error: /Super Admin/ })
+    expect(byId['usr-gate']).toMatchObject({ status: 'failed', error: /no se administra/ })
+    expect(byId['usr-fantasma']).toMatchObject({ status: 'failed', error: /no existe/ })
+    expect(byId['usr-ya'].status).toBe('unchanged')
+    expect(byId['usr-ok'].status).toBe('updated')
+    // Sólo la que cambió pierde la sesión y queda en auditoría.
+    expect(revoked).toEqual(['usr-ok'])
+    expect(
+      prisma._state.auditLogs.filter(({ action }) => action === 'user.access_role_assigned'),
+    ).toHaveLength(1)
+    expect(prisma._state.users.find(({ id }) => id === 'usr-owner').role).toBe('admin_maximal')
+  })
+
+  it('un id repetido se procesa una sola vez', async () => {
+    const prisma = createPrismaDouble([await buildAdmin(), staff('usr-a')])
+    const { body } = await bulk(prisma, { userIds: ['usr-a', 'usr-a'], roleKey: 'plu_arg' })
+
+    expect(body.results).toHaveLength(1)
+    expect(
+      prisma._state.auditLogs.filter(({ action }) => action === 'user.access_role_assigned'),
+    ).toHaveLength(1)
+  })
+
+  it('rechaza el pedido entero si el rol es Seguridad o no lo puede asignar quien pide', async () => {
+    const prisma = createPrismaDouble([await buildAdmin(), staff('usr-a')])
+
+    const security = await bulk(prisma, { userIds: ['usr-a'], roleKey: 'seguridad_plu_arg' })
+    expect(security.status).toBe(400)
+
+    // Un Administrador no puede dar el rol de otro Administrador.
+    const peer = await bulk(prisma, { userIds: ['usr-a'], roleKey: 'admin_plu_arg' })
+    expect(peer.status).toBe(403)
+
+    expect(prisma._state.users.find(({ id }) => id === 'usr-a').role).toBe('operador_plu_arg')
+    expect(
+      prisma._state.auditLogs.filter(({ action }) => action === 'user.access_role_assigned'),
+    ).toHaveLength(0)
+  })
+
+  it('valida el pedido: al menos una cuenta y un tope de 100', async () => {
+    const prisma = createPrismaDouble([await buildAdmin()])
+
+    expect((await bulk(prisma, { userIds: [], roleKey: 'plu_arg' })).status).toBe(400)
+    const many = Array.from({ length: 101 }, (_, index) => `usr-${index}`)
+    expect((await bulk(prisma, { userIds: many, roleKey: 'plu_arg' })).status).toBe(400)
+  })
+
+  it('exige sesión', async () => {
+    const prisma = createPrismaDouble([await buildAdmin(), staff('usr-a')])
+    const { status } = await bulk(
+      prisma,
+      { userIds: ['usr-a'], roleKey: 'plu_arg' },
+      { login: false },
+    )
+    expect(status).toBe(401)
+  })
+})

@@ -1,16 +1,24 @@
 import { randomUUID } from 'node:crypto'
 import { Router } from 'express'
 import { z } from 'zod'
-import { hasEventScopeAccess } from '../../src/lib/permissions.js'
+import { hasEventScopeAccess, hasPermission } from '../../src/lib/permissions.js'
 import { resolveTicketTypeChannels } from '../../src/lib/ticketTypePaymentChannels.js'
 import { ticketValidityTiming } from '../../src/lib/ticketValidity.js'
+import { resolveTicketRevealLeadMinutes } from '../../src/lib/ticketReveal.js'
+import { normalizeGateCode } from '../../src/lib/ticketGateCode.js'
+import {
+  attachStaffBuyerOpenKeys,
+  signTicketOpenKey,
+  ticketOpenKeyMatches,
+} from '../modules/ticketing/ticketOpenLink.js'
 import { HttpError } from '../lib/errors.js'
 import { isMissingSchemaColumn } from '../lib/supabaseRpc.js'
 import {
   assertPaidCheckoutAvailable,
   resolvePaidCheckoutOverride,
 } from '../lib/featureAvailability.js'
-import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
+import { checkinAllowlistCache } from '../lib/checkinAllowlistCache.js'
+import { PRIVATE_REVALIDATE_CACHE, PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
 import { sendPortraitBinary } from '../lib/portraitBinaryCache.js'
 import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
 import { touchProofAccessed } from '../modules/payments/paymentProofRetention.js'
@@ -19,6 +27,29 @@ import { PROOF_BUCKET } from '../lib/supabaseAdmin.js'
 // Solo hace falta resolver la fecha del evento cuando el gate va a mirarla:
 // en produccion y sin kill switch. Evita una consulta a Supabase de mas en
 // dev/tests y cuando PAID_CHECKOUT_ENABLED ya decide.
+/**
+ * Antes de acreditar, el alcance del operador necesita el evento. La RPC de
+ * check-in ya valida pago, vigencia y zona, así que no hace falta el verify
+ * completo. Los tests que no tienen esta lectura siguen usando `verify`.
+ */
+async function loadTicketBeforeCheckIn(repository, qrToken) {
+  if (typeof repository.locateTicketForCheckIn === 'function') {
+    const located = await repository.locateTicketForCheckIn(qrToken)
+    if (!located) throw new HttpError(404, 'Entrada no encontrada.')
+    return { ticket: located }
+  }
+  return repository.verify(qrToken)
+}
+
+async function resolveDoorQrToken(repo, raw) {
+  const value = String(raw ?? '').trim()
+  const gateCode = normalizeGateCode(value)
+  if (!gateCode) return value
+  const qrToken = await repo().findQrTokenByGateCode(gateCode)
+  if (!qrToken) throw new HttpError(404, 'Entrada no encontrada.')
+  return qrToken
+}
+
 async function resolveScopedRegistrationOpensAt(env, supabase, eventSlug) {
   if (resolvePaidCheckoutOverride(env) !== null) return null
   return resolveEventRegistrationOpensAt(supabase, { eventSlug })
@@ -111,24 +142,36 @@ function ticketAddonCatalog(rules) {
 }
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
+import { doorCodeAttempts } from '../lib/doorCodeAttempts.js'
 import {
+  doorCodeLookupLimiter,
   publicReadLimiter,
-  doorLookupLimiter,
   scanTelemetryLimiter,
   staffLimiter,
+  ticketMineLimiter,
   ticketOrderLookupLimiter,
   ticketPublicWriteLimiter,
 } from '../middleware/rateLimit.js'
 import { createSupabaseAthleteRepository } from '../modules/athletes/supabaseAthleteRepository.js'
 import { createSupabaseTicketRepository } from '../modules/ticketing/supabaseTicketRepository.js'
+import {
+  presentTicket,
+  resolveTicketAccount,
+  serializeAccountTickets,
+} from '../modules/ticketing/accountTickets.js'
+import { assertEventAccess } from '../lib/eventScope.js'
+import { assertTicketOrderInScope } from '../modules/events/orderEventScope.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { fetchScanTrail } from '../modules/checkin/scanTrail.js'
 import { INCIDENT_KINDS, createCheckinIncidentRepository } from '../modules/checkin/incidents.js'
 import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
+import {
+  buildTicketConfirmationDelivery,
+  ticketRevealMailSettled,
+} from '../modules/notifications/ticketConfirmationMail.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
 import { displayPaymentConcept } from '../modules/notifications/paymentNotificationService.js'
 import { buildEventPagePath } from '../../src/lib/eventPageRoute.js'
-import { SHORT_TICKETS_PATH } from '../../src/lib/ticketsRoute.js'
 import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
 import { logger } from '../lib/logger.js'
 import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
@@ -140,17 +183,21 @@ import {
 } from '../services/platformFeatureToggleService.js'
 import {
   applyEventPaymentChannelOverrides,
+  applyEventTicketSalesSwitch,
   applyManualTicketDeadline,
+  eventPublicTicketSalesEnabled,
   assertEventPaymentChannelEnabled,
   assertManualTicketDeadline,
   resolveBankTransferDetails,
+  resolveCashPaymentDetails,
 } from '../modules/payments/eventPaymentProfile.js'
+import { applyEventChannelOpens } from '../../src/lib/eventPaymentChannels.js'
 import { createSupabasePaymentProfileRepository } from '../modules/payments/supabasePaymentProfileRepository.js'
 import { resolveMercadoPagoPublicKeyForProfileId } from '../modules/payments/mercadoPagoProfileRuntime.js'
 import { wisePriceFor } from '../modules/pricing/checkoutPricePolicy.js'
 import { resolveTicketOrderWisePricing } from '../../shared/ticketWisePricing.js'
+import { EVENT_MODULE_DISABLED, isStoredEventModuleOn } from '../../shared/eventModules.js'
 import { recordScanEvent, recordScanEvents } from '../modules/checkin/scanEventRecorder.js'
-import { requireAthleteSession } from '../services/athleteSessionService.js'
 
 const attendeeSchema = z.object({
   fullName: z.string().trim().min(3),
@@ -263,6 +310,41 @@ export const createOrderSchema = z
   .superRefine(assertNoDuplicateDni)
 const accessSchema = z.object({ accessToken: z.string().trim().min(32) })
 const rejectOrderSchema = z.object({ reason: z.string().trim().min(3).max(500) })
+// Mismo piso que la RPC: reabrir una cancelación del cron no es un clic
+// vacío. Un motivo corto no explica por qué la orden vuelve a la cola.
+const reopenOrderSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(8, 'El motivo tiene que tener al menos 8 caracteres.')
+    .max(500),
+})
+// Mismo piso que afiliaciones: acreditar transferencia o Wise sin archivo
+// exige un motivo. La RPC lo vuelve a chequear. Un POST vacío sigue valiendo
+// para efectivo y para órdenes que ya tienen comprobante.
+const approveOrderSchema = z.object({
+  overrideReason: z.string().trim().min(8).max(500).optional(),
+})
+const forceCheckInSchema = z
+  .object({
+    // El puesto llega sucio o de más de 200 caracteres y se recorta más
+    // adelante. Un número no es un puesto: se ignora y la puerta usa el suyo.
+    gate: z.preprocess(
+      (value) => (typeof value === 'string' ? value : undefined),
+      z.string().optional(),
+    ),
+    force: z.enum(['validity', 'zone']).optional(),
+    reason: z.string().trim().min(8).max(500).optional(),
+  })
+  .superRefine((value, context) => {
+    if (!value.force) return
+    if (!value.reason) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'El motivo de la excepción tiene que tener al menos 8 caracteres.',
+      })
+    }
+  })
 // El motivo es obligatorio para una orden ya acreditada (lo recibe el
 // comprador por mail); para una abierta sin cobrar es opcional. Esa regla la
 // aplica la RPC, que es la que sabe en qué estado está la orden.
@@ -306,25 +388,13 @@ const checkinLookupSchema = z
       .transform((value) => value.replace(/\D/g, ''))
       .pipe(z.string().regex(/^\d{7,8}$/, 'DNI inválido.'))
       .optional(),
-    doorCode: z
-      .string()
-      .transform((value) => value.replace(/\D/g, ''))
-      .pipe(z.string().regex(/^\d{6}$/, 'El código de puerta tiene 6 dígitos.'))
-      .optional(),
   })
-  .refine(
-    (value) => [value.ticketCode, value.dni, value.doorCode].filter(Boolean).length === 1,
-    { message: 'Indicá un código de puerta, un número de entrada o un DNI.' },
-  )
-// El QR lleva un UUID. Cualquier otra cosa no puede ser una entrada: se
-// contesta 404 en la ruta, en vez de dejar que el cast falle en la base
-// (22P02 -> 503), que la puerta leía como "sin conexión con el servidor".
-const QR_TOKEN_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-function assertQrTokenShape(qrToken) {
-  if (!QR_TOKEN_RE.test(String(qrToken ?? ''))) {
-    throw new HttpError(404, 'Entrada no encontrada.')
-  }
-}
+  // El código de puerta (`gate_code`, XXX-XXX) no pasa por acá: lo resuelve
+  // `resolveDoorQrToken` en la misma ruta del QR. Esta búsqueda es para lo que
+  // puede dar varias credenciales (un DNI) o el número impreso de la compra.
+  .refine((value) => Boolean(value.ticketCode) !== Boolean(value.dni), {
+    message: 'Indicá un número de entrada o un DNI.',
+  })
 
 const ticketOrderStatusEnum = z.enum([
   'creado',
@@ -361,26 +431,31 @@ const ticketOrdersQuerySchema = z.object({
   channel: z
     .enum(['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer', 'courtesy'])
     .optional(),
+  /** Filtro duro por meet: el historial de Finanzas no filtra solo por texto. */
+  eventSlug: z.string().trim().min(1).max(120).optional(),
   query: z.string().trim().min(1).max(120).optional(),
   sort: z.enum(['recent', 'aging']).optional().default('recent'),
   limit: z.coerce.number().int().min(1).max(200).optional().default(200),
   withCounts: booleanQueryParam.default(false),
+  /** "Por validar" incluye las canceladas que todavía tienen comprobante. */
+  includeHeldProof: booleanQueryParam.default(false),
+  /** El chip Canceladas no vuelve a listar las que ya están en la cola. */
+  excludeHeldProof: booleanQueryParam.default(false),
 })
 
 /**
  * Venta de mostrador: la carga un operador desde el panel, no el comprador
  * desde el checkout público. Sin `provider` (siempre `manual`) ni
  * `accessToken` (el comprador es anónimo y no tiene pestaña propia; el token
- * lo genera el repositorio igual que en el flujo público). El límite de 8
- * asistentes es el real: la RPC corta ahí aunque el schema público anuncie
- * hasta 10 (`MAX_ATTENDEES_PER_ORDER`), así que acá no se hereda esa
- * discrepancia. Wise queda afuera: es cobro del exterior en USD con
- * cotización propia, no una venta de mostrador.
+ * lo genera el repositorio igual que en el flujo público). Mismo tope de
+ * asistentes que el checkout (`MAX_ATTENDEES_PER_ORDER`): las dos RPC cortan
+ * en 10 desde 20261231110000. Wise queda afuera: es cobro del exterior en USD
+ * con cotización propia, no una venta de mostrador.
  */
 export const createManualOrderSchema = z
   .object({
     eventSlug: z.string().trim().min(1),
-    attendees: z.array(attendeeSchema).min(1).max(8),
+    attendees: z.array(attendeeSchema).min(1).max(MAX_ATTENDEES_PER_ORDER),
     buyer: z.object({
       // El comprador de mostrador no tiene cuenta: el mail es la única forma
       // de entregarle el QR, así que acá es obligatorio (a diferencia del
@@ -452,6 +527,7 @@ export function createTicketRoutes({
   incidentRepository,
   athleteRepository,
   platformSettingsRepository,
+  notificationRepository = null,
   env = process.env,
   brevo,
 }) {
@@ -475,6 +551,10 @@ export function createTicketRoutes({
   }
   const prisma = getPrisma()
   const guard = requirePermission('admin.checkin.execute', { prisma })
+  // La misma operación, abierta a una cuenta por evento (coordinador). Cada
+  // handler vuelve a filtrar el evento: sin eso el candado de `requireAuth`
+  // le cerraba el escaneo al coordinador.
+  const doorGuard = requirePermission('admin.checkin.execute', { prisma }, { eventScoped: true })
   // El informe de errores de escaneo es lectura de auditoría, no operación de
   // puerta: `admin.audit.read` deja afuera al preset seguridad_plu_arg
   // (sólo admin.events.read + admin.checkin.execute) a propósito -- quien
@@ -488,7 +568,42 @@ export function createTicketRoutes({
   const scanAuditGuard = requirePermission('admin.audit.read', { prisma })
   const financeReadGuard = requirePermission('admin.payments.read', { prisma })
   const financeWriteGuard = requirePermission('admin.payments.approve', { prisma })
+  // Reenviar la credencial sigue siendo de Finanzas. Antes de actuar se verifica
+  // que la orden sea de un evento asignado (`assertTicketOrderInScope`).
+  const scopedFinanceWriteGuard = requirePermission(
+    'admin.payments.approve',
+    { prisma },
+    { eventScoped: true },
+  )
   const ticketAccessOverrideGuard = requirePermission('admin.events.write', { prisma })
+  // Habilitar una orden de entradas: Finanzas o el cuerpo de seguridad del
+  // evento. No reemplaza `admin.payments.approve` en afiliaciones ni en caja.
+  const ticketDoorFinanceGuard = requirePermission(
+    ['admin.payments.approve', 'admin.tickets.enable'],
+    { prisma },
+    { mode: 'any', eventScoped: true },
+  )
+  const ticketDoorProofGuard = requirePermission(
+    ['admin.payments.read', 'admin.tickets.enable'],
+    { prisma },
+    { mode: 'any', eventScoped: true },
+  )
+  // Vigencia que queda en la credencial: quien edita el evento, o el
+  // coordinador (excepción + equipo). El puesto de puerta no llega.
+  const lastingWindowGuard = requirePermission(
+    ['admin.events.write', 'admin.checkin.override'],
+    { prisma },
+    { mode: 'any', eventScoped: true },
+  )
+  // "Vendidas" del panel de evento: la lista pide `admin.checkin.execute` (operar la
+  // puerta), que un organizador no tiene; para él alcanza con poder ver cobros.
+  // Vendidas: la puerta (check-in) o quien ve cobros del evento. `scopedPermissions`
+  // reemplazaba el permiso y le cerraba la lista al coordinador, que no cobra.
+  const scopedTicketsViewGuard = requirePermission(
+    ['admin.checkin.execute', 'admin.payments.read'],
+    { prisma },
+    { mode: 'any', eventScoped: true },
+  )
   const actor = (req) => `${req.auth.user.id}:${req.auth.user.email}`
   const mailer = brevo ?? createBrevoAdapter({ env })
   const appUrl = (resolveDeploymentAppUrl(env) || env.VITE_APP_URL || '').replace(/\/$/, '')
@@ -496,14 +611,17 @@ export function createTicketRoutes({
   // Espejo del dispatcher de athletes.js: sin Supabase queda en modo
   // degradado (envía sin log) en vez de romper el armado de la app.
   function mailDispatcher() {
-    let notificationRepository = null
+    if (typeof notificationRepository?.beginEmail === 'function') {
+      return createEmailDispatcher({ repository: notificationRepository, brevo: mailer, env })
+    }
+    let repositoryForMail = null
     try {
       const supabase = getSupabaseAdmin?.()
-      if (supabase) notificationRepository = createSupabaseNotificationRepository(supabase)
+      if (supabase) repositoryForMail = createSupabaseNotificationRepository(supabase)
     } catch {
-      notificationRepository = null
+      repositoryForMail = null
     }
-    return createEmailDispatcher({ repository: notificationRepository, brevo: mailer, env })
+    return createEmailDispatcher({ repository: repositoryForMail, brevo: mailer, env })
   }
 
   async function sendBestEffort(type, input) {
@@ -519,11 +637,8 @@ export function createTicketRoutes({
    * de idempotencia lleva el `updated_at` de la orden, así que reaprobar una
    * orden ya aprobada (la RPC devuelve `duplicate`) no reenvía nada.
    *
-   * El QR sigue viviendo sólo en la pestaña donde se compró (no hay cuenta
-   * que lo guarde), así que el link no puede llevar directo a él. Lleva a
-   * `/entradas?ref=...`: ahí `TicketOrderLookup` pide el mail del comprador
-   * como segundo factor y, si coincide, recupera la entrada con el mismo
-   * render que una compra recién hecha (ver GET /orders/lookup).
+   * El link abre la entrada con una clave firmada (`?ref=&k=`). Sin esa clave,
+   * `TicketOrderLookup` pide el mail del comprador como segundo factor.
    */
   /**
    * Sólo avisa cuando la orden estaba acreditada: una pendiente que se cierra
@@ -551,40 +666,73 @@ export function createTicketRoutes({
     })
   }
 
-  async function sendTicketConfirmation(result) {
+  async function markPassRevealed(orderId) {
+    const client = getSupabaseAdmin?.()
+    if (!client || !orderId) return
+    const result = await client
+      .from('ticket_orders')
+      .update({ pass_revealed_at: new Date().toISOString() })
+      .eq('id', orderId)
+      .is('pass_revealed_at', null)
+    if (result?.error && !isMissingSchemaColumn(result.error)) {
+      logger.warn('ticket.pass_reveal_mark_failed', { err: result.error, orderId })
+    }
+  }
+
+  async function sendTicketConfirmation(result, { resend = false, now = new Date() } = {}) {
     const order = result?.order
-    if (!order || result?.duplicate) return
-    if (order.status !== 'aprobado' || !order.buyer_email) return
+    if (!order || (!resend && result?.duplicate)) return null
+    if (order.status !== 'aprobado' || !order.buyer_email) return null
 
-    const event = await athleteRepo()
-      .findEventSummary(order.event_id)
-      .catch(() => null)
+    const preset = result?.event ?? order.event ?? null
+    // El mail sale con el evento que ya trajo la orden. La lectura extra sólo
+    // aporta la anticipación del QR. Si Supabase no está (tests) el cliente
+    // tira al construirse, antes del `.catch` de la promesa, y el reenvío
+    // devolvía 503 aunque la compra ya estuviera demostrada.
+    let summary = null
+    if (order.event_id) {
+      try {
+        summary = await athleteRepo().findEventSummary(order.event_id)
+      } catch {
+        summary = null
+      }
+    }
+    const event = {
+      ...(summary ?? {}),
+      ...(preset ?? {}),
+      ticket_reveal_lead_minutes:
+        preset?.ticket_reveal_lead_minutes ??
+        preset?.ticketRevealLeadMinutes ??
+        summary?.ticket_reveal_lead_minutes ??
+        null,
+    }
 
-    // Una compra de entrenador emite dos credenciales y es UNA entrada: se
-    // cuentan las primarias, igual que el cupo.
-    const tickets = Array.isArray(result.tickets) ? result.tickets : []
-    const quantity =
-      tickets.filter((ticket) => ticket.is_primary_credential !== false).length || tickets.length
-
-    // Devuelve el resultado del despacho: quien cuenta envíos (invitados)
-    // tiene que distinguir 'sent' de 'failed'/'skipped' — sendBestEffort nunca
-    // rechaza, así que un `fulfilled` no significa que el mail salió.
-    return sendBestEffort('ticket_confirmation', {
-      to: order.buyer_email,
-      toName: order.buyer_name,
-      entityType: 'ticket_order',
-      entityId: order.id,
-      idempotencyKey: `email:ticket-confirmation:${order.id}:${order.updated_at}`,
-      params: {
-        name: order.buyer_name,
-        eventTitle: event?.title ?? 'PLU ARG',
-        eventDate: event?.starts_at ?? null,
-        venue: event?.venue ?? null,
-        quantity: String(quantity),
-        reference: order.reference,
-        ticketUrl: `${appUrl}${SHORT_TICKETS_PATH}?ref=${encodeURIComponent(order.reference)}`,
-      },
+    const delivery = await buildTicketConfirmationDelivery({
+      order,
+      tickets: Array.isArray(result.tickets) ? result.tickets : [],
+      event,
+      appUrl,
+      resend,
+      now,
+      openKey: signTicketOpenKey(order.reference),
     })
+    if (!delivery) return null
+    const sent = await sendBestEffort('ticket_confirmation', delivery)
+    if (delivery.revealComplete && ticketRevealMailSettled(sent)) {
+      await markPassRevealed(order.id)
+    }
+    return sent
+  }
+
+  function confirmationMailStatus(result) {
+    if (!result) return 'skipped'
+    // Un envío que tiró error también llega con `created: false` (el catch de
+    // sendBestEffort). Eso no es "ya lo mandamos hoy".
+    if (result.status === 'failed') return 'failed'
+    if (result.created === false) return 'already'
+    if (result.status === 'sent' || result.status === 'skipped') return result.status
+    if (result.status === 'suppressed') return 'skipped'
+    return 'failed'
   }
 
   function parseOrderId(req) {
@@ -646,13 +794,37 @@ export function createTicketRoutes({
   // con eventId/eventSlug asignado queda limitado a ese evento; los roles
   // globales con admin.checkin.execute pueden operar cualquier evento.
   function assertEventScope(req, targetEventId) {
+    // Cuenta por evento (organizador): manda la lista de eventos asignados, no el
+    // `eventId` único de las cuentas de puerta.
+    if (req.eventScope) return assertEventAccess(req, { eventId: targetEventId })
     if (hasEventScopeAccess(req.auth.user, { eventId: targetEventId })) return
     throw new HttpError(403, 'Esta cuenta no tiene acceso a este evento.')
   }
 
   function assertEventSlugScope(req, targetEventSlug) {
+    if (req.eventScope) return assertEventAccess(req, { slug: targetEventSlug })
     if (hasEventScopeAccess(req.auth.user, { eventSlug: targetEventSlug })) return
     throw new HttpError(403, 'Esta cuenta no tiene acceso a este evento.')
+  }
+
+  function ticketAccountFromRequest(req) {
+    return resolveTicketAccount({
+      req,
+      prisma,
+      supabase: getSupabaseAdmin?.() ?? null,
+    })
+  }
+
+  async function rememberBuyerAccount(orderId, account) {
+    if (!orderId || !account?.id) return
+    const repository = repo()
+    if (typeof repository.attachBuyerAccount !== 'function') return
+    try {
+      await repository.attachBuyerAccount(orderId, account)
+    } catch (error) {
+      if (isMissingSchemaColumn(error)) return
+      logger.warn('ticket.buyer_account_attach_failed', { orderId, err: error })
+    }
   }
 
   router.post(
@@ -661,55 +833,78 @@ export function createTicketRoutes({
     validateBody(createOrderSchema),
     async (req, res, next) => {
       try {
-        const registrationOpensAt = await resolveScopedRegistrationOpensAt(
-          env,
-          getSupabaseAdmin?.(),
-          req.validatedBody.eventSlug,
-        )
+        const eventSlug = req.validatedBody.eventSlug
+        // Agenda, interruptores y perfil del evento no se necesitan entre sí.
+        const [registrationOpensAt, toggles, eventPricing] = await Promise.all([
+          resolveScopedRegistrationOpensAt(env, getSupabaseAdmin?.(), eventSlug),
+          platformSettingsRepo().get(),
+          loadEventPaymentProfile(eventSlug),
+        ])
         await assertPaidCheckoutAvailable(env, new Date(), {
           registrationOpensAt,
           skipScheduleLookup: true,
           checkoutKind: 'ticket',
         })
-        const toggles = await platformSettingsRepo().get()
         assertCheckoutEnabled(toggles)
         assertTicketCheckoutEnabled(toggles, env)
         // `manual` cubre los tres canales que se acreditan a mano:
-        // transferencia, efectivo en Pitbull y Wise. Cuál de ellos lo decide el
+        // transferencia, efectivo en el lugar y Wise. Cuál de ellos lo decide el
         // comprador y lo autoriza la matriz plataforma + override del evento.
         const ticketChannel =
           req.validatedBody.provider === 'manual'
             ? (req.validatedBody.manualPaymentChannel ?? 'bank_transfer')
             : 'mercado_pago'
-        const eventPricing = await loadEventPaymentProfile(req.validatedBody.eventSlug)
         if (getSupabaseAdmin?.() && !eventPricing) {
           throw new HttpError(404, 'Evento no encontrado.')
+        }
+        // Mismo corte que `create_ticket_order`: sin el interruptor del evento
+        // el público no compra. El mostrador (`POST /orders/manual`) no pasa
+        // por acá.
+        if (eventPublicTicketSalesEnabled(eventPricing) === false) {
+          throw new HttpError(409, 'La venta de entradas esta deshabilitada para este evento.', {
+            code: 'PLU03',
+          })
         }
         assertEventPaymentChannelEnabled(toggles, 'ticket', ticketChannel, {
           eventOverrides: eventPricing?.payment_channel_overrides ?? null,
         })
-        // Y contra los medios propios de cada tipo del carrito. El canal se
-        // elige una vez para toda la compra, así que alcanza con que una
-        // entrada no lo acepte para que la orden entera no se pueda cobrar
-        // así. Sin esto la pantalla ofrecía transferencia para un palco que
-        // sólo acepta Mercado Pago y el rechazo llegaba al confirmar el pago.
-        await assertTicketTypesAcceptChannel(
-          req.validatedBody.attendees,
-          ticketChannel,
-          eventPricing?.payment_channel_overrides ?? null,
-        )
+        // Módulo «Extras de entradas» apagado: no se venden extras aparte. Los
+        // que un tipo trae incluidos no viajan en `addonIds` (el checkout los
+        // saca), así que cualquier id acá es un extra comprado.
+        if (
+          eventPricing &&
+          !isStoredEventModuleOn(eventPricing, 'ticketAddons') &&
+          req.validatedBody.attendees.some((attendee) => attendee.addonIds?.length > 0)
+        ) {
+          throw new HttpError(409, 'Este evento no vende extras con las entradas.', {
+            code: EVENT_MODULE_DISABLED,
+          })
+        }
         // Y contra el calendario: una transferencia vendida sobre la fecha no
         // llega a ser un QR antes de que abra la puerta.
         assertManualTicketDeadline(ticketChannel, eventPricing?.starts_at ?? null)
-        const ticketWiseQuote =
+        // El canal del tipo y la cotización Wise leen cosas distintas. Si uno
+        // falla, el otro no puede quedar como rechazo suelto.
+        const channelCheck = assertTicketTypesAcceptChannel(
+          req.validatedBody.attendees,
+          ticketChannel,
+          eventPricing?.payment_channel_overrides ?? null,
+        ).then(
+          () => ({ ok: true }),
+          (error) => ({ error }),
+        )
+        const wiseQuote = (
           ticketChannel === 'wise_transfer'
-            ? await resolveTicketOrderWiseQuote(
-                getSupabaseAdmin?.(),
-                req.validatedBody,
-                env,
-                eventPricing,
-              )
-            : null
+            ? resolveTicketOrderWiseQuote(getSupabaseAdmin?.(), req.validatedBody, env, eventPricing)
+            : Promise.resolve(null)
+        ).then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        )
+        const [channelResult, wiseResult] = await Promise.all([channelCheck, wiseQuote])
+        if (channelResult.error) throw channelResult.error
+        if (wiseResult.error) throw wiseResult.error
+        const ticketWiseQuote = wiseResult.value
         // `wisePriceFor` sigue siendo el que valida y el que aplica el override
         // de entorno; lo que cambió es de dónde sale el número que recibe. Con
         // precios cargados en el panel entra ya resuelto (`configuredUsd`) y la
@@ -726,19 +921,41 @@ export function createTicketRoutes({
                 env,
               )
             : null
-        const created = await repo().createOrder({
+        const orderInput = {
           ...req.validatedBody,
           // Precio calculado por la API, nunca por el cliente: el monto
           // por asistente (`wisePriceFor`) se multiplica acá y viaja como
           // total ya cerrado, igual que el resto de las órdenes manuales.
           wiseAmount: ticketWisePrice ? ticketWisePrice.amount : null,
           wiseCurrency: ticketWisePrice?.currency ?? null,
-        })
-        const mercadoPagoPublicKey = await resolveMercadoPagoPublicKeyForProfileId(
+        }
+        // La clave pública no depende de que la orden se haya insertado.
+        // Si la orden falla, igual se espera la clave para no dejar un rechazo suelto.
+        const publicKey = resolveMercadoPagoPublicKeyForProfileId(
           getSupabaseAdmin?.(),
           eventPricing?.mercado_pago_profile_id,
           env,
+        ).then(
+          (value) => ({ value }),
+          (error) => ({ error }),
         )
+        // La sesión se lee en paralelo. Si no hay cookie, la orden queda
+        // invitada y se recupera como hasta ahora.
+        const accountPromise = ticketAccountFromRequest(req).catch((error) => {
+          logger.warn('ticket.buyer_account_unresolved', { err: error })
+          return null
+        })
+        let created
+        try {
+          created = await repo().createOrder(orderInput)
+        } catch (error) {
+          await Promise.all([publicKey, accountPromise])
+          throw error
+        }
+        const [keyResult, account] = await Promise.all([publicKey, accountPromise])
+        if (keyResult.error) throw keyResult.error
+        const mercadoPagoPublicKey = keyResult.value
+        await rememberBuyerAccount(created?.order?.id ?? null, account)
         res.status(201).json({
           ...created,
           mercadoPagoPublicKey,
@@ -795,83 +1012,171 @@ export function createTicketRoutes({
       }
     },
   )
-  /**
-   * "Mis entradas" del perfil: las entradas acreditadas que le pertenecen a la
-   * cuenta logueada, por DNI del asistente o por mail de compra verificado
-   * (ver `athlete_list_my_tickets`). Sólo `pagada`: un QR pendiente o
-   * cancelado no abre nada y mostrarlo confunde en la puerta.
-   */
-  router.get('/mine', publicReadLimiter, async (req, res, next) => {
-    try {
-      const { athleteId } = await requireAthleteSession({ client: getSupabaseAdmin?.(), req })
-      res.set('Cache-Control', 'private, no-store')
-      res.json({ tickets: await repo().listForAthlete(athleteId) })
-    } catch (error) {
-      next(error)
-    }
-  })
   router.get('/verify/:qrToken', publicReadLimiter, async (req, res, next) => {
     try {
-      assertQrTokenShape(req.params.qrToken)
       res.json({ ticket: await repo().verify(req.params.qrToken) })
     } catch (error) {
       next(error)
     }
   })
   /**
-   * Recuperar una compra desde el link del mail de confirmación, sin sesión.
-   * `reference` sale de la URL (`?ref=`) y el mail nunca pide el mail del
-   * comprador -- lo tipea la persona acá, como segundo factor.
+   * Misma forma para el link del mail y para la pestaña que acaba de pagar.
+   * Sin acreditar, no viaja el QR: una entrada pendiente no abre la puerta.
+   * Snake_case a propósito: `toCamelTicket` espera este shape.
    */
-  router.get('/orders/lookup', ticketOrderLookupLimiter, async (req, res, next) => {
+  function serializeBuyerOrder(found, now = new Date()) {
+    const paid = found.order.status === 'aprobado'
+    const leadMinutes = resolveTicketRevealLeadMinutes(found.order.event)
+    return {
+      order: {
+        reference: found.order.reference,
+        status: found.order.status,
+        eventTitle: found.order.event?.title ?? null,
+        eventSlug: found.order.event?.slug ?? null,
+        eventStartsAt: found.order.event?.starts_at ?? null,
+        eventVenue: found.order.event?.venue ?? null,
+        ticketRevealLeadMinutes: leadMinutes,
+      },
+      tickets: paid
+        ? (found.tickets ?? []).map((ticket) => presentTicket(ticket, true, leadMinutes, now))
+        : [],
+    }
+  }
+
+  /**
+   * Entradas de la cuenta. La cookie decide quién mira: el comprador ve la
+   * orden completa y el asistente sólo la fila de su documento. Sin sesión
+   * no hay listado — el invitado sigue por `/orders/lookup`.
+   */
+  router.get('/mine', ticketMineLimiter, async (req, res, next) => {
     try {
-      const referenceResult = z.string().trim().min(1).max(60).safeParse(req.query.reference)
-      const emailResult = z.string().trim().email().safeParse(req.query.email)
-      if (!referenceResult.success || !emailResult.success) {
-        throw new HttpError(400, 'Referencia o mail invalidos.')
+      const account = await ticketAccountFromRequest(req)
+      if (!account?.id) throw new HttpError(401, 'No autenticado.')
+      const repository = repo()
+      if (typeof repository.listTicketsForAccount !== 'function') {
+        throw new HttpError(503, 'No se pudieron leer las entradas de la cuenta.')
       }
-      const reference = referenceResult.data
-      const email = emailResult.data
-      const found = await repo().findOrderByReferenceAndEmail(reference, email)
-      if (!found) throw new HttpError(404, 'No encontramos una compra con esos datos.')
-      const paid = found.order.status === 'aprobado'
-      res.json({
-        order: {
-          reference: found.order.reference,
-          status: found.order.status,
-          eventTitle: found.order.event?.title ?? null,
-          eventSlug: found.order.event?.slug ?? null,
-        },
-        // Sin acreditar todavía no hay nada que mostrar en la puerta: el QR
-        // de una entrada `pendiente_pago` no habilita nada igual.
-        //
-        // Snake_case a propósito, igual que cualquier otra fila de `tickets`
-        // que devuelve esta API (ver `verify`/`createOrder`): `toCamelTicket`
-        // en ticketApi.js espera este shape para id/ticketCode/qrToken/
-        // orderId/attendeeName -- no tienen fallback camelCase como sí tienen
-        // credentialLabel o ticketTypeName.
-        tickets: paid
-          ? found.tickets.map((ticket) => ({
-              id: ticket.id,
-              order_id: ticket.order_id,
-              bundle_id: ticket.bundle_id,
-              ticket_code: ticket.ticket_code,
-              door_code: ticket.door_code ?? null,
-              qr_token: ticket.qr_token,
-              attendee_name: ticket.attendee_name,
-              status: ticket.status,
-              credential_label: ticket.credential_label,
-              credential_scopes: ticket.credential_scopes,
-              is_primary_credential: ticket.is_primary_credential !== false,
-              addons: Array.isArray(ticket.addons) ? ticket.addons : [],
-              ticket_type_name: ticket.ticket_types?.name ?? null,
-            }))
-          : [],
-      })
+      const found = await repository.listTicketsForAccount(account)
+      res.json(serializeAccountTickets(found))
     } catch (error) {
       next(error)
     }
   })
+
+  /**
+   * Recuperar una compra sin sesión. El mail trae `?ref=&k=` y abre directo.
+   * Sin esa clave, la persona tipea el mail como segundo factor.
+   */
+  router.get('/orders/lookup', ticketOrderLookupLimiter, async (req, res, next) => {
+    try {
+      const referenceResult = z.string().trim().min(1).max(60).safeParse(req.query.reference)
+      if (!referenceResult.success) {
+        throw new HttpError(400, 'Referencia o mail invalidos.')
+      }
+      const reference = referenceResult.data
+      const openKey = typeof req.query.k === 'string' ? req.query.k.trim() : ''
+      let found = null
+      if (openKey) {
+        if (!ticketOpenKeyMatches(reference, openKey)) {
+          throw new HttpError(404, 'No encontramos una compra con esos datos.')
+        }
+        found = await repo().findOrderByReference(reference)
+      } else {
+        const emailResult = z.string().trim().email().safeParse(req.query.email)
+        if (!emailResult.success) {
+          throw new HttpError(400, 'Referencia o mail invalidos.')
+        }
+        found = await repo().findOrderByReferenceAndEmail(reference, emailResult.data)
+      }
+      if (!found) throw new HttpError(404, 'No encontramos una compra con esos datos.')
+      res.json(serializeBuyerOrder(found))
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * La compra en curso ya demostró el token. La pestaña lo consulta mientras
+   * espera la acreditación y, cuando cierra, pide el QR real. No comparte el
+   * límite de la búsqueda por mail: ese balde es corto a propósito.
+   */
+  router.get('/orders/:orderId/pass', publicReadLimiter, async (req, res, next) => {
+    try {
+      const orderIdResult = z.string().uuid().safeParse(req.params.orderId)
+      const token = String(req.get('x-order-access-token') ?? '').trim()
+      if (!orderIdResult.success) throw new HttpError(400, 'Orden invalida.')
+      if (token.length < 32) throw new HttpError(401, 'Falta el token de acceso de la orden.')
+      const found = await repo().findOrderForBuyer(orderIdResult.data, token)
+      if (!found?.order) throw new HttpError(404, 'Orden no encontrada.')
+      res.json(serializeBuyerOrder(found))
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  const resendByBuyerSchema = z.object({
+    reference: z.string().trim().min(1).max(60),
+    email: z.string().trim().email().optional(),
+    k: z.string().trim().min(1).max(200).optional(),
+  })
+
+  async function resendFoundOrder(found, missingMessage) {
+    if (!found?.order) throw new HttpError(404, missingMessage)
+    if (found.order.status !== 'aprobado') {
+      throw new HttpError(409, 'La entrada todavía no está acreditada.')
+    }
+    const result = await sendTicketConfirmation(
+      {
+        order: found.order,
+        tickets: found.tickets,
+        event: found.event ?? found.order.event ?? null,
+        duplicate: false,
+      },
+      { resend: true },
+    )
+    return { status: confirmationMailStatus(result) }
+  }
+
+  // El comprador ya demostró referencia + mail. No confirma direcciones a ciegas:
+  // sin esa pareja la respuesta es la misma que la búsqueda.
+  router.post(
+    '/orders/resend',
+    ticketOrderLookupLimiter,
+    validateBody(resendByBuyerSchema),
+    async (req, res, next) => {
+      try {
+        const { reference, email, k } = req.validatedBody
+        const found =
+          k && ticketOpenKeyMatches(reference, k)
+            ? await repo().findOrderForConfirmation({ reference })
+            : email
+              ? await repo().findOrderForConfirmation({ reference, email })
+              : null
+        res.json(
+          await resendFoundOrder(found, 'No encontramos una compra con esos datos.'),
+        )
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.post(
+    '/orders/:orderId/resend',
+    ...scopedFinanceWriteGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const orderId = parseOrderId(req)
+        await assertTicketOrderInScope(req, getSupabaseAdmin?.(), orderId)
+        const found = await repo().findOrderForConfirmation({ orderId })
+        res.json(await resendFoundOrder(found, 'Orden no encontrada.'))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   /**
    * `checkout` viaja junto a la disponibilidad porque la pantalla de entradas
    * necesita las dos cosas para armarse: cuántos lugares quedan y qué medios de
@@ -886,13 +1191,19 @@ export function createTicketRoutes({
         platformSettingsRepo().get(),
         loadEventPaymentProfile(eventSlug),
       ])
-      const platformAvailability = resolvePublicCheckoutAvailability(toggles, env)
-      const scoped = applyManualTicketDeadline(
-        applyEventPaymentChannelOverrides(
-          platformAvailability,
-          eventPricing?.payment_channel_overrides,
+      const platformAvailability = resolvePublicCheckoutAvailability(
+        applyEventChannelOpens(toggles, eventPricing?.payment_channel_overrides),
+        env,
+      )
+      const scoped = applyEventTicketSalesSwitch(
+        applyManualTicketDeadline(
+          applyEventPaymentChannelOverrides(
+            platformAvailability,
+            eventPricing?.payment_channel_overrides,
+          ),
+          eventPricing?.starts_at ?? null,
         ),
-        eventPricing?.starts_at ?? null,
+        eventPricing,
       )
       // Los dos perfiles de cobro son independientes entre sí: el alias del
       // banco no condiciona la clave pública de Mercado Pago. Encadenarlos
@@ -919,9 +1230,11 @@ export function createTicketRoutes({
         availability,
         checkout: {
           ticketEnabled: scoped.ticketEnabled,
+          eventTicketsEnabled: scoped.eventTicketsEnabled,
           ticketManualEnabled: scoped.ticketManualEnabled,
           channels: scoped.paymentChannels.ticket,
           bankTransfer: resolveBankTransferDetails(eventPricing, env, bankProfile),
+          cashPayment: resolveCashPaymentDetails(eventPricing),
           bankTransferProfileId: eventPricing?.bank_transfer_profile_id ?? null,
           mercadoPagoProfileId: eventPricing?.mercado_pago_profile_id ?? null,
           mercadoPagoPublicKey,
@@ -955,12 +1268,22 @@ export function createTicketRoutes({
     try {
       const parsed = ticketOrdersQuerySchema.safeParse(req.query)
       if (!parsed.success) throw new HttpError(400, 'Filtros de órdenes inválidos.')
-      const { withCounts, ...filters } = parsed.data
+      const { withCounts, eventSlug, ...filters } = parsed.data
+      let eventId = null
+      if (eventSlug) {
+        assertEventSlugScope(req, eventSlug)
+        eventId = await repo().resolveEventIdBySlug(eventSlug)
+        if (!eventId) throw new HttpError(404, 'Evento no encontrado.')
+      } else if (req.eventScope) {
+        // Cuenta por evento sin slug: no puede listar el historial global.
+        throw new HttpError(400, 'Falta eventSlug.')
+      }
       // Los contadores solo viajan si se piden: la tabla se relee en cada
       // cambio de chip y los cinco `count` no cambian por eso.
+      const listFilters = { ...filters, eventId }
       const [orders, counts] = await Promise.all([
-        repo().listOrders(filters),
-        withCounts ? repo().orderCounts() : Promise.resolve(null),
+        repo().listOrders(listFilters),
+        withCounts ? repo().orderCounts({ eventId }) : Promise.resolve(null),
       ])
       res.json(counts ? { orders, counts } : { orders })
     } catch (error) {
@@ -1014,7 +1337,9 @@ export function createTicketRoutes({
    * ventanas de venta online). El resto de las reglas de negocio se
    * mantienen: interruptor maestro de cobros, medios habilitados por evento
    * y por tipo de entrada, cupo y precio de catálogo -- un operador no
-   * evade eso, lo hace desde la configuración del evento.
+   * evade eso, lo hace desde la configuración del evento. El interruptor
+   * público `ticketsEnabled` sí se saltea: una venta ya cobrada en la puerta
+   * se puede cargar aunque la página no esté vendiendo.
    *
    * Efectivo se auto-aprueba en el mismo request (el operador ya cobró en
    * mano); transferencia queda `pendiente` y sigue el circuito de
@@ -1068,12 +1393,22 @@ export function createTicketRoutes({
   )
   router.post(
     '/orders/:orderId/approve',
-    ...financeWriteGuard,
+    ...ticketDoorFinanceGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
+        const approveOrderId = parseOrderId(req)
+        await assertTicketOrderInScope(req, getSupabaseAdmin?.(), approveOrderId)
         assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
-        const result = await repo().approve(parseOrderId(req), actor(req))
+        const parsedOverride = approveOrderSchema.safeParse(
+          req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {},
+        )
+        if (!parsedOverride.success) {
+          throw new HttpError(400, 'El motivo de override tiene que tener al menos 8 caracteres.')
+        }
+        const result = await repo().approve(approveOrderId, actor(req), {
+          overrideReason: parsedOverride.data.overrideReason ?? null,
+        })
         // El comprador es anónimo: no tiene cuenta, y la orden vive en el
         // `sessionStorage` de la pestaña en la que compró. Si la cerró —y entre
         // la transferencia y la acreditación pueden pasar 48 horas, así que la
@@ -1101,12 +1436,13 @@ export function createTicketRoutes({
    */
   router.post(
     '/orders/:orderId/reject',
-    ...financeWriteGuard,
+    ...ticketDoorFinanceGuard,
     staffLimiter,
     validateBody(rejectOrderSchema),
     async (req, res, next) => {
       try {
         const orderId = parseOrderId(req)
+        await assertTicketOrderInScope(req, getSupabaseAdmin?.(), orderId)
         assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
         const result = await repo().reject(orderId, req.validatedBody.reason, actor(req))
         const order = result?.order
@@ -1141,16 +1477,19 @@ export function createTicketRoutes({
    * Cancelar una orden manual: la aprobada pierde sus QR (dejan de abrir la
    * puerta) y la abierta libera el cupo que retenía. Si ya estaba acreditada,
    * el comprador recibe el motivo por mail. Mercado Pago no pasa por acá: se
-   * cancela reembolsando desde MP, y el webhook revoca los QR.
+   * cancela reembolsando desde MP, y el webhook revoca los QR. Es de Finanzas
+   * (como reenviar): la puerta puede habilitar una entrada, no anular una venta
+   * paga. Respeta el alcance por evento como reabrir/acreditar.
    */
   router.post(
     '/orders/:orderId/cancel',
-    ...financeWriteGuard,
+    ...scopedFinanceWriteGuard,
     staffLimiter,
     validateBody(cancelOrderSchema),
     async (req, res, next) => {
       try {
         const orderId = parseOrderId(req)
+        await assertTicketOrderInScope(req, getSupabaseAdmin?.(), orderId)
         assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
         const result = await repo().cancel(orderId, req.validatedBody.reason || null, actor(req))
         await notifyTicketCancelled(result, req.validatedBody.reason).catch((error) =>
@@ -1163,24 +1502,82 @@ export function createTicketRoutes({
     },
   )
   /**
-   * Volver a aceptar una orden rechazada o cancelada (comprobante rechazado
-   * por error, transferencia que llegó después del vencimiento). La RPC
-   * revalida el cupo: si se vendió mientras la orden estaba cerrada, falla
-   * con 409 y nada cambia.
+   * Reapertura de una orden que el vencimiento canceló con el comprobante ya
+   * cargado. No acredita y no manda mail: la deja `pendiente` para que
+   * Finanzas la apruebe o la rechace por el camino de siempre.
+   */
+  router.post(
+    '/orders/:orderId/reopen',
+    ...ticketDoorFinanceGuard,
+    staffLimiter,
+    validateBody(reopenOrderSchema),
+    async (req, res, next) => {
+      try {
+        const orderId = parseOrderId(req)
+        await assertTicketOrderInScope(req, getSupabaseAdmin?.(), orderId)
+        assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
+        const result = await repo().reopen(orderId, req.validatedBody.reason, actor(req))
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Volver a aceptar lo que cerró una persona: una orden rechazada por error o
+   * una que el staff canceló. Lo que venció el cron con comprobante va por
+   * reabrir/acreditar (la RPC lo deriva). Revalida el cupo: si se vendió
+   * mientras la orden estaba cerrada, falla con 409 y nada cambia. Reenvía la
+   * entrada por mail y dice si salió, igual que acreditar. De Finanzas: puede
+   * reactivar una venta que ya se había validado, sin comprobante nuevo.
    */
   router.post(
     '/orders/:orderId/reinstate',
-    ...financeWriteGuard,
+    ...scopedFinanceWriteGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
         const orderId = parseOrderId(req)
+        await assertTicketOrderInScope(req, getSupabaseAdmin?.(), orderId)
         assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
         const result = await repo().reinstate(orderId, actor(req))
-        await sendTicketConfirmation(result).catch((error) =>
-          logger.warn('email.ticket_confirmation_failed', { orderId, err: error }),
-        )
-        res.json(result)
+        const sent = await sendTicketConfirmation(result).catch((error) => {
+          logger.warn('email.ticket_confirmation_failed', { orderId, err: error })
+          return { status: 'failed' }
+        })
+        const mail = sent?.status === 'suppressed' ? 'suppressed' : confirmationMailStatus(sent)
+        res.json({ ...result, mail })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Un paso: reabre y acredita la orden que el vencimiento canceló con el
+   * comprobante cargado. El mail es el mismo de una aprobación común. Si el
+   * comprador está desuscripto, la orden igual queda paga y la respuesta lo
+   * dice para que Finanzas avise por otro canal.
+   */
+  router.post(
+    '/orders/:orderId/settle',
+    ...ticketDoorFinanceGuard,
+    staffLimiter,
+    validateBody(reopenOrderSchema),
+    async (req, res, next) => {
+      try {
+        const orderId = parseOrderId(req)
+        await assertTicketOrderInScope(req, getSupabaseAdmin?.(), orderId)
+        assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
+        const result = await repo().settleCancelled(orderId, req.validatedBody.reason, actor(req))
+        const sent = await sendTicketConfirmation(result).catch((error) => {
+          logger.warn('email.ticket_confirmation_failed', {
+            orderId: result?.order?.id,
+            err: error,
+          })
+          return { status: 'failed' }
+        })
+        const mail = sent?.status === 'suppressed' ? 'suppressed' : confirmationMailStatus(sent)
+        res.json({ ...result, mail })
       } catch (error) {
         next(error)
       }
@@ -1188,11 +1585,13 @@ export function createTicketRoutes({
   )
   router.get(
     '/orders/:orderId/proof-url',
-    ...financeReadGuard,
+    ...ticketDoorProofGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
-        res.json({ url: await repo().proofUrl(parseOrderId(req)) })
+        const proofOrderId = parseOrderId(req)
+        await assertTicketOrderInScope(req, getSupabaseAdmin?.(), proofOrderId)
+        res.json({ url: await repo().proofUrl(proofOrderId) })
       } catch (error) {
         next(error)
       }
@@ -1201,7 +1600,7 @@ export function createTicketRoutes({
 
   router.get(
     '/orders/:orderId/proof',
-    ...financeReadGuard,
+    ...ticketDoorProofGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
@@ -1210,6 +1609,7 @@ export function createTicketRoutes({
         if (!supabase) {
           throw new HttpError(503, 'Supabase no está configurado en el servidor.')
         }
+        await assertTicketOrderInScope(req, supabase, orderId)
 
         const path = await repo().proofPath(orderId)
         void touchProofAccessed(supabase, {
@@ -1329,12 +1729,12 @@ export function createTicketRoutes({
     },
   )
 
-  router.get('/', ...guard, staffLimiter, async (req, res, next) => {
+  router.get('/', ...scopedTicketsViewGuard, staffLimiter, async (req, res, next) => {
     try {
       const eventSlug = String(req.query.eventSlug ?? '')
       if (!eventSlug) throw new HttpError(400, 'Falta eventSlug.')
       assertEventSlugScope(req, eventSlug)
-      res.json({ tickets: await repo().listForEvent(eventSlug) })
+      res.json({ tickets: attachStaffBuyerOpenKeys(await repo().listForEvent(eventSlug)) })
     } catch (error) {
       next(error)
     }
@@ -1342,11 +1742,18 @@ export function createTicketRoutes({
 
   router.put(
     '/:ticketId/access-override',
-    ...ticketAccessOverrideGuard,
+    ...lastingWindowGuard,
     staffLimiter,
     validateBody(ticketAccessOverrideSchema),
     async (req, res, next) => {
       try {
+        const canLast =
+          hasPermission(req.auth.user, 'admin.events.write') ||
+          (hasPermission(req.auth.user, 'admin.checkin.override') &&
+            hasPermission(req.auth.user, 'admin.event_team.write'))
+        if (!canLast) {
+          throw new HttpError(403, 'No tenés permisos para dejar una vigencia individual.')
+        }
         const ticketId = z.string().uuid().parse(req.params.ticketId)
         const ticket = await repo().resolveTicketById?.(ticketId)
         if (!ticket) throw new HttpError(404, 'Entrada no encontrada.')
@@ -1365,7 +1772,7 @@ export function createTicketRoutes({
    * DNI físico contra el registro. Detrás de admin.checkin.execute y del mismo
    * alcance de evento que el resto del portal.
    */
-  router.get('/credentials/:code', ...guard, staffLimiter, async (req, res, next) => {
+  router.get('/credentials/:code', ...doorGuard, staffLimiter, async (req, res, next) => {
     try {
       const eventSlug = req.query.eventSlug ? String(req.query.eventSlug) : null
       // La RPC no filtra por evento (solo usa eventSlug para adjuntar la
@@ -1378,10 +1785,25 @@ export function createTicketRoutes({
       next(error)
     }
   })
-  router.get('/allowlist/:eventSlug', ...guard, staffLimiter, async (req, res, next) => {
+  router.get('/allowlist/:eventSlug', ...doorGuard, staffLimiter, async (req, res, next) => {
     try {
-      assertEventSlugScope(req, req.params.eventSlug)
-      res.json(await repo().allowlist(req.params.eventSlug))
+      const eventSlug = req.params.eventSlug
+      assertEventSlugScope(req, eventSlug)
+      const ticketRepo = repo()
+      const revision =
+        typeof ticketRepo.allowlistRevision === 'function'
+          ? await ticketRepo.allowlistRevision(eventSlug)
+          : null
+      const cache = checkinAllowlistCache(eventSlug, revision, req.headers['if-none-match'])
+      if (cache.etag) {
+        res.set('ETag', cache.etag)
+        res.set('Cache-Control', PRIVATE_REVALIDATE_CACHE)
+        if (cache.notModified) {
+          res.status(304).end()
+          return
+        }
+      }
+      res.json(await ticketRepo.allowlist(eventSlug))
     } catch (error) {
       next(error)
     }
@@ -1447,26 +1869,25 @@ export function createTicketRoutes({
    */
   router.post(
     '/checkin/lookup',
-    ...guard,
-    doorLookupLimiter,
+    ...doorGuard,
+    doorCodeLookupLimiter,
     validateBody(checkinLookupSchema),
     async (req, res, next) => {
       try {
-        const { eventSlug, ticketCode, dni, doorCode } = req.validatedBody
+        const { eventSlug, ticketCode, dni } = req.validatedBody
         assertEventSlugScope(req, eventSlug)
         const eventId = await repo().resolveEventIdBySlug(eventSlug)
         if (!eventId) throw new HttpError(404, 'Evento no encontrado.')
         const matches = await repo().lookupCheckinCredentials(eventId, {
           ticketCode: ticketCode ?? null,
           dni: dni ?? null,
-          doorCode: doorCode ?? null,
         })
         // Rastro de búsquedas sin coincidencia: es la señal de alguien probando
         // códigos al azar. Sin el valor buscado (un DNI no va a los logs).
         if (matches.length === 0) {
           logger.info('checkin.lookup_miss', {
             eventId,
-            kind: doorCode ? 'door_code' : ticketCode ? 'ticket_code' : 'dni',
+            kind: ticketCode ? 'ticket_code' : 'dni',
             actor: req.auth?.user?.id ?? null,
             gate: req.auth?.user?.securityZone?.name ?? null,
           })
@@ -1481,7 +1902,7 @@ export function createTicketRoutes({
 
   router.post(
     '/checkin/scan-events',
-    ...guard,
+    ...doorGuard,
     scanTelemetryLimiter,
     validateBody(reportScanTelemetrySchema),
     async (req, res, next) => {
@@ -1548,7 +1969,7 @@ export function createTicketRoutes({
    */
   router.post(
     '/checkin/trail',
-    ...guard,
+    ...doorGuard,
     staffLimiter,
     validateBody(scanTrailSchema),
     async (req, res, next) => {
@@ -1571,7 +1992,7 @@ export function createTicketRoutes({
    */
   router.post(
     '/checkin/incidents',
-    ...guard,
+    ...doorGuard,
     staffLimiter,
     validateBody(reportIncidentSchema),
     async (req, res, next) => {
@@ -1647,17 +2068,131 @@ export function createTicketRoutes({
     },
   )
 
-  router.post('/checkin/:qrToken', ...guard, staffLimiter, async (req, res, next) => {
-    let ticket
-    const gate = resolveGateLabel(req)
+  const doorCodeBodySchema = z.object({
+    code: z.string().trim().min(1).max(80),
+  })
+
+  async function answerDoorCode(req, res, rawCode) {
+    const gateCode = normalizeGateCode(rawCode)
+    if (!gateCode) throw new HttpError(400, 'Código de puerta inválido.')
+    const accountKey = req.auth?.user?.id ? String(req.auth.user.id) : ''
+    const attempt = doorCodeAttempts.check(accountKey)
+    if (!attempt.ok) {
+      throw new HttpError(429, 'Demasiados códigos incorrectos. Esperá un momento y reintentá.')
+    }
+    const qrToken = await repo().findQrTokenByGateCode(gateCode)
+    doorCodeAttempts.record(accountKey, Boolean(qrToken))
+    if (!qrToken) {
+      logger.info('checkin.door_code_miss', { userId: accountKey || null })
+      throw new HttpError(404, 'Entrada no encontrada.')
+    }
+    res.json({ qrToken })
+  }
+
+  // El código va en el cuerpo: la URL queda en logs, historial y proxies.
+  router.post(
+    '/door-code',
+    ...guard,
+    doorCodeLookupLimiter,
+    validateBody(doorCodeBodySchema),
+    async (req, res, next) => {
+      try {
+        await answerDoorCode(req, res, req.validatedBody.code)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.get('/door-code/:code', ...guard, doorCodeLookupLimiter, async (req, res, next) => {
     try {
-      assertQrTokenShape(req.params.qrToken)
-      ticket = await repo().verify(req.params.qrToken)
+      await answerDoorCode(req, res, req.params.code)
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  const previewBodySchema = z.object({
+    code: z.string().trim().min(1).max(500),
+  })
+
+  /**
+   * Vista previa de puerta en un solo viaje: token opaco o código dictado.
+   * No acredita el ingreso. El código de puerta no se resuelve en el verify
+   * público, para que no se pueda enumerar desde afuera.
+   */
+  async function previewTicket(req, rawCode) {
+    const gateCode = normalizeGateCode(rawCode)
+    const accountKey = req.auth?.user?.id ? String(req.auth.user.id) : ''
+    if (gateCode) {
+      const attempt = doorCodeAttempts.check(accountKey)
+      if (!attempt.ok) {
+        throw new HttpError(429, 'Demasiados códigos incorrectos. Esperá un momento y reintentá.')
+      }
+    }
+    let qrToken
+    try {
+      qrToken = await resolveDoorQrToken(repo, rawCode)
+      if (gateCode) doorCodeAttempts.record(accountKey, true)
+    } catch (error) {
+      if (gateCode) doorCodeAttempts.record(accountKey, false)
+      throw error
+    }
+    const ticket = await repo().verify(qrToken)
+    assertEventScope(req, verifiedTicketEventId(ticket))
+    return ticket
+  }
+
+  router.post(
+    '/checkin/preview',
+    ...doorGuard,
+    staffLimiter,
+    validateBody(previewBodySchema),
+    async (req, res, next) => {
+      try {
+        res.json({ ticket: await previewTicket(req, req.validatedBody.code) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.post('/checkin/:qrToken', ...doorGuard, staffLimiter, async (req, res, next) => {
+    let ticket
+    let qrToken = req.params.qrToken
+    const gate = resolveGateLabel(req)
+    const zoneScopeResult = scannerZoneScope(req).then(
+      (scope) => ({ scope }),
+      (error) => ({ error }),
+    )
+    const parsedForce = forceCheckInSchema.safeParse(
+      req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {},
+    )
+    try {
+      if (!parsedForce.success) {
+        throw new HttpError(400, 'El motivo de la excepción tiene que tener al menos 8 caracteres.')
+      }
+      const force = parsedForce.data.force ?? null
+      const forceReason = parsedForce.data.reason ?? null
+      if (force && !hasPermission(req.auth.user, 'admin.checkin.override')) {
+        throw new HttpError(403, 'No tenés permisos para forzar este ingreso.')
+      }
+      qrToken = await resolveDoorQrToken(repo, req.params.qrToken)
+      ticket = await loadTicketBeforeCheckIn(repo(), qrToken)
       const eventId = verifiedTicketEventId(ticket)
       assertEventScope(req, eventId)
-      assertTicketValidity(ticket)
-      const zoneScope = await scannerZoneScope(req)
-      const result = await repo().checkIn(req.params.qrToken, gate, actor(req), zoneScope)
+      const ticketStatus = ticket?.ticket?.status
+      if (force && ticketStatus && ticketStatus !== 'pagada') {
+        throw new HttpError(409, 'Esta entrada no tiene el pago acreditado.', { code: 'PLU05' })
+      }
+      if (force !== 'validity') assertTicketValidity(ticket)
+      const zone = await zoneScopeResult
+      if (zone.error) throw zone.error
+      const zoneScope = zone.scope
+      const ticketRepository = repo()
+      const result = force
+        ? await ticketRepository.checkInForce(qrToken, gate, actor(req), zoneScope, force, forceReason)
+        : await ticketRepository.checkIn(qrToken, gate, actor(req), zoneScope)
       // Autoritativo: el servidor observó el ingreso. No bloquea la
       // respuesta -- un rastro de puerta perdido no puede volver a fallar
       // un check-in que ya se acreditó.
@@ -1667,11 +2202,14 @@ export function createTicketRoutes({
         kind: 'ticket',
         evidence: 'server',
         ticketId: ticket?.ticket?.id ?? null,
-        qrToken: req.params.qrToken,
+        qrToken,
         gate,
         zoneScope,
         actorLabel: actor(req),
-        metadata: ticketScanValidityMetadata(ticket),
+        metadata: {
+          ...ticketScanValidityMetadata(ticket),
+          ...(force ? { override: { force, reason: forceReason } } : {}),
+        },
       })
       res.json(result)
     } catch (error) {
@@ -1687,7 +2225,7 @@ export function createTicketRoutes({
           kind: 'ticket',
           evidence: 'server',
           ticketId: ticket?.ticket?.id ?? null,
-          qrToken: req.params.qrToken,
+          qrToken,
           gate,
           actorLabel: actor(req),
           errorCode: error?.details?.code ?? null,
@@ -1699,12 +2237,11 @@ export function createTicketRoutes({
   })
   router.post(
     '/checkin/:qrToken/addons/:addonId/redeem',
-    ...guard,
+    ...doorGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
-        assertQrTokenShape(req.params.qrToken)
-        const ticket = await repo().verify(req.params.qrToken)
+        const ticket = await loadTicketBeforeCheckIn(repo(), req.params.qrToken)
         assertEventScope(req, verifiedTicketEventId(ticket))
         assertTicketValidity(ticket)
         res.json(await repo().redeemAddon(req.params.qrToken, req.params.addonId, actor(req)))
@@ -1715,7 +2252,7 @@ export function createTicketRoutes({
   )
   router.post(
     '/registrations/:registrationId/checkin',
-    ...guard,
+    ...doorGuard,
     staffLimiter,
     async (req, res, next) => {
       try {

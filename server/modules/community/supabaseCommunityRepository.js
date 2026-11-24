@@ -12,14 +12,13 @@ function assertSupabaseResult(result, fallback = 'No se pudo consultar la comuni
 }
 
 /**
- * Abrevia "Martina Rivas" → "Martina R." para el feed público.
- * Se usa como fallback de privacidad si la RPC no sanitiza.
+ * Nombre público del roster: el nombre completo del perfil, con espacios
+ * colapsados. No abrevia el apellido. DNI, mail y código de socio no entran
+ * por este camino.
  */
-export function abbreviatePublicMemberName(fullName = '') {
-  const parts = String(fullName).trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return 'Atleta'
-  if (parts.length === 1) return parts[0]
-  return `${parts[0]} ${parts[parts.length - 1][0]?.toUpperCase() ?? ''}.`
+export function formatPublicMemberName(fullName = '') {
+  const cleaned = String(fullName).replace(/\s+/g, ' ').trim()
+  return cleaned || 'Atleta'
 }
 
 function normalizeMember(row) {
@@ -27,7 +26,7 @@ function normalizeMember(row) {
   const photoPath = row.photoPath ?? row.photo_path ?? null
   return {
     id: String(row.id),
-    name: abbreviatePublicMemberName(row.name ?? row.full_name ?? row.fullName ?? ''),
+    name: formatPublicMemberName(row.name ?? row.full_name ?? row.fullName ?? ''),
     gym: String(row.gym ?? '—').trim() || '—',
     province: String(row.province ?? '—').trim() || '—',
     affiliatedAt: row.affiliatedAt ?? row.affiliated_at ?? null,

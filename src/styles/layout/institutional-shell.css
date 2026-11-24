@@ -28,6 +28,19 @@
   outline: none;
 }
 
+/* El header fijo y la barra de afiliación no pueden comerse el ancla ni el
+   foco. El clearance lo publica StickyMobileCta; en el resto de las vistas
+   queda en 0. */
+html:has(.site-header--institutional) {
+  scroll-padding-bottom: calc(var(--sticky-cta-clearance, 0px) + 12px);
+  scroll-padding-top: calc(var(--header-height-scrolled, 52px) + 12px);
+}
+
+html:has(.site-header--institutional) :where(a, button, input, select, textarea, summary):focus-visible {
+  scroll-margin-bottom: calc(var(--sticky-cta-clearance, 0px) + 12px);
+  scroll-margin-top: calc(var(--header-height-scrolled, 52px) + 12px);
+}
+
 .visually-hidden {
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
@@ -79,11 +92,13 @@
   animation: institutional-header-enter 340ms var(--ease-out) backwards;
   /* Liquid glass: blur estático (barato). El settle es background/sombra inset,
      no borde duro ni blur animado por frame. */
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-  background: color-mix(in srgb, var(--institution-header) 56%, transparent);
-  /* 1px transparente: reserva layout sin outline visible. */
-  border: 1px solid transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: color-mix(in srgb, var(--institution-header) 94%, transparent);
+  /* Rim de 1px: canto de luz arriba, oclusión abajo. Superficie sólida. */
+  border: 1px solid color-mix(in srgb, var(--institution-border) 62%, transparent);
+  border-top-color: color-mix(in srgb, #fff 24%, transparent);
+  border-bottom-color: color-mix(in srgb, #000 18%, var(--institution-border));
   border-radius: 9999px;
   box-shadow:
     0 10px 28px -14px rgba(0, 0, 0, 0.32),
@@ -98,20 +113,24 @@
   transform: translateZ(0);
   transform-origin: center top;
   top: auto;
+  --header-rim-angle: 120deg;
   transition:
     background-color var(--duration-base) var(--ease-out),
     border-color var(--duration-base) var(--ease-out),
     box-shadow var(--duration-base) var(--ease-out),
-    transform var(--duration-base) var(--ease-out);
+    transform var(--duration-base) var(--ease-out),
+    --header-rim-angle var(--motion-base) var(--ease-cinematic);
   width: 100%;
   z-index: var(--z-header);
 }
 
 [data-theme='light'] .site-header.site-header--institutional {
-  backdrop-filter: blur(24px) saturate(170%);
-  -webkit-backdrop-filter: blur(24px) saturate(170%);
-  background: color-mix(in srgb, #fff 62%, transparent);
-  border-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: color-mix(in srgb, #fff 94%, transparent);
+  border-color: color-mix(in srgb, var(--institution-border) 55%, transparent);
+  border-top-color: color-mix(in srgb, #fff 88%, transparent);
+  border-bottom-color: var(--institution-border);
   box-shadow:
     0 8px 28px -14px rgba(15, 17, 23, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
@@ -119,10 +138,12 @@
 }
 
 .site-header.site-header--institutional.site-header--over-hero:not(.site-header--scrolled) {
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  background: color-mix(in srgb, var(--institution-header-blend) 68%, transparent);
-  border-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: color-mix(in srgb, var(--institution-header) 92%, transparent);
+  border-color: color-mix(in srgb, var(--institution-border) 42%, transparent);
+  border-top-color: color-mix(in srgb, #fff 16%, transparent);
+  border-bottom-color: color-mix(in srgb, #000 14%, var(--institution-border));
   box-shadow:
     0 10px 28px -16px rgba(0, 0, 0, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.12),
@@ -131,10 +152,12 @@
 
 [data-theme='light']
   .site-header.site-header--institutional.site-header--over-hero:not(.site-header--scrolled) {
-  backdrop-filter: blur(22px) saturate(155%);
-  -webkit-backdrop-filter: blur(22px) saturate(155%);
-  background: color-mix(in srgb, #fff 52%, transparent);
-  border-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: color-mix(in srgb, #fff 92%, transparent);
+  border-color: color-mix(in srgb, var(--institution-border) 42%, transparent);
+  border-top-color: color-mix(in srgb, #fff 78%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--institution-border) 80%, transparent);
   box-shadow:
     0 8px 24px -14px rgba(15, 17, 23, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.68),
@@ -160,10 +183,12 @@
 .site-header.site-header--institutional.site-header--lux.site-header--scrolled:not(
     .site-header--over-hero
   ) {
-  backdrop-filter: blur(22px) saturate(155%);
-  -webkit-backdrop-filter: blur(22px) saturate(155%);
-  background: color-mix(in srgb, var(--institution-header) 88%, transparent);
-  border-color: color-mix(in srgb, var(--institution-border) 28%, transparent);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: color-mix(in srgb, var(--institution-header) 96%, transparent);
+  border-color: color-mix(in srgb, var(--institution-border) 70%, transparent);
+  border-top-color: color-mix(in srgb, #fff 18%, transparent);
+  border-bottom-color: color-mix(in srgb, #000 20%, var(--institution-border));
   box-shadow:
     0 10px 28px -16px rgba(0, 0, 0, 0.42),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -175,10 +200,12 @@
   .site-header.site-header--institutional.site-header--lux.site-header--scrolled:not(
     .site-header--over-hero
   ) {
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-  background: color-mix(in srgb, #fff 92%, transparent);
-  border-color: rgba(15, 17, 23, 0.08);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: color-mix(in srgb, #fff 96%, transparent);
+  border-color: color-mix(in srgb, var(--institution-border) 80%, transparent);
+  border-top-color: color-mix(in srgb, #fff 92%, transparent);
+  border-bottom-color: color-mix(in srgb, #0f1117 12%, transparent);
   box-shadow:
     0 8px 24px -16px rgba(15, 17, 23, 0.16),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
@@ -196,6 +223,8 @@
     -webkit-backdrop-filter: none;
     background: var(--institution-header);
     border-color: color-mix(in srgb, var(--institution-border) 40%, transparent);
+    border-top-color: color-mix(in srgb, #fff 16%, var(--institution-border));
+    border-bottom-color: color-mix(in srgb, #000 24%, var(--institution-border));
     box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.28);
   }
 
@@ -209,6 +238,8 @@
     ) {
     background: var(--institution-header);
     border-color: rgba(15, 17, 23, 0.08);
+    border-top-color: color-mix(in srgb, #fff 80%, transparent);
+    border-bottom-color: color-mix(in srgb, #0f1117 12%, transparent);
     box-shadow: 0 8px 22px -14px rgba(15, 17, 23, 0.12);
   }
 }
@@ -274,7 +305,6 @@
   min-width: 0;
   padding: 0;
   text-align: left;
-  transition: gap var(--duration-base) var(--ease-out);
   width: max-content;
 }
 
@@ -332,8 +362,9 @@
   --brand-emblem-hover: 0.98;
 }
 
-/* Letterhead: morph GPU (opacity + scaleX). Colapso de ancho solo al scrolled.
-   Opacity/max-width al mismo token que height del chrome — una sola pieza. */
+/* Letterhead: el scroll es el único que disuelve opacity y scaleX.
+   El ancho se cierra una sola vez, al cruzar .scrolled, sin una segunda
+   transición de opacidad. */
 .plu-global-nav__wordmark {
   align-self: center;
   display: grid;
@@ -346,9 +377,6 @@
   transform: translate3d(calc(var(--header-scroll-progress, 0) * -6px), 0, 0)
     scaleX(calc(1 - (var(--header-scroll-progress, 0) * 0.42)));
   transform-origin: left center;
-  transition:
-    max-width var(--duration-base) var(--ease-out),
-    opacity var(--duration-base) var(--ease-out);
   width: max-content;
   white-space: nowrap;
 }
@@ -360,8 +388,6 @@
 
 .site-header--scrolled .plu-global-nav__wordmark {
   max-width: 0;
-  opacity: 0;
-  transform: translate3d(-8px, 0, 0) scaleX(0.55);
 }
 
 .plu-global-nav__letterhead {
@@ -392,7 +418,6 @@
   flex: none;
   height: 18px;
   opacity: calc(0.34 + (0.4 * var(--header-scroll-progress, 0)));
-  transition: opacity var(--duration-base) var(--ease-out);
   width: 1px;
 }
 
@@ -450,17 +475,11 @@
   text-transform: none;
   transition:
     color var(--motion-fast) var(--ease-out),
-    opacity var(--motion-fast) var(--ease-out),
-    padding var(--duration-base) var(--ease-out),
-    letter-spacing var(--duration-base) var(--ease-out),
-    font-size var(--duration-base) var(--ease-out);
+    opacity var(--motion-fast) var(--ease-out);
 }
 
 .site-header--scrolled .plu-global-nav__link {
-  font-size: 12.5px;
-  letter-spacing: -0.008em;
   min-height: 44px;
-  padding: 0 12px;
 }
 
 .plu-global-nav__link-content {
@@ -488,23 +507,50 @@
   }
 }
 
-/* Hover: hairline dorado editorial (layoutId compartido). Sin pill SaaS. */
+/* Hover: velo de vidrio detrás del label + hairline dorado. El layoutId
+   mueve la cápsula; el hairline es ::after para no pelear con ese transform. */
 .plu-global-nav__hover-pill {
-  position: absolute;
-  inset: auto 20% 6px 20%;
-  background: color-mix(in srgb, var(--institution-gold) 52%, transparent);
-  border-radius: 1px;
-  height: 1px;
+  background: color-mix(in srgb, #fff 7%, transparent);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 16%, transparent);
+  height: 28px;
+  left: 6px;
   pointer-events: none;
+  position: absolute;
+  right: 6px;
+  top: 10px;
   z-index: 0;
 }
 
+.plu-global-nav__hover-pill::after {
+  animation: institutional-nav-filament var(--motion-base) var(--ease-cinematic) both;
+  background: color-mix(in srgb, var(--institution-gold) 52%, transparent);
+  border-radius: 1px;
+  bottom: -5px;
+  content: '';
+  height: 1px;
+  left: 16%;
+  position: absolute;
+  right: 16%;
+  transform-origin: center;
+}
+
 .site-header--scrolled .plu-global-nav__hover-pill {
-  inset: auto 20% 5px 20%;
+  height: 26px;
+  top: 8px;
+}
+
+.site-header--scrolled .plu-global-nav__hover-pill::after {
+  bottom: -5px;
 }
 
 [data-theme='light'] .plu-global-nav__hover-pill {
-  background: color-mix(in srgb, var(--institution-gold) 62%, transparent);
+  background: color-mix(in srgb, var(--institution-gold) 9%, #fff);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 88%, transparent);
+}
+
+[data-theme='light'] .plu-global-nav__hover-pill::after {
+  background: var(--institution-gold);
 }
 
 .plu-global-nav__link.is-active .plu-global-nav__hover-pill {
@@ -512,7 +558,7 @@
 }
 
 .plu-global-nav__link-icon {
-  color: var(--institution-blue);
+  color: currentColor;
   flex: none;
   transition: transform var(--motion-fast) var(--ease-out);
 }
@@ -527,6 +573,14 @@
 .plu-global-nav__dropdown[data-open] > .plu-global-nav__trigger {
   background: transparent;
   color: var(--institution-text);
+}
+
+/* El link bajo el cursor toma la frase; el resto baja un punto, sin mover layout. */
+@media (hover: hover) and (pointer: fine) {
+  .plu-global-nav__desktop:hover
+    .plu-global-nav__link:not(:hover):not(.is-active):not(.is-open):not(:focus-visible) {
+    color: color-mix(in srgb, var(--institution-text-muted) 82%, transparent);
+  }
 }
 
 .plu-global-nav__link.is-active {
@@ -591,6 +645,22 @@
   position: relative;
 }
 
+/* Filo corto, el mismo lenguaje de la cápsula: oro en los dos temas. */
+.plu-nav-menu::before {
+  background: color-mix(in srgb, var(--institution-gold) 72%, transparent);
+  content: '';
+  height: 1px;
+  left: 22%;
+  pointer-events: none;
+  position: absolute;
+  right: 22%;
+  top: 0;
+}
+
+[data-theme='dark'] .plu-nav-menu::before {
+  background: color-mix(in srgb, var(--institution-gold) 78%, transparent);
+}
+
 [data-theme='light'] .plu-nav-menu {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -610,9 +680,43 @@
   min-width: 330px;
 }
 
+.plu-nav-menu--competition {
+  min-width: min(390px, calc(100vw - 48px));
+}
+
 .plu-nav-menu--resources {
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  background: color-mix(in srgb, var(--institution-header) 72%, transparent);
+  border-color: color-mix(in srgb, var(--institution-border) 62%, transparent);
+  border-top-color: color-mix(in srgb, #fff 22%, transparent);
+  border-bottom-color: color-mix(in srgb, #000 18%, var(--institution-border));
+  box-shadow:
+    0 18px 40px -18px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 color-mix(in srgb, #fff 16%, transparent);
   min-width: min(720px, calc(100vw - 48px));
   padding: 0;
+}
+
+[data-theme='light'] .plu-nav-menu.plu-nav-menu--resources {
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  background: color-mix(in srgb, #fff 78%, transparent);
+  border-color: color-mix(in srgb, var(--institution-border) 55%, transparent);
+  border-top-color: color-mix(in srgb, #fff 88%, transparent);
+  border-bottom-color: var(--institution-border);
+  box-shadow:
+    0 16px 36px -18px rgba(15, 17, 23, 0.18),
+    inset 0 1px 0 color-mix(in srgb, #fff 72%, transparent);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .plu-nav-menu--resources,
+  [data-theme='light'] .plu-nav-menu.plu-nav-menu--resources {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--institution-header);
+  }
 }
 
 .plu-nav-menu__label,
@@ -628,28 +732,48 @@
 
 .plu-nav-menu__item {
   align-items: center;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: 8px;
   color: var(--institution-text-secondary);
   display: grid;
   gap: 12px;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  min-height: 52px;
-  padding: 8px 12px;
+  min-height: 44px;
+  padding: 8px 12px 8px 16px;
+  position: relative;
   text-align: left;
   transition:
     background-color var(--motion-fast) var(--ease-out),
-    border-color var(--motion-fast) var(--ease-out),
     color var(--motion-fast) var(--ease-out);
   width: 100%;
+}
+
+.plu-nav-menu__item::before {
+  background: var(--institution-gold);
+  border-radius: 1px;
+  bottom: 22%;
+  content: '';
+  left: 6px;
+  position: absolute;
+  top: 22%;
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform var(--motion-fast) var(--ease-out);
+  width: 1px;
 }
 
 .plu-nav-menu__item:hover,
 .plu-nav-menu__item:focus-visible,
 .plu-nav-menu__item.is-active {
   background: color-mix(in srgb, var(--institution-text) 3%, transparent);
-  border-color: color-mix(in srgb, var(--institution-text) 6%, transparent);
   color: var(--institution-text);
+}
+
+.plu-nav-menu__item:hover::before,
+.plu-nav-menu__item:focus-visible::before,
+.plu-nav-menu__item.is-active::before,
+.plu-nav-menu__item--featured::before {
+  transform: scaleY(1);
 }
 
 .plu-nav-menu__item-arrow {
@@ -670,37 +794,70 @@
   transform: translateX(3px);
 }
 
-.plu-nav-menu__item--featured {
+.plu-nav-menu__item--featured,
+.plu-nav-menu__item--featured:hover,
+.plu-nav-menu__item--featured:focus-visible,
+.plu-nav-menu__item--featured.is-active {
   background: var(--institution-gold-soft);
-  border-color: color-mix(in srgb, var(--institution-gold) 20%, transparent);
+  color: var(--institution-text);
 }
 
 .plu-nav-menu__icon {
   align-items: center;
-  background: color-mix(in srgb, var(--institution-surface-raised) 50%, transparent);
-  border: 1px solid color-mix(in srgb, var(--institution-border) 50%, transparent);
-  border-radius: 7px;
+  background: transparent;
+  border: 0;
   color: var(--institution-text-muted);
   display: inline-flex;
-  height: 32px;
+  height: 16px;
   justify-content: center;
-  width: 32px;
-  transition:
-    background-color var(--motion-fast) var(--ease-out),
-    border-color var(--motion-fast) var(--ease-out),
-    color var(--motion-fast) var(--ease-out),
-    opacity var(--motion-fast) var(--ease-out),
-    transform var(--motion-fast) var(--ease-out);
+  width: 16px;
+  transition: color var(--motion-fast) var(--ease-out);
 }
 
-.plu-nav-menu__item:hover .plu-nav-menu__icon {
+.plu-nav-menu__item:hover .plu-nav-menu__icon,
+.plu-nav-menu__item:focus-visible .plu-nav-menu__icon,
+.plu-nav-menu__item.is-active .plu-nav-menu__icon {
   color: var(--institution-gold);
-  border-color: color-mix(in srgb, var(--institution-gold) 30%, transparent);
-  background: color-mix(in srgb, var(--institution-gold) 5%, transparent);
 }
 
 .plu-nav-menu__item--featured .plu-nav-menu__icon {
   color: var(--institution-gold);
+}
+
+.plu-competition-menu {
+  border-top: 1px solid color-mix(in srgb, var(--institution-border) 52%, transparent);
+  margin-top: 6px;
+  padding-top: 8px;
+}
+
+.plu-competition-menu__head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px 7px 10px;
+}
+
+.plu-competition-menu__head > p {
+  color: var(--institution-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.plu-competition-menu__track {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: min(320px, 46vh);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.plu-competition-menu__slide {
+  width: 100%;
 }
 
 .plu-nav-menu__copy {
@@ -732,12 +889,8 @@
 
 .plu-resources-menu__head {
   align-items: center;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--institution-surface-strong) 80%, transparent),
-    color-mix(in srgb, var(--institution-surface) 60%, transparent)
-  );
-  border-bottom: 1px solid color-mix(in srgb, var(--institution-border) 40%, transparent);
+  background: transparent;
+  border-bottom: 1px solid color-mix(in srgb, var(--institution-border) 55%, transparent);
   color: var(--institution-text);
   display: flex;
   gap: 24px;
@@ -747,23 +900,9 @@
 }
 
 [data-theme='light'] .plu-resources-menu__head {
-  background: #fff;
-  border-bottom-color: rgba(15, 17, 23, 0.08);
+  background: transparent;
+  border-bottom-color: color-mix(in srgb, var(--institution-border) 70%, transparent);
   color: var(--institution-text);
-}
-
-[data-theme='light'] .plu-resources-menu__head::before {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--institution-gold) 78%, transparent),
-    transparent 72%
-  );
-  content: '';
-  height: 1.5px;
-  left: 24px;
-  position: absolute;
-  right: 24px;
-  top: 0;
 }
 
 [data-theme='light'] .plu-resources-menu__head p {
@@ -782,7 +921,7 @@
 
 [data-theme='light'] .plu-resources-menu__head button:hover {
   background: color-mix(in srgb, var(--institution-gold) 14%, #fff);
-  transform: none;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 70%, transparent);
 }
 
 .plu-resources-menu__head > div {
@@ -808,6 +947,7 @@
   border: 1px solid color-mix(in srgb, var(--institution-gold) 20%, transparent);
   background: color-mix(in srgb, var(--institution-gold) 4%, transparent);
   border-radius: 100px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 28%, transparent);
   color: var(--institution-gold);
   display: inline-flex;
   flex: none;
@@ -819,11 +959,24 @@
   transition:
     background-color var(--motion-fast) var(--ease-out),
     border-color var(--motion-fast) var(--ease-out),
-    color var(--motion-fast) var(--ease-out);
+    box-shadow var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
 }
 
 .plu-resources-menu__head button:hover {
-  background: color-mix(in srgb, var(--institution-gold) 10%, transparent);
+  background: color-mix(in srgb, var(--institution-gold) 14%, transparent);
+  border-color: color-mix(in srgb, var(--institution-gold) 55%, var(--institution-border));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 42%, transparent);
+}
+
+.plu-resources-menu__head button:active {
+  transform: scale(0.98);
+}
+
+.plu-resources-menu__head button:focus-visible {
+  outline: 2px solid var(--institution-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
 }
 
 .plu-resources-menu__head-arrow {
@@ -853,11 +1006,55 @@
 }
 
 .plu-resources-menu__group .plu-nav-menu__item {
-  min-height: 60px;
+  min-height: 48px;
 }
 
 .plu-resources-menu__group .plu-nav-menu__item > svg {
   display: none;
+}
+
+/* Notebook: el disparador queda a la derecha. El panel se ancla a ese borde.
+   Bajo 900 pasa a una columna para no salir del viewport. */
+@media (min-width: 800px) and (max-width: 1279px) {
+  .plu-nav-menu-shell--resources {
+    left: auto;
+    right: 0;
+    transform-origin: right top;
+    translate: 0 0;
+  }
+
+  .plu-nav-menu--resources {
+    min-width: 0;
+    width: min(520px, calc(100vw - 40px));
+  }
+}
+
+@media (min-width: 800px) and (max-width: 899px) {
+  .plu-nav-menu--resources {
+    width: min(420px, calc(100vw - 24px));
+  }
+
+  .plu-resources-menu__head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .plu-resources-menu__groups {
+    grid-template-columns: 1fr;
+  }
+
+  .plu-resources-menu__group {
+    border-bottom: 1px solid var(--institution-border);
+    border-right: 0;
+    padding-bottom: 4px;
+  }
+
+  .plu-resources-menu__group:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
 }
 
 .plu-global-nav__actions {
@@ -1002,10 +1199,12 @@
 /* Acceder: único uppercase del rail — ancla de acción sin pelear con los links */
 .plu-global-nav__login {
   align-items: center;
-  background: color-mix(in srgb, var(--institution-gold) 10%, transparent);
+  background: color-mix(in srgb, var(--institution-gold) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--institution-gold) 52%, var(--institution-border));
+  border-top-color: color-mix(in srgb, #fff 36%, var(--institution-gold));
+  border-bottom-color: color-mix(in srgb, var(--institution-gold) 72%, var(--institution-border));
   border-radius: 999px;
-  box-shadow: none;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 28%, transparent);
   color: var(--institution-text);
   cursor: pointer;
   display: inline-flex;
@@ -1015,7 +1214,7 @@
   font-weight: 700;
   height: 36px;
   justify-content: center;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   line-height: 1;
   min-height: 36px;
   padding: 0 16px;
@@ -1025,6 +1224,7 @@
   transition:
     background-color var(--motion-fast) var(--ease-out),
     border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out),
     color var(--motion-fast) var(--ease-out),
     transform var(--motion-fast) var(--ease-out);
   white-space: nowrap;
@@ -1039,11 +1239,17 @@
 
 .plu-global-nav__login:hover,
 .plu-global-nav__login.is-active {
-  background: var(--institution-gold-soft);
+  background: color-mix(in srgb, var(--institution-gold) 18%, transparent);
   border-color: color-mix(in srgb, var(--institution-gold) 82%, var(--institution-border));
-  box-shadow: none;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 42%, transparent);
   color: var(--institution-text);
   text-decoration: none;
+}
+
+[data-theme='light'] .plu-global-nav__login:hover,
+[data-theme='light'] .plu-global-nav__login.is-active {
+  background: color-mix(in srgb, var(--institution-gold) 12%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 65%, transparent);
 }
 
 .plu-global-nav__login:active {
@@ -1448,42 +1654,52 @@ html.plu-drawer-open body {
   opacity: 0.7;
 }
 
-[data-theme='dark'] .plu-drawer__nav-primary .plu-drawer__row--flush .plu-drawer__row-copy strong {
-  color: rgba(236, 236, 232, 0.38);
+/* Reposo legible sin hover: en touch no existe y el menú es, sobre todo,
+   mobile. 0.38 daba ~3:1 en los títulos y fallaba AA en las bajadas de 11px;
+   la jerarquía con el activo la sostienen el blanco pleno y el indicador. */
+[data-theme='dark']
+  .plu-drawer__program
+  .plu-drawer__row--feature
+  .plu-drawer__row-copy
+  strong {
+  color: rgba(236, 236, 232, 0.72);
   font-weight: 650;
 }
 
 [data-theme='dark']
-  .plu-drawer__nav-primary
-  .plu-drawer__row--flush.is-active
+  .plu-drawer__program
+  .plu-drawer__row--feature.is-active
   .plu-drawer__row-copy
   strong,
 [data-theme='dark']
-  .plu-drawer__nav-primary
-  .plu-drawer__row--flush:hover
+  .plu-drawer__program
+  .plu-drawer__row--feature:hover
   .plu-drawer__row-copy
   strong {
   color: #f2f2ee;
 }
 
-[data-theme='dark'] .plu-drawer__nav-primary .plu-drawer__row--flush .plu-drawer__row-copy small {
-  color: rgba(236, 236, 232, 0.38);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  opacity: 0.85;
+[data-theme='dark']
+  .plu-drawer__program
+  .plu-drawer__row--feature
+  .plu-drawer__row-copy
+  small {
+  color: var(--color-brand-gold-ink);
+  font-weight: 700;
+  letter-spacing: 0.1em;
 }
 
 [data-theme='dark']
-  .plu-drawer__nav-primary
-  .plu-drawer__row--flush.is-active
+  .plu-drawer__program
+  .plu-drawer__row--feature.is-active
   .plu-drawer__row-copy
   small,
 [data-theme='dark']
-  .plu-drawer__nav-primary
-  .plu-drawer__row--flush:hover
+  .plu-drawer__program
+  .plu-drawer__row--feature:hover
   .plu-drawer__row-copy
   small {
-  color: color-mix(in srgb, var(--institution-gold) 55%, #8e949f);
+  color: color-mix(in srgb, var(--institution-gold) 78%, #f2f2ee);
   opacity: 1;
 }
 
@@ -1494,7 +1710,17 @@ html.plu-drawer-open body {
 }
 
 [data-theme='dark'] .plu-drawer__nav-secondary {
-  border-top-color: rgba(255, 255, 255, 0.05);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='light'] .plu-drawer__nav-secondary {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--institution-border);
 }
 
 [data-theme='dark']
@@ -1502,7 +1728,7 @@ html.plu-drawer-open body {
   .plu-drawer__row--flush
   .plu-drawer__row-copy
   strong {
-  color: rgba(236, 236, 232, 0.4);
+  color: rgba(236, 236, 232, 0.62);
   font-weight: 600;
 }
 
@@ -1615,7 +1841,11 @@ html.plu-drawer-open body {
     box-shadow: -18px 0 48px rgba(15, 17, 23, 0.18);
   }
 
+  /* Opaco: en mobile el sheet va de borde a borde y performance.css le saca
+     el blur; el 4% de transparencia no aportaba material y dejaba el titular
+     dorado del hero fantasmeando detrás de los ítems. */
   [data-theme='dark'] .plu-drawer {
+    background: #090b0e;
     border-left-color: rgba(255, 255, 255, 0.08);
     box-shadow: -28px 0 72px rgba(0, 0, 0, 0.82);
   }
@@ -1635,15 +1865,15 @@ html.plu-drawer-open body {
   display: flex;
   gap: 8px;
   justify-content: space-between;
-  min-height: clamp(36px, 9vw, 40px);
+  min-height: 44px;
 }
 
 .plu-drawer__brand {
   align-items: center;
   display: inline-flex;
-  gap: 8px;
+  gap: 10px;
   max-width: calc(100% - 48px);
-  min-height: clamp(36px, 9vw, 40px);
+  min-height: 44px;
   min-width: 0;
   padding: 0;
   text-align: left;
@@ -1655,16 +1885,16 @@ html.plu-drawer-open body {
   border-radius: 0;
   box-shadow: none;
   flex: none;
-  height: clamp(34px, 8vw, 38px);
+  height: 44px;
   object-fit: contain;
   object-position: center;
-  width: clamp(34px, 8vw, 38px);
+  width: 44px;
 }
 
 .plu-drawer__logo {
   display: block;
-  height: 18px;
-  max-width: min(100%, 148px);
+  height: 20px;
+  max-width: min(100%, 168px);
   object-fit: contain;
   object-position: left center;
   width: auto;
@@ -1736,20 +1966,8 @@ html.plu-drawer-open body {
     padding: 2px 18px 8px;
   }
 
-  .plu-drawer__nav-primary {
-    gap: 2px;
-  }
-
-  .plu-drawer__nav-primary .plu-drawer__row--flush {
-    padding: 7px 0;
-  }
-
-  .plu-drawer__nav-primary .plu-drawer__row--flush .plu-drawer__row-copy strong {
-    font-size: clamp(17px, 5vw, 20px);
-  }
-
   .plu-drawer__nav-secondary {
-    padding-top: 10px;
+    padding-top: 8px;
   }
 
   .plu-drawer__footer {
@@ -1860,7 +2078,16 @@ html.plu-drawer-open body {
 
 .plu-drawer__nav-primary {
   display: grid;
-  gap: 6px;
+  gap: 12px;
+}
+
+.plu-drawer__program,
+.plu-drawer__index {
+  display: grid;
+}
+
+.plu-drawer__program {
+  gap: 2px;
 }
 
 .plu-drawer__row {
@@ -1951,20 +2178,19 @@ html.plu-drawer-open body {
   padding: 10px 0;
 }
 
-/* Primario — masthead: tipografía grande, sin filetes ni flechas.
-   El peso del tipo y el indicador dorado hacen todo el trabajo. */
+/* Programa — los dos eventos, tipo display. El índice de abajo va a 16px. */
 
-.plu-drawer__nav-primary .plu-drawer__row--flush {
+.plu-drawer__program .plu-drawer__row--feature {
   border-top: 0;
   padding: 10px 0;
 }
 
-.plu-drawer__nav-primary .plu-drawer__row--flush .plu-drawer__row-copy {
+.plu-drawer__program .plu-drawer__row--feature .plu-drawer__row-copy {
   display: grid;
   gap: 3px;
 }
 
-.plu-drawer__nav-primary .plu-drawer__row--flush .plu-drawer__row-copy strong {
+.plu-drawer__program .plu-drawer__row--feature .plu-drawer__row-copy strong {
   color: var(--institution-text-muted);
   display: inline-block;
   font-family: var(--font-display);
@@ -1978,8 +2204,8 @@ html.plu-drawer-open body {
     transform var(--motion-fast) var(--ease-out);
 }
 
-.plu-drawer__nav-primary .plu-drawer__row--flush .plu-drawer__row-copy small {
-  color: var(--institution-gold);
+.plu-drawer__program .plu-drawer__row--feature .plu-drawer__row-copy small {
+  color: var(--color-brand-gold-ink);
   font-family: var(--font-family);
   font-size: 10.5px;
   font-weight: 700;
@@ -1988,20 +2214,57 @@ html.plu-drawer-open body {
   text-transform: uppercase;
 }
 
-.plu-drawer__nav-primary .plu-drawer__row--flush.is-active .plu-drawer__row-copy strong {
+.plu-drawer__program .plu-drawer__row--feature.is-active .plu-drawer__row-copy strong {
   color: var(--institution-text);
 }
 
 @media (hover: hover) {
-  .plu-drawer__nav-primary .plu-drawer__row--flush:hover .plu-drawer__row-copy strong {
+  .plu-drawer__program .plu-drawer__row--feature:hover .plu-drawer__row-copy strong {
     color: var(--institution-text);
     transform: translateX(5px);
   }
 }
 
-.plu-drawer__nav-primary .plu-drawer__row--flush.is-active .plu-drawer__row-copy small,
-.plu-drawer__nav-primary .plu-drawer__row--flush:hover .plu-drawer__row-copy small {
+.plu-drawer__program .plu-drawer__row--feature.is-active .plu-drawer__row-copy small,
+.plu-drawer__program .plu-drawer__row--feature:hover .plu-drawer__row-copy small {
   opacity: 1;
+}
+
+/* Índice operativo — Tienda, Calendario, Resultados, Récords. Sin bajada dorada. */
+
+.plu-drawer__index .plu-drawer__row--flush {
+  border-top: 0;
+  min-height: 44px;
+  padding: 10px 0;
+}
+
+.plu-drawer__index .plu-drawer__row--flush .plu-drawer__row-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.plu-drawer__index .plu-drawer__row--flush .plu-drawer__row-copy strong {
+  color: var(--institution-text);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-transform: none;
+}
+
+.plu-drawer__index .plu-drawer__row--flush .plu-drawer__row-copy small {
+  color: var(--institution-text-muted);
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  opacity: 1;
+  text-transform: none;
+}
+
+.plu-drawer__index .plu-drawer__row--flush.is-active .plu-drawer__row-copy strong {
+  font-weight: 650;
 }
 
 .plu-drawer__nav-primary .plu-drawer__row-indicator {
@@ -2009,31 +2272,44 @@ html.plu-drawer-open body {
   top: 12px;
 }
 
-/* Secundario — línea de utilidad horizontal: texto corrido separado por puntos. */
+@media (max-height: 700px) {
+  .plu-drawer__nav-primary {
+    gap: 8px;
+  }
+
+  .plu-drawer__program .plu-drawer__row--feature {
+    padding: 6px 0;
+  }
+
+  .plu-drawer__program .plu-drawer__row--feature .plu-drawer__row-copy strong {
+    font-size: clamp(17px, 5vw, 20px);
+  }
+}
+
+/* Directorio — índice plano en dos columnas, bajo una regla. Sin caja. */
 
 .plu-drawer__nav-secondary {
-  align-items: baseline;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   border-top: 1px solid var(--institution-border);
-  column-gap: 0;
-  display: flex;
-  flex-wrap: wrap;
+  column-gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: auto;
-  padding-top: 14px;
-  row-gap: 2px;
+  padding: 8px 0 4px;
+  row-gap: 0;
 }
 
 .plu-drawer__nav-secondary-sep {
-  color: var(--institution-text-muted);
-  font-size: 11px;
-  opacity: 0.4;
-  padding: 0 9px;
+  display: none;
 }
 
 .plu-drawer__nav-secondary .plu-drawer__row--flush {
   display: inline-flex;
-  min-height: 0;
-  padding: 4px 0;
-  width: auto;
+  min-height: 44px;
+  padding: 0;
+  width: 100%;
 }
 
 .plu-drawer__nav-secondary .plu-drawer__row-indicator {
@@ -2042,7 +2318,7 @@ html.plu-drawer-open body {
 
 .plu-drawer__nav-secondary .plu-drawer__row--flush .plu-drawer__row-copy strong {
   color: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 550;
   letter-spacing: -0.01em;
   text-transform: none;
@@ -2367,8 +2643,10 @@ html.plu-drawer-open body {
   cursor: pointer;
   font: inherit;
   letter-spacing: inherit;
-  min-height: 32px;
-  padding: 3px 0;
+  /* Mismo target que .plu-page-hero__breadcrumb: 44px sin mover la línea. */
+  margin-block: -12px;
+  min-height: 44px;
+  padding: 0;
 }
 
 .institutional-hero__breadcrumb button:hover {
@@ -2411,7 +2689,7 @@ html.plu-drawer-open body {
 .institutional-hero__eyebrow,
 .institutional-kicker {
   align-items: center;
-  color: var(--color-brand-celeste);
+  color: var(--color-brand-gold-ink);
   display: flex;
   font-size: 10px;
   font-weight: 700;
@@ -2420,11 +2698,6 @@ html.plu-drawer-open body {
   line-height: 1.4;
   margin: 0 0 16px;
   text-transform: uppercase;
-}
-
-[data-theme='dark'] .institutional-hero__eyebrow,
-[data-theme='dark'] .institutional-kicker {
-  color: color-mix(in srgb, var(--plu-gold-500) 70%, transparent);
 }
 
 .institutional-hero__eyebrow span {
@@ -2691,7 +2964,14 @@ html.plu-drawer-open body {
   margin: 0;
   max-width: 100%;
   text-wrap: balance;
-  background: linear-gradient(135deg, var(--plu-gold-400), var(--plu-gold-600));
+  /* Mismo gesto que en dark (tinta plena que se atenúa), en la tinta clara.
+     El degradé oro 400→600 sobre el fondo claro del footer arrancaba en
+     ~1.4:1: el titular más grande del sitio era el menos legible. */
+  background: linear-gradient(
+    135deg,
+    var(--institution-text),
+    color-mix(in srgb, var(--institution-text) 62%, transparent)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -2818,6 +3098,9 @@ html.plu-drawer-open body {
    Evita que controles de 44px y textos legales peleen en un solo wrap. */
 .institutional-footer__bottom {
   align-items: center;
+  /* El contenedor es una columna flex alineada al inicio: sin esto la fila se
+     encogía a su contenido y el filete llegaba hasta la mitad del footer. */
+  align-self: stretch;
   border-top: 1px solid color-mix(in srgb, var(--institution-text) 8%, transparent);
   color: var(--footer-heading, var(--institution-text-muted));
   column-gap: clamp(16px, 3vw, 28px);
@@ -3055,19 +3338,15 @@ html.plu-drawer-open body {
     padding-inline: 13px;
   }
 
-  .site-header--scrolled .plu-global-nav__link {
-    font-size: 12px;
-    letter-spacing: -0.006em;
-    min-height: 44px;
-    padding-inline: 11px;
-  }
-
   .plu-global-nav__link--affiliate {
     letter-spacing: -0.008em;
   }
 
   .plu-global-nav__hover-pill {
-    inset: auto 22% 6px 22%;
+    height: 26px;
+    left: 4px;
+    right: 4px;
+    top: 9px;
   }
 
   .plu-global-nav__indicator {
@@ -3181,19 +3460,15 @@ html.plu-drawer-open body {
     padding-inline: 9px;
   }
 
-  .site-header--scrolled .plu-global-nav__link {
-    font-size: 11.5px;
-    letter-spacing: -0.004em;
-    min-height: 42px;
-    padding-inline: 8px;
-  }
-
   .plu-global-nav__link--affiliate {
     letter-spacing: -0.006em;
   }
 
   .plu-global-nav__hover-pill {
-    inset: auto 18% 5px 18%;
+    height: 24px;
+    left: 3px;
+    right: 3px;
+    top: 8px;
   }
 
   .plu-global-nav__indicator {
@@ -3228,10 +3503,6 @@ html.plu-drawer-open body {
 
   .site-header--scrolled .plu-global-nav__desktop {
     gap: 4px;
-  }
-
-  .site-header--scrolled .plu-global-nav__link {
-    padding-inline: 10px;
   }
 
   .plu-global-nav__login {
@@ -3434,8 +3705,8 @@ html.plu-drawer-open body {
     --brand-nav-row: 46px;
     --brand-wordmark-size: clamp(3.5rem, 12vw, 5rem);
     --brand-wordmark-track: var(--brand-wordmark-size);
-    /* 36→~40 entre phones anchos y tablet angosta (≤799). */
-    --nav-mobile-control: clamp(36px, 32px + 1vw, 40px);
+    /* Target táctil: menú, Acceder y Afiliar no bajan de 44. */
+    --nav-mobile-control: 44px;
     /* Campana y avatar de sesión: mismo disco. */
     --nav-mobile-session: 34px;
     --brand-shell-slot: calc(var(--nav-mobile-control) + 14px);
@@ -3446,14 +3717,14 @@ html.plu-drawer-open body {
 
   .site-header-shell--institutional:has(.site-header--scrolled) {
     --brand-emblem-base: 1;
-    --brand-emblem-size: 30px;
-    --brand-nav-row: 40px;
-    top: 6px;
+    --brand-emblem-size: clamp(34px, 5.2vw + 12px, 38px);
+    --brand-nav-row: 46px;
+    --brand-shell-slot: calc(var(--nav-mobile-control) + 14px);
+    top: 8px;
   }
 
   .site-header.site-header--institutional {
-    /* Mobile: mismo liquid glass; sin reintroducir borde duro. */
-    border-color: transparent;
+    /* Mobile hereda el mismo rim de 1px; no se aplana a transparente. */
     box-shadow:
       0 10px 28px -18px rgba(0, 0, 0, 0.38),
       inset 0 1px 0 rgba(255, 255, 255, 0.14),
@@ -3464,23 +3735,33 @@ html.plu-drawer-open body {
   }
 
   [data-theme='light'] .site-header.site-header--institutional {
-    border-color: transparent;
     box-shadow:
       0 8px 22px -16px rgba(15, 17, 23, 0.12),
       inset 0 1px 0 rgba(255, 255, 255, 0.72),
       inset 0 -0.5px 0 rgba(15, 17, 23, 0.04);
   }
 
-  /* Pill compacta: brand | cluster + menú, sin columna 1fr fantasma */
+  /* Pill compacta: brand | cluster + menú, sin columna 1fr fantasma.
+     El alto no cambia al scrollear: solo se va el wordmark. */
   .plu-global-nav {
     align-items: center;
     display: flex;
     flex-wrap: nowrap;
     gap: clamp(8px, 1.6vw, 14px);
+    height: calc(var(--nav-mobile-control) + 14px);
+    max-height: calc(var(--nav-mobile-control) + 14px);
     min-height: calc(var(--nav-mobile-control) + 14px);
     padding: 0 16px 0 12px;
     width: max-content;
     max-width: 100%;
+  }
+
+  .site-header--scrolled .plu-global-nav {
+    gap: clamp(8px, 1.6vw, 14px);
+    height: calc(var(--nav-mobile-control) + 14px);
+    max-height: calc(var(--nav-mobile-control) + 14px);
+    min-height: calc(var(--nav-mobile-control) + 14px);
+    padding: 0 16px 0 12px;
   }
 
   .plu-global-nav__brand {
@@ -3606,14 +3887,14 @@ html.plu-drawer-open body {
     background: transparent;
     border: 0;
     border-radius: 4px;
-    color: color-mix(in srgb, var(--institution-text) 42%, transparent);
+    color: var(--institution-text-muted);
     display: inline-flex;
     font-family: var(--font-display);
     font-size: clamp(10px, 1.35vw, 11px);
     font-weight: 500;
     height: auto;
     justify-content: center;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.04em;
     min-height: var(--nav-mobile-control);
     min-width: 0;
     padding: 0 5px;
@@ -3679,8 +3960,8 @@ html.plu-drawer-open body {
     flex: none;
     font-family: var(--font-display);
     font-size: clamp(10.5px, 1.4vw, 11.5px);
-    font-weight: 650;
-    letter-spacing: 0.07em;
+    font-weight: 600;
+    letter-spacing: 0.04em;
     line-height: 1;
     min-height: var(--nav-mobile-control);
     padding: 0 4px;
@@ -3742,14 +4023,14 @@ html.plu-drawer-open body {
     width: var(--nav-mobile-session);
   }
 
-  /* Afiliar — único acento: hairline dorada */
+  /* Afiliar — único acento del cluster. Ink dorado: el oro de relleno no pasa AA en 11px. */
   .plu-global-nav__mobile-affiliate {
     align-items: center;
     background: transparent;
     border: 0;
     border-radius: 4px;
     box-shadow: none;
-    color: var(--institution-text);
+    color: var(--color-brand-gold-ink);
     display: inline-flex;
     flex: none;
     height: var(--nav-mobile-control);
@@ -3782,7 +4063,7 @@ html.plu-drawer-open body {
     background: var(--institution-gold);
     bottom: 0;
     content: '';
-    height: 1px;
+    height: 1.5px;
     left: 0;
     opacity: 0.85;
     position: absolute;
@@ -3822,7 +4103,7 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__mobile-affiliate--member {
-    color: var(--institution-text-secondary);
+    color: var(--institution-blue, var(--color-brand-celeste));
   }
 
   .plu-global-nav__mobile-affiliate--member .plu-global-nav__mobile-affiliate-label::after {
@@ -3844,9 +4125,9 @@ html.plu-drawer-open body {
     color: var(--institution-text);
   }
 
-  /* Menú: glifo más fino / editorial */
+  /* Menú: glifo de texto, sin caja ni oro (el acento del bloque es Afiliar). */
   .plu-global-nav__menu-button {
-    color: var(--institution-text-secondary);
+    color: var(--institution-text);
     height: var(--nav-mobile-control);
     min-height: var(--nav-mobile-control);
     min-width: var(--nav-mobile-control);
@@ -3854,12 +4135,12 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__menu-icon {
-    height: 9px;
-    width: 16px;
+    height: 11px;
+    width: 18px;
   }
 
   .plu-global-nav__menu-line {
-    height: 1px;
+    height: 1.5px;
   }
 }
 
@@ -3885,7 +4166,7 @@ html.plu-drawer-open body {
   }
 
   .institutional-hero__inner {
-    padding: 28px 18px 46px;
+    padding: 28px var(--institution-gutter) 46px;
   }
 
   .institutional-hero__breadcrumb {
@@ -3925,7 +4206,7 @@ html.plu-drawer-open body {
   }
 
   .institutional-page__inner {
-    padding: 48px 18px 72px;
+    padding: 48px var(--institution-gutter) 72px;
   }
 
   .institutional-section-head,
@@ -3939,7 +4220,7 @@ html.plu-drawer-open body {
   }
 
   .institutional-footer__inner {
-    padding-inline: 18px;
+    padding-inline: var(--institution-gutter);
   }
   .institutional-footer__lead {
     grid-template-columns: 1fr;
@@ -3971,6 +4252,28 @@ html.plu-drawer-open body {
   .institutional-footer__directory nav:last-child {
     border-bottom: 0;
   }
+  /* Dos columnas por grupo: en una sola el directorio medía ~900px y el
+     footer casi dos pantallas. Con `columns` (no grid) el orden visual sigue
+     al del DOM — baja por la primera y sigue en la segunda — y "Eventos" no
+     se separa de sus fechas. */
+  .institutional-footer__directory ul:not(.institutional-footer__sublist) {
+    column-gap: 16px;
+    columns: 2;
+    display: block;
+  }
+  .institutional-footer__directory ul:not(.institutional-footer__sublist) > li {
+    break-inside: avoid;
+  }
+  .institutional-footer__directory h3 {
+    margin-bottom: 8px;
+  }
+  .institutional-footer__directory button {
+    min-height: 44px;
+  }
+  .institutional-footer__directory .institutional-footer__sublist {
+    gap: 0;
+    margin-top: 0;
+  }
 }
 
 @media (max-width: 520px) {
@@ -3990,13 +4293,16 @@ html.plu-drawer-open body {
 
   .site-header-shell--institutional:has(.site-header--scrolled) {
     --brand-emblem-base: 1;
-    --brand-emblem-size: 28px;
-    --brand-nav-row: 40px;
-    top: 5px;
+    --brand-emblem-size: clamp(34px, 7.5vw, 38px);
+    --brand-nav-row: 44px;
+    top: 6px;
   }
-  .plu-global-nav {
+  .plu-global-nav,
+  .site-header--scrolled .plu-global-nav {
     gap: 4px;
-    min-height: calc(var(--nav-mobile-control, 36px) + 10px);
+    height: calc(var(--nav-mobile-control, 44px) + 10px);
+    max-height: calc(var(--nav-mobile-control, 44px) + 10px);
+    min-height: calc(var(--nav-mobile-control, 44px) + 10px);
     padding: 0 10px 0 8px;
   }
   .plu-global-nav__emblem {
@@ -4020,10 +4326,6 @@ html.plu-drawer-open body {
     max-width: 320px;
     width: min(92vw, 320px);
   }
-  .institutional-footer__directory ul {
-    grid-template-columns: 1fr;
-  }
-
   .plu-global-nav {
     gap: 6px;
     padding: 0 10px 0 8px;
@@ -4082,6 +4384,7 @@ html.plu-drawer-open body {
   .plu-global-nav__menu-button,
   .plu-global-nav__menu-line,
   .plu-global-nav__emblem,
+  .plu-nav-menu__item::before,
   .plu-nav-menu__item-arrow,
   .plu-resources-menu__head-arrow,
   .institutional-button {
@@ -4101,6 +4404,7 @@ html.plu-drawer-open body {
   .plu-nav-menu__item:hover .plu-nav-menu__item-arrow,
   .plu-nav-menu__item:focus-visible .plu-nav-menu__item-arrow,
   .plu-resources-menu__head button:hover .plu-resources-menu__head-arrow,
+  .plu-resources-menu__head button:active,
   .plu-drawer__footer-login:active,
   .plu-global-nav__menu-button:active,
   .institutional-button--primary:hover {
@@ -4427,10 +4731,15 @@ html.plu-drawer-open body {
 }
 
 /* ── Header · acabado de lujo ───────────────────────
-   Una sola capa: filo dorado en el borde de la pill, un barrido de luz
-   one-shot al cargar, entrada escalonada del rail y brillo de hover en
-   "Acceder". Solo transform/opacity/background-position; todo apagado bajo
-   prefers-reduced-motion. */
+   Contorno de 1px (máscara): laca dorada en los dos temas.
+   El ángulo del filo viaja una sola vez al entrar con el cursor.
+   prefers-reduced-motion apaga el viaje. */
+
+@property --header-rim-angle {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 120deg;
+}
 
 .site-header.site-header--institutional::before,
 .site-header.site-header--institutional::after {
@@ -4441,29 +4750,80 @@ html.plu-drawer-open body {
   position: absolute;
 }
 
-/* Filo dorado→celeste: borde de 1px por máscara, más presente al compactar. */
+/* Light: laca dorada. El arco brillante recorre el contorno; el resto queda quieto.
+   inset -1px apoya el filo sobre el borde de la cápsula, no por dentro. */
 .site-header.site-header--institutional::before {
-  background: linear-gradient(
-    115deg,
-    color-mix(in srgb, var(--institution-gold) 70%, transparent) 0%,
-    transparent 32%,
-    transparent 68%,
-    color-mix(in srgb, var(--color-brand-celeste) 46%, transparent) 100%
+  inset: -1px;
+  background: conic-gradient(
+    from var(--header-rim-angle, 120deg),
+    color-mix(in srgb, var(--institution-gold) 48%, transparent) 0deg,
+    color-mix(in srgb, #fff 62%, var(--institution-gold)) 22deg,
+    color-mix(in srgb, var(--institution-gold) 86%, transparent) 52deg,
+    color-mix(in srgb, var(--institution-gold) 46%, transparent) 110deg,
+    color-mix(in srgb, var(--institution-gold) 46%, transparent) 360deg
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask:
-    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
-  opacity: 0.55;
+  mask-composite: exclude;
+  opacity: 0.82;
   padding: 1px;
-  transition: opacity var(--motion-slow) var(--ease-out);
+  transition: opacity var(--motion-base) var(--ease-out);
 }
 
 .site-header.site-header--institutional.site-header--scrolled::before {
-  opacity: 0.9;
+  opacity: 1;
+}
+
+/* Dark: la misma laca dorada, un poco más presente para leerse sobre negro. */
+[data-theme='dark'] .site-header.site-header--institutional::before {
+  background: conic-gradient(
+    from var(--header-rim-angle, 120deg),
+    color-mix(in srgb, var(--institution-gold) 58%, transparent) 0deg,
+    color-mix(in srgb, #fff 36%, var(--institution-gold)) 22deg,
+    color-mix(in srgb, var(--institution-gold) 94%, transparent) 52deg,
+    color-mix(in srgb, var(--institution-gold) 40%, transparent) 110deg,
+    color-mix(in srgb, var(--institution-gold) 40%, transparent) 360deg
+  );
+  opacity: 0.94;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .site-header.site-header--institutional:is(:hover, :focus-within) {
+    --header-rim-angle: 268deg;
+  }
+
+  .site-header.site-header--institutional:is(:hover, :focus-within)::before,
+  .site-header.site-header--institutional.site-header--scrolled:is(:hover, :focus-within)::before {
+    opacity: 1;
+  }
+
+  .site-header.site-header--institutional:is(:hover, :focus-within) .plu-global-nav__rail {
+    opacity: 0.95;
+  }
+}
+
+/* El filo dorado alcanza. Sin halo de color alrededor de la cápsula. */
+@media (hover: hover) and (pointer: fine) and (min-width: 800px) {
+  [data-theme='dark'] .site-header.site-header--institutional::before {
+    filter: none;
+  }
+}
+
+@media (max-width: 799px) {
+  .site-header.site-header--institutional::before {
+    filter: none;
+    opacity: 0.7;
+  }
+
+  [data-theme='dark'] .site-header.site-header--institutional::before {
+    filter: none;
+    opacity: 0.72;
+  }
 }
 
 /* Barrido de luz: pasa una vez al montar y no vuelve. */
@@ -4481,9 +4841,18 @@ html.plu-drawer-open body {
 [data-theme='light'] .site-header.site-header--institutional::after {
   background-image: linear-gradient(
     105deg,
-    transparent 38%,
-    color-mix(in srgb, var(--institution-gold) 20%, transparent) 50%,
-    transparent 62%
+    transparent 36%,
+    color-mix(in srgb, var(--institution-gold) 36%, transparent) 50%,
+    transparent 64%
+  );
+}
+
+[data-theme='dark'] .site-header.site-header--institutional::after {
+  background-image: linear-gradient(
+    105deg,
+    transparent 36%,
+    color-mix(in srgb, var(--institution-gold) 22%, transparent) 50%,
+    transparent 64%
   );
 }
 
@@ -4550,9 +4919,24 @@ html.plu-drawer-open body {
   }
 }
 
+@keyframes institutional-nav-filament {
+  from {
+    opacity: 0;
+    transform: scaleX(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .site-header.site-header--institutional::after {
+  .site-header.site-header--institutional::after,
+  .plu-global-nav__hover-pill::after {
     animation: none;
+  }
+
+  .site-header.site-header--institutional::after {
     opacity: 0;
   }
 
@@ -4569,7 +4953,18 @@ html.plu-drawer-open body {
 }
 
 @media (prefers-reduced-transparency: reduce) {
+  [data-theme='dark'] .site-header.site-header--institutional::before,
+  .site-header.site-header--institutional::before {
+    filter: none;
+  }
+
   .site-header.site-header--institutional::after {
+    display: none;
+  }
+}
+
+@supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+  .site-header.site-header--institutional::before {
     display: none;
   }
 }

@@ -127,7 +127,7 @@ const CHANNEL_CODE = {
 const CHANNEL_LABEL = {
   mercado_pago: 'Mercado Pago',
   bank_transfer: 'transferencia bancaria',
-  cash_pitbull: 'efectivo en Pitbull',
+  cash_pitbull: 'efectivo en el lugar',
   wise_transfer: 'Wise',
 }
 

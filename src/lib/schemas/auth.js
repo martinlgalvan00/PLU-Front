@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isEventScopedRole } from '../permissions.js'
 
 export const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email('Ingresá un correo válido.'),
@@ -12,6 +13,11 @@ export const loginSchema = z.object({
   remember: z.boolean().optional().default(false),
 })
 
+const eventIdsSchema = z
+  .array(z.string().uuid('Cada evento tiene que ser un id válido.'))
+  .max(50, 'Podés asignar hasta 50 eventos.')
+  .transform((ids) => [...new Set(ids)])
+
 // Alta de cuentas de staff del panel (no atletas, no seguridad). Se crean con
 // una credencial interna aleatoria que nunca se expone y reciben por mail un
 // enlace firmado para elegir su contraseña. Auth0 sigue soportado para quien ya
@@ -19,20 +25,37 @@ export const loginSchema = z.object({
 // las cuentas creadas por acá quedaban sin ninguna forma de entrar.
 // seguridad_plu_arg queda afuera a propósito -- esas cuentas van por
 // createSecurityUserSchema (atadas a un evento y con credencial de puerta).
-export const createStaffUserSchema = z.object({
-  name: z.string().trim().min(3, 'Ingresá un nombre de al menos 3 caracteres.'),
-  email: z.string().trim().toLowerCase().email('Ingresá un correo válido.'),
-  role: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .regex(/^[a-z][a-z0-9_]{2,47}$/),
-  sendEmail: z.boolean().optional().default(true),
-})
+// Nombre y email son opcionales: sin email es una invitación abierta y la
+// persona los completa al abrir el enlace. Con email, el nombre es obligatorio.
+// Rol Organizador: exige al menos un evento en el mismo alta (UserEventAccess).
+export const createStaffUserSchema = z
+  .object({
+    name: z.string().trim().min(3, 'Ingresá un nombre de al menos 3 caracteres.').optional(),
+    email: z.string().trim().toLowerCase().email('Ingresá un correo válido.').optional(),
+    role: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(/^[a-z][a-z0-9_]{2,47}$/),
+    eventIds: eventIdsSchema.optional().default([]),
+    sendEmail: z.boolean().optional().default(true),
+    // El panel pide el enlace para copiarlo y mandarlo por otro canal. Es opt-in:
+    // sin el flag la respuesta nunca incluye el token.
+    returnLink: z.boolean().optional().default(false),
+  })
+  .refine((value) => !value.email || Boolean(value.name), {
+    path: ['name'],
+    message: 'Ingresá un nombre de al menos 3 caracteres.',
+  })
+  .refine((value) => !isEventScopedRole(value.role) || value.eventIds.length > 0, {
+    path: ['eventIds'],
+    message: 'Asigná al menos un evento.',
+  })
 
 /** Reenvío de invitación / reseteo de la credencial de una cuenta de staff. */
 export const resetStaffPasswordSchema = z.object({
   sendEmail: z.boolean().optional().default(true),
+  returnLink: z.boolean().optional().default(false),
 })
 
 // Mínimo 12 caracteres, igual que el reset de atletas (routes/athletes.js).
@@ -46,6 +69,10 @@ const strongPassword = z
 export const acceptStaffInvitationSchema = z.object({
   token: z.string().trim().min(40).max(2000),
   password: strongPassword,
+  // Sólo se usan cuando la invitación es abierta (la cuenta todavía no tiene
+  // email propio); en una invitación nominal el servidor los ignora.
+  name: z.string().trim().min(3, 'Ingresá tu nombre y apellido.').max(120).optional(),
+  email: z.string().trim().toLowerCase().email('Ingresá un correo válido.').max(254).optional(),
 })
 
 export const changeOwnPasswordSchema = z
@@ -126,6 +153,7 @@ export const deactivateAllSecurityUsersSchema = z.object({
 
 export const createSecurityAccessLinkSchema = z.object({
   sendEmail: z.boolean().optional().default(false),
+  rotate: z.boolean().optional().default(false),
   expiresAt: z
     .string()
     .trim()
@@ -133,6 +161,12 @@ export const createSecurityAccessLinkSchema = z.object({
     .refine((value) => !value || !Number.isNaN(Date.parse(value)), 'Vencimiento inválido.'),
 })
 
-export const securityGateSchema = z.object({
-  token: z.string().trim().min(10, 'Credencial inválida.'),
-})
+export const securityGateSchema = z
+  .object({
+    token: z.string().trim().min(10, 'Credencial inválida.').optional(),
+    code: z.string().trim().min(1).max(16).optional(),
+    eventSlug: z.string().trim().min(1).optional(),
+  })
+  .refine((value) => Boolean(value.token) || Boolean(value.code && value.eventSlug), {
+    message: 'Credencial inválida.',
+  })

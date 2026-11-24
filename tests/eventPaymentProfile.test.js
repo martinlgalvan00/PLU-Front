@@ -1,14 +1,27 @@
 import { describe, expect, it } from 'vitest'
 import { HttpError } from '../server/lib/errors.js'
+import { applyEventChannelOpens } from '../src/lib/eventPaymentChannels.js'
+import { resolvePublicCheckoutAvailability } from '../server/services/platformFeatureToggleService.js'
 import {
   applyEventPaymentChannelOverrides,
+  applyEventTicketSalesSwitch,
   applyManualTicketDeadline,
+  eventPublicTicketSalesEnabled,
   assertEventBankTransferReady,
+  bankTransferIssueError,
+  checkEventBankTransferReady,
+  checkEventMercadoPagoReady,
   assertEventPaymentChannelEnabled,
   assertManualTicketDeadline,
   isEventChannelOpen,
   normalizePaymentChannelOverrides,
   resolveBankTransferDetails,
+  resolveEventMercadoPagoReadiness,
+  normalizeBankTransferInput,
+  normalizeCashPaymentInput,
+  resolveCashPaymentDetails,
+  checkEventCashPaymentReady,
+  cashPaymentIssueError,
 } from '../server/modules/payments/eventPaymentProfile.js'
 
 describe('normalizePaymentChannelOverrides', () => {
@@ -167,6 +180,29 @@ describe('resolveBankTransferDetails', () => {
     ).toEqual({ alias: 'perfil.alias', cbu: '555', holder: 'Club' })
   })
 
+  it('no mezcla el env si el evento ya tiene un dato propio', () => {
+    expect(
+      resolveBankTransferDetails(
+        { bank_transfer_alias: 'evento.alias' },
+        {
+          VITE_PAYMENT_TRANSFER_ALIAS: 'global.alias',
+          VITE_PAYMENT_TRANSFER_CBU: '999',
+          VITE_PAYMENT_TRANSFER_HOLDER: 'Global',
+        },
+      ),
+    ).toEqual({ alias: 'evento.alias', cbu: '', holder: '' })
+  })
+
+  it('no mezcla el env si el perfil vinculado está incompleto', () => {
+    expect(
+      resolveBankTransferDetails(
+        { bank_transfer_cbu: '123', bank_transfer_holder: 'Org Evento' },
+        { VITE_PAYMENT_TRANSFER_ALIAS: 'global.alias', VITE_PAYMENT_TRANSFER_CBU: '999' },
+        { config: { alias: 'perfil.alias' } },
+      ),
+    ).toEqual({ alias: 'perfil.alias', cbu: '', holder: '' })
+  })
+
   it('cae al env cuando el evento no define datos', () => {
     expect(
       resolveBankTransferDetails(null, {
@@ -175,6 +211,129 @@ describe('resolveBankTransferDetails', () => {
         PAYMENT_TRANSFER_HOLDER: 'PLU',
       }),
     ).toEqual({ alias: 'plu.alias', cbu: '111', holder: 'PLU' })
+  })
+})
+
+describe('resolveCashPaymentDetails', () => {
+  it('el lugar propio del evento manda', () => {
+    expect(
+      resolveCashPaymentDetails({
+        venue: 'Virtus Fitness',
+        location: 'Berazategui',
+        cash_payment_place: ' Recepción del gimnasio ',
+        cash_payment_notes: 'De 18 a 21.',
+      }),
+    ).toEqual({ place: 'Recepción del gimnasio', notes: 'De 18 a 21.' })
+  })
+
+  it('sin lugar propio se cobra en la sede del evento, nunca en un lugar fijo', () => {
+    expect(
+      resolveCashPaymentDetails({ venue: 'Virtus Fitness', location: 'Berazategui' }),
+    ).toEqual({ place: 'Virtus Fitness · Berazategui', notes: null })
+  })
+
+  it('sin sede ni lugar devuelve null para que la pantalla use su texto genérico', () => {
+    expect(resolveCashPaymentDetails(null)).toEqual({ place: null, notes: null })
+  })
+
+  it('normaliza y recorta lo que manda el panel', () => {
+    expect(normalizeCashPaymentInput({ place: '  x  ', notes: 'n'.repeat(500) })).toEqual({
+      place: 'x',
+      notes: 'n'.repeat(400),
+      address: '',
+      hours: '',
+      contact: '',
+    })
+    expect(normalizeCashPaymentInput(null)).toEqual({
+      place: '',
+      notes: '',
+      address: '',
+      hours: '',
+      contact: '',
+    })
+  })
+})
+
+describe('checkEventCashPaymentReady', () => {
+  const venue = { venue: 'Maximal Strength Club', location: 'Buenos Aires' }
+
+  it('no exige nada si el evento hereda plataforma', () => {
+    expect(checkEventCashPaymentReady({ overrides: null, event: {} })).toBeNull()
+  })
+
+  it('no exige nada si el efectivo está cerrado en los dos conceptos', () => {
+    expect(
+      checkEventCashPaymentReady({
+        overrides: {
+          registration: { cash_pitbull: false },
+          ticket: { cash_pitbull: false },
+        },
+        cashPayment: {},
+        event: {},
+      }),
+    ).toBeNull()
+  })
+
+  it('alcanza con la sede del evento: sin lugar propio se cobra ahí', () => {
+    expect(
+      checkEventCashPaymentReady({
+        overrides: { registration: { mercado_pago: false } },
+        cashPayment: {},
+        event: venue,
+      }),
+    ).toBeNull()
+  })
+
+  it('alcanza con un lugar propio aunque el evento no tenga sede', () => {
+    expect(
+      checkEventCashPaymentReady({
+        overrides: { registration: { mercado_pago: false } },
+        cashPayment: { place: ' Virtus Fitness ' },
+        event: {},
+      }),
+    ).toBeNull()
+  })
+
+  it('avisa si el efectivo queda abierto y no hay ni lugar propio ni sede', () => {
+    const issue = checkEventCashPaymentReady({
+      overrides: { registration: { mercado_pago: false } },
+      cashPayment: { place: '   ' },
+      event: { venue: '', location: '' },
+    })
+    expect(issue).toMatchObject({
+      code: 'EVENT_CASH_PAYMENT_PLACE_REQUIRED',
+      field: 'cashPayment.place',
+    })
+    expect(issue.message).toMatch(/efectivo/i)
+  })
+
+  it('sigue avisando si el efectivo queda abierto en un solo concepto', () => {
+    const issue = checkEventCashPaymentReady({
+      overrides: {
+        registration: { cash_pitbull: false },
+        ticket: { mercado_pago: false },
+      },
+      cashPayment: {},
+      event: {},
+    })
+    expect(issue?.code).toBe('EVENT_CASH_PAYMENT_PLACE_REQUIRED')
+  })
+})
+
+describe('cashPaymentIssueError', () => {
+  it('es un 400 con el campo a completar', () => {
+    const issue = checkEventCashPaymentReady({
+      overrides: { registration: { mercado_pago: false } },
+      cashPayment: {},
+      event: {},
+    })
+    const error = cashPaymentIssueError(issue)
+    expect(error).toBeInstanceOf(HttpError)
+    expect(error.status).toBe(400)
+    expect(error.details).toMatchObject({
+      code: 'EVENT_CASH_PAYMENT_PLACE_REQUIRED',
+      fields: { 'cashPayment.place': issue.message },
+    })
   })
 })
 
@@ -231,6 +390,80 @@ describe('assertEventBankTransferReady', () => {
         env: { VITE_PAYMENT_TRANSFER_ALIAS: 'plu.alias' },
       }),
     ).not.toThrow()
+  })
+})
+
+describe('resolveEventMercadoPagoReadiness', () => {
+  it('sin perfil usa la cuenta general de la plataforma', () => {
+    expect(resolveEventMercadoPagoReadiness({})).toEqual({
+      destination: 'platform',
+      profileId: null,
+      profileName: null,
+      connectionStatus: null,
+      active: null,
+    })
+  })
+
+  it('marca missing si el perfil no existe o está archivado', () => {
+    expect(
+      resolveEventMercadoPagoReadiness({ mercadoPagoProfileId: 'mp-1', profile: null }),
+    ).toMatchObject({ destination: 'missing', profileId: 'mp-1', active: false })
+    expect(
+      resolveEventMercadoPagoReadiness({
+        mercadoPagoProfileId: 'mp-1',
+        profile: { id: 'mp-1', name: 'Vieja', active: false },
+      }),
+    ).toMatchObject({ destination: 'missing', profileName: 'Vieja' })
+  })
+
+  it('expone connectionStatus de un perfil OAuth activo', () => {
+    expect(
+      resolveEventMercadoPagoReadiness({
+        mercadoPagoProfileId: 'mp-1',
+        profile: {
+          id: 'mp-1',
+          name: 'Club',
+          active: true,
+          connectionStatus: 'needs_reconnect',
+          config: { connection: 'oauth', status: 'needs_reconnect' },
+        },
+      }),
+    ).toEqual({
+      destination: 'profile',
+      profileId: 'mp-1',
+      profileName: 'Club',
+      connectionStatus: 'needs_reconnect',
+      active: true,
+    })
+  })
+})
+
+describe('checkEventMercadoPagoReady', () => {
+  it('no exige nada si hereda plataforma', () => {
+    expect(checkEventMercadoPagoReady({ overrides: null })).toBeNull()
+  })
+
+  it('avisa si el override deja MP abierto con perfil faltante o a reconectar', () => {
+    expect(
+      checkEventMercadoPagoReady({
+        overrides: { mercado_pago: true },
+        mercadoPagoProfileId: 'mp-1',
+        profile: null,
+      }),
+    ).toMatchObject({ code: 'EVENT_MERCADO_PAGO_PROFILE_MISSING' })
+
+    expect(
+      checkEventMercadoPagoReady({
+        overrides: { mercado_pago: true },
+        mercadoPagoProfileId: 'mp-1',
+        profile: {
+          id: 'mp-1',
+          name: 'Club',
+          active: true,
+          connectionStatus: 'needs_reconnect',
+        },
+      }),
+    ).toMatchObject({ code: 'EVENT_MERCADO_PAGO_NEEDS_RECONNECT' })
   })
 })
 
@@ -344,6 +577,122 @@ describe('assertEventPaymentChannelEnabled', () => {
 })
 
 /**
+ * La plataforma es el valor por defecto, no el techo: el evento abre con
+ * `'open'` un canal que Finanzas tiene cerrado. Lo que sigue mandando es el
+ * maestro y el alta del concepto, que se verifican antes de llegar acá.
+ */
+describe('el evento abre un canal que la plataforma tiene cerrado', () => {
+  const platform = {
+    paymentChannels: {
+      membership: {
+        mercado_pago: true,
+        bank_transfer: false,
+        cash_pitbull: false,
+        wise_transfer: false,
+      },
+      registration: {
+        mercado_pago: true,
+        bank_transfer: false,
+        cash_pitbull: false,
+        wise_transfer: false,
+      },
+      ticket: {
+        mercado_pago: true,
+        bank_transfer: true,
+        cash_pitbull: false,
+        wise_transfer: false,
+      },
+    },
+  }
+
+  it('sin decisión del evento, la plataforma cerrada rechaza', () => {
+    expect(() =>
+      assertEventPaymentChannelEnabled(platform, 'registration', 'bank_transfer', {
+        eventOverrides: null,
+      }),
+    ).toThrow(HttpError)
+  })
+
+  it("'open' habilita la transferencia solo en inscripción", () => {
+    const eventOverrides = { registration: { bank_transfer: 'open' } }
+    expect(() =>
+      assertEventPaymentChannelEnabled(platform, 'registration', 'bank_transfer', {
+        eventOverrides,
+      }),
+    ).not.toThrow()
+    // El efectivo sigue cerrado.
+    expect(() =>
+      assertEventPaymentChannelEnabled(platform, 'registration', 'cash_pitbull', {
+        eventOverrides,
+      }),
+    ).toThrow(HttpError)
+  })
+
+  it('un `true` heredado sigue siendo "sin opinión": no reabre nada', () => {
+    // El panel anterior guardaba los cuatro en `true`. Leerlo como "abrir"
+    // reabriría canales que Finanzas cerró en eventos que ya existen.
+    expect(() =>
+      assertEventPaymentChannelEnabled(platform, 'registration', 'bank_transfer', {
+        eventOverrides: { registration: { bank_transfer: true, cash_pitbull: true } },
+      }),
+    ).toThrow(HttpError)
+  })
+
+  it('un cierre del evento gana sobre una apertura de la plataforma', () => {
+    expect(() =>
+      assertEventPaymentChannelEnabled(platform, 'ticket', 'bank_transfer', {
+        eventOverrides: { ticket: { bank_transfer: false } },
+      }),
+    ).toThrow(HttpError)
+  })
+
+  it('no reabre una venta que la plataforma pausó entera', () => {
+    const availability = resolvePublicCheckoutAvailability(
+      applyEventChannelOpens(
+        { ...platform, registrationEnabled: false },
+        { registration: { bank_transfer: 'open' } },
+      ),
+    )
+    expect(availability.registrationEnabled).toBe(false)
+    expect(availability.paymentChannels.registration.bank_transfer).toBe(false)
+  })
+
+  it('la disponibilidad pública ofrece el canal que el evento abrió', () => {
+    const overrides = { registration: { bank_transfer: 'open', cash_pitbull: 'open' } }
+    const availability = applyEventPaymentChannelOverrides(
+      resolvePublicCheckoutAvailability(applyEventChannelOpens(platform, overrides)),
+      overrides,
+    )
+    expect(availability.paymentChannels.registration.bank_transfer).toBe(true)
+    expect(availability.paymentChannels.registration.cash_pitbull).toBe(true)
+    expect(availability.registrationManualEnabled).toBe(true)
+    // Entradas no se tocó: queda como lo dejó la plataforma.
+    expect(availability.paymentChannels.ticket.cash_pitbull).toBe(false)
+    expect(availability.paymentChannels.ticket.bank_transfer).toBe(true)
+  })
+
+  it('una apertura y un cierre conviven en el mismo evento', () => {
+    const overrides = { registration: { bank_transfer: 'open', mercado_pago: false } }
+    const availability = applyEventPaymentChannelOverrides(
+      resolvePublicCheckoutAvailability(applyEventChannelOpens(platform, overrides)),
+      overrides,
+    )
+    expect(availability.paymentChannels.registration.bank_transfer).toBe(true)
+    expect(availability.paymentChannels.registration.mercado_pago).toBe(false)
+  })
+
+  it('exige alias cuando el evento abre la transferencia', () => {
+    expect(() =>
+      assertEventBankTransferReady({
+        overrides: { registration: { bank_transfer: 'open' } },
+        bankTransfer: { alias: '', cbu: '', holder: '' },
+        env: {},
+      }),
+    ).toThrow(HttpError)
+  })
+})
+
+/**
  * Los canales manuales contra el calendario. Una transferencia necesita hasta
  * 72 horas para convertirse en un QR (24 del comprobante + 48 de aprobación):
  * vendida después de ese punto, la entrada no llega y lo que queda es una
@@ -366,22 +715,45 @@ describe('plazo de los canales manuales de entradas', () => {
     expect(applyManualTicketDeadline(availability, STARTS, LEJOS)).toBe(availability)
   })
 
-  it('sobre la fecha cierra transferencia, efectivo y Wise, y deja Mercado Pago', () => {
+  it('sobre la fecha cierra transferencia y Wise; Mercado Pago y efectivo siguen', () => {
     const next = applyManualTicketDeadline(availability, STARTS, CERCA)
     expect(next.paymentChannels.ticket.bank_transfer).toBe(false)
-    expect(next.paymentChannels.ticket.cash_pitbull).toBe(false)
     expect(next.paymentChannels.ticket.wise_transfer).toBe(false)
     expect(next.paymentChannels.ticket.mercado_pago).toBe(true)
-    expect(next.ticketManualEnabled).toBe(false)
+    // Se paga en la sede y se acredita en el momento: no hay demora que cubrir.
+    expect(next.paymentChannels.ticket.cash_pitbull).toBe(true)
+    expect(next.ticketManualEnabled).toBe(true)
     expect(next.ticketEnabled).toBe(true)
   })
 
-  it('si Mercado Pago ya estaba cerrado, cierra la venta entera', () => {
-    const soloManual = {
+  it('sin efectivo abierto, sobre la fecha no queda ningún medio manual', () => {
+    const sinEfectivo = {
       ...availability,
-      paymentChannels: { ticket: { ...availability.paymentChannels.ticket, mercado_pago: false } },
+      paymentChannels: { ticket: { ...availability.paymentChannels.ticket, cash_pitbull: false } },
     }
-    expect(applyManualTicketDeadline(soloManual, STARTS, CERCA).ticketEnabled).toBe(false)
+    expect(applyManualTicketDeadline(sinEfectivo, STARTS, CERCA).ticketManualEnabled).toBe(false)
+  })
+
+  it('si Mercado Pago y el efectivo ya estaban cerrados, cierra la venta entera', () => {
+    const soloComprobante = {
+      ...availability,
+      paymentChannels: {
+        ticket: { ...availability.paymentChannels.ticket, mercado_pago: false, cash_pitbull: false },
+      },
+    }
+    expect(applyManualTicketDeadline(soloComprobante, STARTS, CERCA).ticketEnabled).toBe(false)
+  })
+
+  it('con solo efectivo abierto la venta sigue hasta el cierre', () => {
+    const soloEfectivo = {
+      ...availability,
+      paymentChannels: {
+        ticket: { mercado_pago: false, bank_transfer: true, cash_pitbull: true, wise_transfer: false },
+      },
+    }
+    const next = applyManualTicketDeadline(soloEfectivo, STARTS, CERCA)
+    expect(next.ticketEnabled).toBe(true)
+    expect(next.paymentChannels.ticket.cash_pitbull).toBe(true)
   })
 
   it('un evento sin fecha no pierde la venta por una regla de calendario', () => {
@@ -398,7 +770,196 @@ describe('plazo de los canales manuales de entradas', () => {
     )
   })
 
-  it('Mercado Pago pasa aunque falten horas', () => {
+  it('Mercado Pago y el efectivo pasan aunque falten horas; Wise no', () => {
     expect(() => assertManualTicketDeadline('mercado_pago', STARTS, CERCA)).not.toThrow()
+    expect(() => assertManualTicketDeadline('cash_pitbull', STARTS, CERCA)).not.toThrow()
+    expect(() => assertManualTicketDeadline('wise_transfer', STARTS, CERCA)).toThrow(HttpError)
+  })
+})
+
+describe('checkEventBankTransferReady', () => {
+  const open = { registration: { bank_transfer: 'open' } }
+
+  it('devuelve el problema con el campo a completar, sin lanzar', () => {
+    const issue = checkEventBankTransferReady({ overrides: open, bankTransfer: {}, env: {} })
+    expect(issue).toMatchObject({
+      code: 'EVENT_BANK_TRANSFER_ALIAS_REQUIRED',
+      field: 'bankTransferProfileId',
+    })
+    expect(issue.message).toMatch(/Ventas → Cobro/)
+  })
+
+  it('no hay problema con alias propio, con alias global o sin transferencia', () => {
+    expect(
+      checkEventBankTransferReady({ overrides: open, bankTransfer: { alias: 'club.pesas' }, env: {} }),
+    ).toBeNull()
+    expect(
+      checkEventBankTransferReady({ overrides: open, bankTransfer: {}, env: { PAYMENT_TRANSFER_ALIAS: 'g.a' } }),
+    ).toBeNull()
+    expect(
+      checkEventBankTransferReady({
+        overrides: { registration: { bank_transfer: false }, ticket: { bank_transfer: false } },
+        bankTransfer: {},
+        env: {},
+      }),
+    ).toBeNull()
+  })
+
+  it('el error que arma lleva el campo en `fields` para que el panel salte ahí', () => {
+    const issue = checkEventBankTransferReady({ overrides: open, bankTransfer: {}, env: {} })
+    const error = bankTransferIssueError(issue)
+    expect(error.status).toBe(400)
+    expect(error.details.fields).toEqual({ bankTransferProfileId: issue.message })
+  })
+})
+
+describe('checkEventBankTransferReady', () => {
+  const open = { registration: { bank_transfer: 'open' } }
+
+  it('devuelve el problema con el campo a completar, sin lanzar', () => {
+    const issue = checkEventBankTransferReady({ overrides: open, bankTransfer: {}, env: {} })
+    expect(issue).toMatchObject({
+      code: 'EVENT_BANK_TRANSFER_ALIAS_REQUIRED',
+      field: 'bankTransferProfileId',
+    })
+    expect(issue.message).toMatch(/Ventas → Cobro/)
+  })
+
+  it('no hay problema con alias propio, con alias global o sin transferencia', () => {
+    expect(
+      checkEventBankTransferReady({ overrides: open, bankTransfer: { alias: 'club.pesas' }, env: {} }),
+    ).toBeNull()
+    expect(
+      checkEventBankTransferReady({ overrides: open, bankTransfer: {}, env: { PAYMENT_TRANSFER_ALIAS: 'g.a' } }),
+    ).toBeNull()
+    expect(
+      checkEventBankTransferReady({
+        overrides: { registration: { bank_transfer: false }, ticket: { bank_transfer: false } },
+        bankTransfer: {},
+        env: {},
+      }),
+    ).toBeNull()
+  })
+
+  it('el error que arma lleva el campo en `fields` para que el panel salte ahí', () => {
+    const issue = checkEventBankTransferReady({ overrides: open, bankTransfer: {}, env: {} })
+    const error = bankTransferIssueError(issue)
+    expect(error.status).toBe(400)
+    expect(error.details.fields).toEqual({ bankTransferProfileId: issue.message })
+  })
+})
+
+describe('normalizeBankTransferInput', () => {
+  it('recorta CUIT y banco junto con alias, CBU y titular', () => {
+    expect(
+      normalizeBankTransferInput({
+        alias: ' plu.alias ',
+        cbu: '1',
+        holder: 'PLU',
+        cuit: ' 30-71234567-8 ',
+        bankName: ' Galicia ',
+      }),
+    ).toEqual({
+      alias: 'plu.alias',
+      cbu: '1',
+      holder: 'PLU',
+      cuit: '30-71234567-8',
+      bankName: 'Galicia',
+    })
+  })
+
+  it('sin datos deja los cinco campos vacíos', () => {
+    expect(normalizeBankTransferInput(null)).toEqual({
+      alias: '',
+      cbu: '',
+      holder: '',
+      cuit: '',
+      bankName: '',
+    })
+  })
+})
+
+describe('resolveBankTransferDetails: CUIT y banco de la cuenta', () => {
+  it('no los agrega si la cuenta no los cargó', () => {
+    expect(
+      resolveBankTransferDetails(
+        null,
+        {},
+        { config: { alias: 'plu.cobros', cbu: '', holder: 'PLU', cuit: ' ', bankName: '' } },
+      ),
+    ).toEqual({ alias: 'plu.cobros', cbu: '', holder: 'PLU' })
+  })
+
+  it('los muestra cuando la cuenta vinculada los tiene', async () => {
+    const { resolveBankTransferDetails } = await import(
+      '../server/modules/payments/eventPaymentProfile.js'
+    )
+    expect(
+      resolveBankTransferDetails(null, {}, {
+        config: { alias: 'plu.cobros', cbu: '', holder: 'PLU', cuit: '30-71234567-8', bankName: 'Galicia' },
+      }),
+    ).toEqual({ alias: 'plu.cobros', cbu: '', holder: 'PLU', cuit: '30-71234567-8', bankName: 'Galicia' })
+  })
+})
+
+describe('resolveCashPaymentDetails: dirección, horario y contacto', () => {
+  it('suma lo que cargó el panel y, sin lugar propio, usa la dirección de la sede', async () => {
+    const { resolveCashPaymentDetails } = await import(
+      '../server/modules/payments/eventPaymentProfile.js'
+    )
+    expect(
+      resolveCashPaymentDetails({
+        venue: 'Virtus Fitness',
+        location: 'Berazategui',
+        venue_address: 'Calle 14 4567, Berazategui',
+        cash_payment_hours: 'Lunes a viernes de 18 a 21',
+        cash_payment_contact: 'Preguntar por Agus',
+      }),
+    ).toEqual({
+      place: 'Virtus Fitness · Berazategui',
+      notes: null,
+      address: 'Calle 14 4567, Berazategui',
+      hours: 'Lunes a viernes de 18 a 21',
+      contact: 'Preguntar por Agus',
+    })
+  })
+
+  it('un lugar propio sin dirección no hereda la de la sede', async () => {
+    const { resolveCashPaymentDetails } = await import(
+      '../server/modules/payments/eventPaymentProfile.js'
+    )
+    expect(
+      resolveCashPaymentDetails({
+        venue: 'Estadio',
+        venue_address: 'Av. Siempre Viva 742',
+        cash_payment_place: 'Gimnasio Pitbull',
+      }),
+    ).toEqual({ place: 'Gimnasio Pitbull', notes: null })
+  })
+})
+
+describe('interruptor de entradas del evento', () => {
+  const open = { ticketEnabled: true, paymentChannels: { ticket: { mercado_pago: true } } }
+
+  it('sin la clave rules no opina', () => {
+    expect(eventPublicTicketSalesEnabled({ slug: 'pitbull' })).toBeNull()
+    expect(applyEventTicketSalesSwitch(open, { slug: 'pitbull' }).ticketEnabled).toBe(true)
+  })
+
+  it('apagado cierra el checkout público', () => {
+    const closed = applyEventTicketSalesSwitch(open, { rules: { ticketsEnabled: false } })
+    expect(closed.ticketEnabled).toBe(false)
+    expect(closed.eventTicketsEnabled).toBe(false)
+  })
+
+  it('prendido deja la venta de la plataforma', () => {
+    const venta = applyEventTicketSalesSwitch(open, { rules: { ticketsEnabled: true } })
+    expect(venta.ticketEnabled).toBe(true)
+    expect(venta.eventTicketsEnabled).toBe(true)
+  })
+
+  it('una fila leída sin el flag queda cerrada, igual que la RPC', () => {
+    expect(eventPublicTicketSalesEnabled({ rules: {} })).toBe(false)
+    expect(eventPublicTicketSalesEnabled({ rules: null })).toBe(false)
   })
 })

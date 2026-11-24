@@ -25,6 +25,8 @@ vi.mock('../src/services/checkinScanService.js', async (importOriginal) => ({
 vi.mock('../src/lib/offlineCheckinDb.js', () => ({
   enqueueCheckin: (...args) => enqueueCheckin(...args),
   findInAllowlist: (...args) => findInAllowlist(...args),
+  getAllowlist: vi.fn(async () => null),
+  downloadAllowlist: vi.fn(async (_eventSlug, data) => data),
 }))
 vi.mock('../src/services/checkinTelemetry.js', () => ({
   reportScanAttempt: (...args) => reportScanAttempt(...args),
@@ -142,6 +144,35 @@ describe('escaneo con fallas del servidor', () => {
     expect(result.current.scanVerdict.tone).toBe('warning')
   })
 
+  it('el freno del código de puerta pide esperar si no está en el teléfono', async () => {
+    resolveCredentialScan.mockRejectedValue(
+      new ApiError('Demasiados códigos incorrectos. Esperá un momento y reintentá.', { status: 429, body: {} }),
+    )
+    findInAllowlist.mockResolvedValue(null)
+    const { result } = setup()
+
+    await act(async () => {
+      await result.current.handleScan('K4M-7QP')
+    })
+
+    expect(result.current.scanResult.outcome).toBe('rate_limited')
+  })
+
+  it('el mismo freno no tapa una entrada que ya está en la lista local', async () => {
+    resolveCredentialScan.mockRejectedValue(
+      new ApiError('Demasiados códigos incorrectos. Esperá un momento y reintentá.', { status: 429, body: {} }),
+    )
+    findInAllowlist.mockResolvedValue(ALLOWLIST_TICKET)
+    const { result } = setup()
+
+    await act(async () => {
+      await result.current.handleScan('K4M-7QP')
+    })
+
+    expect(result.current.scanResult.offline).toBe(true)
+    expect(result.current.scanResult.outcome).not.toBe('rate_limited')
+  })
+
   it('con la sesión vencida (401) avisa que venció y no acusa al QR', async () => {
     resolveCredentialScan.mockRejectedValue(apiError(401))
     const { result } = setup()
@@ -218,6 +249,7 @@ describe('admitir un ingreso con la conexión caída', () => {
       await result.current.handleScanCheckIn()
     })
 
+    expect(onCheckInTicket).toHaveBeenCalledTimes(3)
     expect(enqueueCheckin).toHaveBeenCalledWith(
       expect.objectContaining({ kind: 'ticket', qrToken: 'qr-1', gate: 'Puerta 1' }),
     )
@@ -233,6 +265,7 @@ describe('admitir un ingreso con la conexión caída', () => {
       await result.current.handleScanCheckIn()
     })
 
+    expect(onCheckInTicket).toHaveBeenCalledTimes(3)
     expect(enqueueCheckin).toHaveBeenCalled()
   })
 
@@ -245,6 +278,7 @@ describe('admitir un ingreso con la conexión caída', () => {
       await result.current.handleScanCheckIn()
     })
 
+    expect(onCheckInTicket).toHaveBeenCalledTimes(1)
     expect(enqueueCheckin).not.toHaveBeenCalled()
     expect(result.current.scanResult.outcome).toBe('session_expired')
   })

@@ -1,13 +1,28 @@
 import { useEffect, useState } from 'react'
 import { Clock, ScanLine, XCircle } from 'lucide-react'
 import AdminTicketAddonRedemption from './AdminTicketAddonRedemption.jsx'
+import DoorTicketDecision from './DoorTicketDecision.jsx'
 import { StatusBadge } from '../ui/DataTable.jsx'
 import { formatScheduleSummary, formatSessionDetail } from '../../lib/eventSchedule.js'
 import { formatDocumentWithKind } from '../../lib/format.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { checkinTypeLabel } from '../../services/checkinScanService.js'
-import { formatDoorCode } from '../../lib/manualCheckinCode.js'
 import { TICKET_VALIDITY_STATUS, ticketValidityTiming } from '../../lib/ticketValidity.js'
+import { speakDoorCode } from '../../lib/doorCodeSpeech.js'
+
+// Decisiones que se leen de pie. El resto (sesión, cola, servidor) es un aviso
+// y no tiene que ocupar el mismo cuerpo tipográfico.
+const DECISION_OUTCOMES = new Set([
+  'ready',
+  'checked_in',
+  'already_used',
+  'not_found',
+  'invalid',
+  'wrong_zone',
+  'not_yet_valid',
+  'expired',
+  'needs_online',
+])
 
 function formatRelativeValidityTime(milliseconds, direction, locale) {
   const absolute = Math.max(0, Number(milliseconds) || 0)
@@ -21,9 +36,14 @@ function formatRelativeValidityTime(milliseconds, direction, locale) {
 
 export default function CheckInScanResult({
   canCheckIn,
+  canEnableTickets = false,
+  canForceCheckIn = false,
   locale,
   onDismiss,
+  onEnableTicket,
+  onForceCheckIn,
   onRedeemAddon,
+  onRejectTicket,
   onScanCheckIn,
   onSelectMatch,
   redeemBusyId,
@@ -34,9 +54,14 @@ export default function CheckInScanResult({
   scanResult,
   scanTicketPaid,
   scanVerdict,
+  kiosk = false,
+  turnstileGate = 'idle',
+  onRetryTurnstile = null,
 }) {
   const { t } = useI18n()
   const [clockNow, setClockNow] = useState(() => Date.now())
+  const [decision, setDecision] = useState(null)
+  const [decisionError, setDecisionError] = useState('')
   const hasTicketWindow = Boolean(
     scanResult?.kind === 'ticket' && scanResult.row?.validFrom && scanResult.row?.validUntil,
   )
@@ -114,16 +139,33 @@ export default function CheckInScanResult({
           })
         : null
 
+  const resultKey = `${effectiveOutcome}:${scanResult.row?.id ?? ''}:${scanResult.offline ? 'local' : 'net'}`
+  const doorCode = scanResult.gateCode || scanResult.row?.gateCode || scanResult.ticket?.gateCode || ''
+  const memberCode = scanResult.row?.memberCode || scanResult.membership?.memberCode || ''
+  const humanCode = isTicket ? doorCode : memberCode
+  const humanCodeLabel = isTicket
+    ? t('admin.checkin.scanner.doorCode')
+    : t('admin.checkin.scanner.memberCode')
+
   return (
     <div
-      className={`admin-checkin-result admin-checkin-result--${effectiveVerdict.tone}${scanResult.offline ? ' admin-checkin-result--offline' : ''}`}
+      key={resultKey}
+      className={`admin-checkin-result admin-checkin-result--${effectiveVerdict.tone}${
+        DECISION_OUTCOMES.has(effectiveOutcome) ? ' admin-checkin-result--decision' : ''
+      }${scanResult.offline ? ' admin-checkin-result--offline' : ''}`}
       role="status"
       aria-live="polite"
     >
       <div className="admin-checkin-result__header">
         <ScanVerdictIcon size={22} aria-hidden />
         <div>
-          <strong>{t(`admin.checkin.scanner.outcome.${effectiveOutcome}`)}</strong>
+          <strong>
+            {t(
+              scanResult.kind === 'ticket' && effectiveOutcome === 'expired'
+                ? 'admin.checkin.scanner.outcome.credential_expired'
+                : `admin.checkin.scanner.outcome.${effectiveOutcome}`,
+            )}
+          </strong>
           {validityReason ? (
             <span className="admin-checkin-result__reason">{validityReason}</span>
           ) : null}
@@ -134,11 +176,7 @@ export default function CheckInScanResult({
         <p className="admin-checkin-result__reason admin-checkin-result__manual-hint">
           {scanResult.manualQuery.kind === 'dni'
             ? t('admin.checkin.manual.notFoundDni', { dni: scanResult.manualQuery.dni })
-            : scanResult.manualQuery.kind === 'door_code'
-              ? t('admin.checkin.manual.notFoundDoor', {
-                  code: formatDoorCode(scanResult.manualQuery.doorCode),
-                })
-              : t('admin.checkin.manual.notFoundCode', { code: scanResult.manualQuery.ticketCode })}
+            : t('admin.checkin.manual.notFoundCode', { code: scanResult.manualQuery.ticketCode })}
         </p>
       ) : null}
 
@@ -238,9 +276,7 @@ export default function CheckInScanResult({
           {/* "Ya ingresó" sin decir cuándo ni por dónde obliga al guardia a
               discutir en la puerta. Con la hora y el puesto, la discusión se
               resuelve sola: la misma persona dos veces, o un QR compartido. */}
-          {scanResult.kind === 'ticket' &&
-          effectiveOutcome === 'already_used' &&
-          scanResult.row?.checkedInAt ? (
+          {effectiveOutcome === 'already_used' && scanResult.row?.checkedInAt ? (
             <div>
               <dt>{t('admin.checkin.admittedAt')}</dt>
               <dd>
@@ -316,8 +352,146 @@ export default function CheckInScanResult({
         />
       ) : null}
 
+      {scanResult.outcome === 'door_malformed' ? (
+        <p className="admin-checkin-result__reason">
+          {scanResult.reason === 'ambiguous'
+            ? t('admin.checkin.scanner.malformedAmbiguous')
+            : t('admin.checkin.scanner.malformedLength', { count: scanResult.heard ?? 0 })}
+        </p>
+      ) : null}
+
+      {Array.isArray(scanResult.repairs) && scanResult.repairs.length > 0 ? (
+        <ul className="admin-checkin-result__repairs">
+          {scanResult.repairs.map((key) => (
+            <li key={key}>{t(`admin.checkin.scanner.repair.${key}`)}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      {humanCode && scanResult.outcome !== 'door_malformed' ? (
+        <p className="admin-checkin-result__human-code">
+          <span>{humanCodeLabel}</span>
+          <strong>{humanCode}</strong>
+          {isTicket ? (
+            <button type="button" className="admin-checkin-result__text-action" onClick={() => speakDoorCode(doorCode)}>
+              {t('admin.checkin.scanner.speakCode')}
+            </button>
+          ) : (
+            <span className="admin-checkin-result__human-hint">{t('admin.checkin.scanner.memberCodeHint')}</span>
+          )}
+        </p>
+      ) : null}
+
+      {(() => {
+        const ticketStatus = scanResult.row?.status ?? scanResult.ticket?.status ?? scanResult.status
+        const paid =
+          (ticketStatus === 'pagada' || scanTicketPaid) &&
+          ticketStatus !== 'usada' &&
+          ticketStatus !== 'cancelada' &&
+          effectiveOutcome !== 'checked_in' &&
+          effectiveOutcome !== 'already_used'
+        const orderId = scanResult.row?.orderId ?? scanResult.ticket?.orderId ?? null
+        const forceKind =
+          effectiveOutcome === 'wrong_zone'
+            ? 'zone'
+            : effectiveOutcome === 'not_yet_valid' || effectiveOutcome === 'expired'
+              ? 'validity'
+              : null
+        const showForce = Boolean(canForceCheckIn && isTicket && paid && forceKind && onForceCheckIn)
+        const showEnable = Boolean(
+          canEnableTickets && isTicket && ticketStatus === 'pendiente_pago' && orderId && onEnableTicket,
+        )
+        if (!showForce && !showEnable) return null
+        return (
+          <>
+            {decision ? (
+              <DoorTicketDecision
+                busy={scanBusy}
+                error={decisionError}
+                kind={decision}
+                proofOrderId={
+                  decision === 'enable' && (scanResult.row?.paymentProofPath || scanResult.ticket?.paymentProofPath)
+                    ? orderId
+                    : null
+                }
+                onCancel={() => {
+                  setDecision(null)
+                  setDecisionError('')
+                }}
+                onConfirm={async (reason) => {
+                  try {
+                    if (decision === 'force') await onForceCheckIn(forceKind, reason)
+                    else await onEnableTicket(orderId, reason)
+                    setDecision(null)
+                  } catch (error) {
+                    setDecisionError(error?.message || t('admin.checkin.decisionShort'))
+                  }
+                }}
+                onReject={
+                  showEnable && onRejectTicket
+                    ? async (reason) => {
+                        try {
+                          await onRejectTicket(orderId, reason)
+                          setDecision(null)
+                        } catch (error) {
+                          setDecisionError(error?.message || t('admin.checkin.decisionShort'))
+                        }
+                      }
+                    : null
+                }
+              />
+            ) : (
+              <div className="admin-checkin-result__actions">
+                {showForce ? (
+                  <button
+                    type="button"
+                    className="btn btn--primary btn--sm"
+                    disabled={scanBusy}
+                    onClick={() => {
+                      setDecisionError('')
+                      setDecision('force')
+                    }}
+                  >
+                    {t('admin.checkin.forceEntry')}
+                  </button>
+                ) : null}
+                {showEnable ? (
+                  <button
+                    type="button"
+                    className="btn btn--primary btn--sm"
+                    disabled={scanBusy}
+                    onClick={() => {
+                      setDecisionError('')
+                      setDecision('enable')
+                    }}
+                  >
+                    {t('admin.checkin.enableEntry')}
+                  </button>
+                ) : null}
+              </div>
+            )}
+          </>
+        )
+      })()}
+
+      {kiosk && turnstileGate === 'failed' && (
+        <p className="admin-checkin-result__turnstile" role="alert">
+          {t('admin.checkin.kiosk.registeredNoPulse')}
+        </p>
+      )}
+      {kiosk && turnstileGate === 'opening' && (
+        <p className="admin-checkin-result__turnstile" role="status">
+          {t('admin.checkin.kiosk.opening')}
+        </p>
+      )}
+
       <div className="admin-checkin-result__actions">
-        {scanResult.canCheckIn && (
+        {kiosk && turnstileGate === 'failed' && (
+          <button type="button" className="btn btn--primary btn--sm" onClick={onRetryTurnstile}>
+            {t('admin.checkin.kiosk.retryPulse')}
+          </button>
+        )}
+        {scanResult.canCheckIn && !kiosk && (
           <button
             type="button"
             className="btn btn--primary btn--sm"

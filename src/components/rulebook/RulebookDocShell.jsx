@@ -74,6 +74,20 @@ export default function RulebookDocShell({ documents, downloadMeta, locale, mani
   const activeLanguageLabel =
     pdfLocale === 'es' ? t('pages.rulebook.pdfLanguageEs') : t('pages.rulebook.pdfLanguageEn')
 
+  function viewDocument(event) {
+    openerRef.current = event.currentTarget
+
+    // Chrome y varios WebViews Android no incluyen un visor PDF para iframes.
+    // El documento abierto directamente usa el visor o la descarga nativa del
+    // dispositivo, que es el camino confiable en pantallas tactiles.
+    if (window.matchMedia?.('(pointer: coarse)')?.matches) {
+      window.open(activeDoc.url, '_blank', 'noopener,noreferrer')
+      return
+    }
+
+    setViewerOpen(true)
+  }
+
   return (
     <section className="rulebook-doc-shell">
       <article className="rulebook-doc-panel">
@@ -113,10 +127,7 @@ export default function RulebookDocShell({ documents, downloadMeta, locale, mani
               type="button"
               className="rulebook-doc-panel__view-btn"
               aria-label={t('pages.rulebook.viewDocument')}
-              onClick={(event) => {
-                openerRef.current = event.currentTarget
-                setViewerOpen(true)
-              }}
+              onClick={viewDocument}
             >
               <BookOpen size={16} aria-hidden />
               <span>{t('pages.rulebook.viewDocument')}</span>

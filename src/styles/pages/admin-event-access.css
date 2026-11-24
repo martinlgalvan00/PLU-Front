@@ -1,0 +1,83 @@
+/* Eventos asignados a un organizador (diálogo de Usuarios).
+   Reusa la estructura de `.admin-user-delete-dialog` (velo, panel, acciones); acá solo lo propio:
+   el ícono neutro y la lista de eventos, en filas con regla (sin tarjetas). */
+
+.admin-event-access__panel {
+  max-width: 520px;
+  width: min(520px, 100%);
+}
+
+.admin-event-access__icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
+  border-radius: var(--radius-md, 10px);
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.admin-event-access__search {
+  display: grid;
+  gap: 6px;
+  margin-top: var(--space-md, 16px);
+}
+
+.admin-event-access__search span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.admin-event-access__list {
+  border-bottom: 1px solid var(--color-border-subtle);
+  list-style: none;
+  margin: var(--space-sm, 10px) 0 0;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.admin-event-access__list li {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.admin-event-access__item {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 2px;
+}
+
+.admin-event-access__item input {
+  flex: none;
+  height: 18px;
+  width: 18px;
+}
+
+.admin-event-access__item-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.admin-event-access__item-copy strong {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.admin-event-access__item-copy small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.admin-event-access__count,
+.admin-event-access__empty {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  margin: var(--space-sm, 10px) 0 0;
+}

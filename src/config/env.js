@@ -34,6 +34,7 @@ const ticketSalesEnabledRaw = String(import.meta.env.VITE_TICKET_SALES_ENABLED ?
 // panel (Acceso y habilitación). Antes era opt-in y el switch del panel se
 // podía prender sin efecto en la página pública.
 const ticketSalesEnabled = !['false', '0', 'no'].includes(ticketSalesEnabledRaw)
+const turnstileUrl = trimUrl(import.meta.env.VITE_TURNSTILE_URL) || 'http://127.0.0.1:4877'
 const isConfiguredValue = (value) =>
   Boolean(value && !/^(?:replace|changeme|placeholder|your[_-]|xxx|test-x{4}$)/i.test(value))
 
@@ -45,6 +46,7 @@ export const env = {
   paidCheckoutEnabled,
   // Kill switch de entradas: sin valor o true, decide el panel.
   ticketSalesEnabled,
+  turnstileUrl,
   demoMode: import.meta.env.VITE_DEMO_MODE === 'true',
   supabase: {
     url: supabaseUrl,

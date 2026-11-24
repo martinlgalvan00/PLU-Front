@@ -64,8 +64,9 @@ export function getPublicEventStatus(event, now = new Date(), { registrationEnab
 export function withPublicEventStatus(event, now = new Date(), options = {}) {
   if (!event) return event
   const status = getPublicEventStatus(event, now, options)
-  // `storedStatus` conserva el de la base: la venta de entradas se corta con
-  // ese (cerrado/finalizado), no con la ventana de inscripción de atletas.
+  // `storedStatus` conserva el de la base. Cerrar la inscripción de atletas
+  // (estado `cerrado`, o la ventana ya vencida) no corta la venta de entradas:
+  // eso lo hace solo `finalizado`, más el interruptor y la ventana propios.
   return status === event.status ? event : { ...event, status, storedStatus: event.status }
 }
 

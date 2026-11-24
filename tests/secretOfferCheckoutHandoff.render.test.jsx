@@ -108,6 +108,7 @@ const ATHLETE = {
   documentId: '30111222',
   email: 'ana@plu.test',
   emailVerifiedAt: '2026-01-01T00:00:00Z',
+  sex: 'Femenino',
 }
 
 const RESTRICTED_EVENT = {
@@ -177,7 +178,9 @@ const RESOLVED_OFFER = {
 const FORM = {
   division: 'Open',
   category: 'Raw',
+  declaredWeightClass: '75',
   estimatedWeight: '83',
+  competitionBestTotalKg: '500',
   paymentMethod: 'mercado_pago',
 }
 
@@ -261,14 +264,14 @@ describe('código de combo tipeado en el checkout', () => {
     await waitForAccessValidation()
 
     expect(screen.getByRole('radio', { name: /Transferencia bancaria/i })).toBeTruthy()
-    expect(screen.getByRole('radio', { name: /Efectivo en Pitbull/i })).toBeTruthy()
+    expect(screen.getByRole('radio', { name: /Efectivo en el lugar/i })).toBeTruthy()
 
     openDiscountField()
     await typeAndRedeem('ONLY-PITBULL')
     await waitFor(() => expect(appliedDiscount(container)).toContain('ONLY-PITBULL'))
 
     expect(screen.queryByRole('radio', { name: /Transferencia bancaria/i })).toBeNull()
-    expect(screen.queryByRole('radio', { name: /Efectivo en Pitbull/i })).toBeNull()
+    expect(screen.queryByRole('radio', { name: /Efectivo en el lugar/i })).toBeNull()
     expect(screen.getByRole('radio', { name: /Mercado Pago/i })).toBeTruthy()
   })
 
@@ -513,5 +516,49 @@ describe('código de combo con el contrato vivo (open_bundle)', () => {
     await waitFor(() => expect(sessionStorage.getItem('plu:pending-promotion-code')).toBe(null))
     // Y nadie volvió a la ficha.
     expect(onNavigate).not.toHaveBeenCalledWith('profile', expect.anything())
+  })
+
+  it('carga en el formulario lo que el atleta ya completó en la ficha del paquete', async () => {
+    const onUpdateForm = vi.fn()
+    sessionStorage.setItem(
+      'plu:pending-promotion-code',
+      JSON.stringify({
+        code: 'ONLY-PITBULL',
+        context: {
+          surface: 'bundle-gateway',
+          destination: { view: 'competition', eventSlug: 'pitbull-classic-2026' },
+          resolved: true,
+          competition: {
+            division: 'Junior',
+            category: 'Raw',
+            declaredWeightClass: '67,5',
+            estimatedWeight: '70',
+            firstMeet: true,
+            competitionBestTotalKg: '',
+            trainingBestTotalKg: '480',
+          },
+        },
+        savedAt: '2026-08-27T12:00:00.000Z',
+      }),
+    )
+
+    renderCompetition({ onUpdateForm })
+    await waitForAccessValidation()
+
+    await waitFor(() => {
+      const firstMeet = onUpdateForm.mock.calls.filter(
+        ([event]) => event.target.name === 'firstMeet',
+      )
+      expect(firstMeet.at(-1)?.[0].target.value).toBe(true)
+    })
+    expect(onUpdateForm).toHaveBeenCalledWith({
+      target: { name: 'trainingBestTotalKg', value: '480' },
+    })
+    expect(onUpdateForm).toHaveBeenCalledWith({
+      target: { name: 'division', value: 'Junior' },
+    })
+    expect(onUpdateForm).toHaveBeenCalledWith({
+      target: { name: 'declaredWeightClass', value: '67,5' },
+    })
   })
 })

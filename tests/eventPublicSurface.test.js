@@ -5,6 +5,9 @@ import {
   eventShowsPublicCalendar,
   eventShowsPublicCategories,
   eventShowsPublicExperience,
+  eventShowsPublicRecentRegistrants,
+  eventShowsPublicSchedule,
+  eventShowsPublicTickets,
   eventShowsPublicWeighIns,
   normalizeEventPublicSurface,
   publicSurfaceModulesForEvent,
@@ -23,9 +26,19 @@ describe('eventPublicSurface', () => {
   })
 
   it('lee los flags desde el evento mapeado', () => {
-    const event = { publicSurface: { calendar: false, weighIns: false, categories: true } }
+    const event = {
+      publicSurface: {
+        calendar: false,
+        weighIns: false,
+        schedule: false,
+        recentRegistrants: false,
+        categories: true,
+      },
+    }
     expect(eventShowsPublicCalendar(event)).toBe(false)
     expect(eventShowsPublicWeighIns(event)).toBe(false)
+    expect(eventShowsPublicSchedule(event)).toBe(false)
+    expect(eventShowsPublicRecentRegistrants(event)).toBe(false)
     expect(eventShowsPublicCategories(event)).toBe(true)
     expect(eventShowsPublicExperience(event)).toBe(true)
   })
@@ -36,18 +49,56 @@ describe('eventPublicSurface', () => {
     expect(publicSurfaceModulesForEvent(event).map((module) => module.key)).toEqual([
       'calendar',
       'weighIns',
+      'schedule',
+      'recentRegistrants',
       'livestream',
+      'faq',
       'experience',
       'categories',
       'location',
+      'tickets',
+      'countdown',
     ])
+  })
+
+  it('una plantilla editorial sin slug Pitbull también es custom', () => {
+    const event = { slug: 'spring-classic-2027', landing: { templateId: 'editorial' } }
+    expect(eventHasCustomPublicPage(event)).toBe(true)
+    expect(publicSurfaceModulesForEvent(event).map((module) => module.key)).toContain('experience')
   })
 
   it('en un evento genérico no ofrece bloques de landing propia', () => {
     expect(publicSurfaceModulesForEvent({ slug: 'winter-open-2026' }).map((module) => module.key)).toEqual([
       'calendar',
       'weighIns',
+      'schedule',
+      'recentRegistrants',
       'livestream',
+      'faq',
     ])
+  })
+
+  it('muestra la compra cuando la venta está habilitada aunque el bloque esté oculto', () => {
+    expect(
+      eventShowsPublicTickets({
+        status: 'cerrado',
+        pricing: { ticketsEnabled: true },
+        publicSurface: { tickets: false },
+      }),
+    ).toBe(true)
+    expect(
+      eventShowsPublicTickets({
+        status: 'cerrado',
+        pricing: { ticketsEnabled: false },
+        publicSurface: { tickets: false },
+      }),
+    ).toBe(false)
+    expect(
+      eventShowsPublicTickets({
+        status: 'finalizado',
+        pricing: { ticketsEnabled: true },
+        publicSurface: { tickets: false },
+      }),
+    ).toBe(false)
   })
 })

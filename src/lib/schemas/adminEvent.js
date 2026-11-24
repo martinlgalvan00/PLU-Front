@@ -1,6 +1,9 @@
 import { z } from 'zod'
+import { buildLandingLayoutSchema } from './landingLayoutSchema.js'
 import { EVENT_PAYMENT_CHANNELS, eventChannelOverridesFor } from '../eventPaymentChannels.js'
 import { resolveTicketTypeChannels } from '../ticketTypePaymentChannels.js'
+import { EXTERNAL_FORM_LABEL_MAX, normalizeExternalFormUrl } from '../eventExternalForm.js'
+import { MAX_TICKET_REVEAL_LEAD_HOURS } from '../ticketReveal.js'
 import {
   MAX_TICKET_QR_VALIDITY_MINUTES,
   TICKET_ACCESS_USAGE_MODE,
@@ -224,7 +227,11 @@ const ticketTypeSchema = z
       })
     }
     if (
-      [TICKET_QR_VALIDITY_MODE.FROM_PAYMENT, TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN].includes(validityMode) &&
+      [
+        TICKET_QR_VALIDITY_MODE.FROM_PAYMENT,
+        TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN,
+        TICKET_QR_VALIDITY_MODE.FIRST_ENTRY_DAY,
+      ].includes(validityMode) &&
       (type.validFrom || type.validUntil)
     ) {
       ctx.addIssue({
@@ -245,10 +252,21 @@ const ticketTypeSchema = z
     }
   })
 
+// A nivel evento un canal se cierra (`false`) o se abre aunque la plataforma lo
+// tenga cerrado (`'open'`); el tipo de entrada sigue siendo sólo booleano.
+const eventChannelDecisionSchema = z.union([z.boolean(), z.literal('open')]).optional()
+
+const eventChannelDecisionsSchema = z.object({
+  mercado_pago: eventChannelDecisionSchema,
+  bank_transfer: eventChannelDecisionSchema,
+  cash_pitbull: eventChannelDecisionSchema,
+  wise_transfer: eventChannelDecisionSchema,
+})
+
 const paymentChannelsByConceptSchema = z
   .object({
-    registration: paymentChannelFlagsSchema.strict().optional(),
-    ticket: paymentChannelFlagsSchema.strict().optional(),
+    registration: eventChannelDecisionsSchema.strict().optional(),
+    ticket: eventChannelDecisionsSchema.strict().optional(),
   })
   .strict()
 
@@ -291,8 +309,28 @@ function requiredDateTime(missingMessage) {
 }
 
 /**
+ * Tope de entradas del evento. Vacío = sin máximo. No es el cupo de atletas.
+ * `''` y null quedan en null; un número se valida como entero entre 0 y 5000.
+ */
+function optionalTicketCapacity() {
+  return z
+    .union([
+      z.literal(''),
+      z.null(),
+      z.coerce
+        .number({ invalid_type_error: 'ticketCapacityInvalid' })
+        .int('ticketCapacityInvalid')
+        .min(0, 'ticketCapacityMin')
+        .max(5000, 'ticketCapacityMax'),
+    ])
+    .optional()
+    .transform((value) => (value === '' || value == null ? null : value))
+}
+
+/**
  * Validación del draft de creación/edición de eventos.
- * Campos críticos obligatorios; ventanas y live opcionales con consistencia.
+ * Cupo y ventana de inscripción son obligatorios. La ventana de entradas y su
+ * tope son opcionales: vacío significa sin máximo y sin fecha.
  */
 export const adminEventDraftSchema = z
   .object({
@@ -304,6 +342,7 @@ export const adminEventDraftSchema = z
       .min(1, 'slotsMin')
       .max(5000, 'slotsMax'),
     venue: z.string().trim().min(2, 'venueMin').max(120, 'venueMax'),
+    venueAddress: optionalText(200, 'venueAddressMax'),
     location: z.string().trim().min(2, 'locationMin').max(120, 'locationMax'),
     status: z.string().trim().min(1, 'statusRequired'),
     pricing: z.object({
@@ -316,10 +355,19 @@ export const adminEventDraftSchema = z
     }),
     startsAt: requiredDateTime('startsAtRequired'),
     endsAt: requiredDateTime('endsAtRequired'),
-    registrationOpensAt: optionalDateTime(),
-    registrationClosesAt: optionalDateTime(),
+    registrationOpensAt: requiredDateTime('registrationOpensAtRequired'),
+    registrationClosesAt: requiredDateTime('registrationClosesAtRequired'),
     ticketSalesOpensAt: optionalDateTime(),
     ticketSalesClosesAt: optionalDateTime(),
+    ticketCapacity: optionalTicketCapacity(),
+    ticketRevealLeadHours: z.preprocess(
+      (value) => (value === '' || value == null ? 24 : value),
+      z.coerce
+        .number({ invalid_type_error: 'ticketRevealLeadInvalid' })
+        .int('ticketRevealLeadInvalid')
+        .min(0, 'ticketRevealLeadMin')
+        .max(MAX_TICKET_REVEAL_LEAD_HOURS, 'ticketRevealLeadMax'),
+    ),
     liveStreamUrl: z
       .string()
       .trim()
@@ -336,10 +384,15 @@ export const adminEventDraftSchema = z
       .object({
         calendar: z.boolean().optional(),
         weighIns: z.boolean().optional(),
+        schedule: z.boolean().optional(),
+        recentRegistrants: z.boolean().optional(),
         livestream: z.boolean().optional(),
         experience: z.boolean().optional(),
         categories: z.boolean().optional(),
         location: z.boolean().optional(),
+        faq: z.boolean().optional(),
+        tickets: z.boolean().optional(),
+        countdown: z.boolean().optional(),
       })
       .optional(),
     publicCopy: z
@@ -351,11 +404,52 @@ export const adminEventDraftSchema = z
         inscriptionNote: z.string().trim().max(160, 'inscriptionNoteMax').optional(),
       })
       .optional(),
+    landing: z
+      .object({
+        templateId: z.enum(['meet', 'editorial', 'submission', 'builder']).optional(),
+        themeId: z
+          .enum(['plu-default', 'night-steel', 'ember', 'clean-light'])
+          .optional(),
+        publicVisible: z.boolean().optional(),
+        phase: z.enum(['coming_soon', 'published']).optional(),
+        layout: buildLandingLayoutSchema(z).optional(),
+        slots: z
+          .object({
+            heroTitle: z.string().trim().max(120, 'landingHeroTitleMax').optional(),
+            heroLead: z.string().trim().max(240, 'landingHeroLeadMax').optional(),
+            ctaLabel: z.string().trim().max(40, 'landingCtaLabelMax').optional(),
+            inscriptionMark: z.string().trim().max(40, 'landingInscriptionMarkMax').optional(),
+            inscriptionNote: z.string().trim().max(160, 'landingInscriptionNoteMax').optional(),
+            experienceTitle: z.string().trim().max(120, 'landingExperienceTitleMax').optional(),
+            experienceBody: z.string().trim().max(800, 'landingExperienceBodyMax').optional(),
+            categoriesTitle: z.string().trim().max(120, 'landingCategoriesTitleMax').optional(),
+            categoriesBody: z.string().trim().max(800, 'landingCategoriesBodyMax').optional(),
+            locationTitle: z.string().trim().max(120, 'landingLocationTitleMax').optional(),
+            locationBody: z.string().trim().max(800, 'landingLocationBodyMax').optional(),
+            heroImagePath: z
+              .string()
+              .trim()
+              .max(200, 'landingHeroImagePathMax')
+              .regex(/^[A-Za-z0-9._()+/-]*$/, 'landingHeroImagePathInvalid')
+              .refine((value) => !value.includes('..'), 'landingHeroImagePathInvalid')
+              .optional(),
+            metaTitle: z.string().trim().max(70, 'landingMetaTitleMax').optional(),
+            metaDescription: z.string().trim().max(160, 'landingMetaDescriptionMax').optional(),
+            faq1Question: z.string().trim().max(120, 'landingFaqQuestionMax').optional(),
+            faq1Answer: z.string().trim().max(400, 'landingFaqAnswerMax').optional(),
+            faq2Question: z.string().trim().max(120, 'landingFaqQuestionMax').optional(),
+            faq2Answer: z.string().trim().max(400, 'landingFaqAnswerMax').optional(),
+            faq3Question: z.string().trim().max(120, 'landingFaqQuestionMax').optional(),
+            faq3Answer: z.string().trim().max(400, 'landingFaqAnswerMax').optional(),
+          })
+          .optional(),
+      })
+      .optional(),
     // Por concepto (`{registration, ticket}`) o la forma plana vieja, que vale
     // para los dos. Ambas `strict()`: si no, un objeto por concepto entraría
     // por la rama plana y zod lo vaciaría al descartar claves desconocidas.
     paymentChannelOverrides: z
-      .union([paymentChannelsByConceptSchema, paymentChannelFlagsSchema.strict()])
+      .union([paymentChannelsByConceptSchema, eventChannelDecisionsSchema.strict()])
       .nullable()
       .optional(),
     bankTransfer: z
@@ -363,10 +457,34 @@ export const adminEventDraftSchema = z
         alias: optionalText(120, 'bankAliasMax'),
         cbu: optionalText(30, 'bankCbuMax'),
         holder: optionalText(160, 'bankHolderMax'),
+        cuit: optionalText(20, 'bankCuitMax'),
+        bankName: optionalText(80, 'bankNameMax'),
       })
       .optional(),
     bankTransferProfileId: z.string().uuid('bankProfileIdInvalid').nullable().optional(),
+    cashPayment: z
+      .object({
+        place: optionalText(160, 'cashPlaceMax'),
+        notes: optionalText(400, 'cashNotesMax'),
+        address: optionalText(200, 'cashAddressMax'),
+        hours: optionalText(160, 'cashHoursMax'),
+        contact: optionalText(120, 'cashContactMax'),
+      })
+      .optional(),
     mercadoPagoProfileId: z.string().uuid('mpProfileIdInvalid').nullable().optional(),
+    salesIntent: z.enum(['charge', 'announce']).optional(),
+    externalForm: z
+      .object({
+        url: z
+          .string()
+          .trim()
+          .optional()
+          .nullable()
+          .transform((value) => value || '')
+          .refine((value) => normalizeExternalFormUrl(value).ok, 'externalFormInvalid'),
+        label: optionalText(EXTERNAL_FORM_LABEL_MAX, 'externalFormLabelMax'),
+      })
+      .optional(),
   })
   .superRefine((data, ctx) => {
     if (data.startsAt && data.endsAt && data.startsAt > data.endsAt) {
@@ -560,6 +678,7 @@ export function validateAdminEventDraft(draft, t) {
     description: draft?.description ?? '',
     slots: draft?.slots,
     venue: draft?.venue ?? '',
+    venueAddress: draft?.venueAddress ?? '',
     location: draft?.location ?? '',
     status: draft?.status ?? '',
     pricing: {
@@ -576,6 +695,8 @@ export function validateAdminEventDraft(draft, t) {
     registrationClosesAt: draft?.registrationClosesAt ?? '',
     ticketSalesOpensAt: draft?.ticketSalesOpensAt ?? '',
     ticketSalesClosesAt: draft?.ticketSalesClosesAt ?? '',
+    ticketCapacity: draft?.ticketCapacity ?? '',
+    ticketRevealLeadHours: draft?.ticketRevealLeadHours ?? 24,
     liveStreamUrl: draft?.liveStreamUrl ?? '',
     liveStreamProvider: draft?.liveStreamProvider ?? 'youtube',
     liveStatus: draft?.liveStatus ?? 'offline',
@@ -584,6 +705,8 @@ export function validateAdminEventDraft(draft, t) {
     weighInWindows: draft?.weighInWindows ?? [],
     publicSurface: draft?.publicSurface,
     publicCopy: draft?.publicCopy,
+    landing: draft?.landing,
+    externalForm: draft?.externalForm,
     paymentChannelOverrides: draft?.paymentChannelOverrides ?? null,
   })
 

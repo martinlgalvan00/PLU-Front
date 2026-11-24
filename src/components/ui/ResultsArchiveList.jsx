@@ -32,7 +32,8 @@ function ResultsStatusBadge({ status, t }) {
 function ResultsArchiveRow({ entry, isExpanded, onSelect, onNavigate, t, locale }) {
   const { reducedMotion } = useMotionConfig()
   const isPublished = entry.resultsStatus === 'published'
-  const canShowResults = isPublished && hasEventResults(entry.slug)
+  const canShowResults =
+    isPublished && (entry.resultsSource === 'sheet' || hasEventResults(entry.slug))
   const isPitbull = isPitbullClassicEvent(entry) || String(entry.slug ?? '').includes('pitbull')
   const { day, month, year } = formatArchiveDate(entry.dateISO, locale)
   const panelRef = useRef(null)

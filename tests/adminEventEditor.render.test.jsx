@@ -1,8 +1,39 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { useState } from 'react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import AdminEventEditor from '../src/components/admin/AdminEventEditor.jsx'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import { buildAdminEventDraft } from '../src/services/eventAdminService.js'
+import { invalidatePlatformPaymentChannels } from '../src/hooks/usePlatformPaymentChannels.js'
+
+/**
+ * La matriz del evento se dibuja contra la de plataforma, así que el panel la
+ * lee. Por defecto el doble la entrega toda abierta —el caso en que "heredar"
+ * y "todo tildado" coinciden—; los tests de apertura la cierran celda a celda.
+ */
+const platformDouble = vi.hoisted(() => ({ closed: new Set() }))
+
+vi.mock('../src/services/platformSettingsAdminService.js', async (importOriginal) => {
+  const original = await importOriginal()
+  return {
+    ...original,
+    fetchPlatformFeatureToggles: vi.fn(async () => ({
+      checkoutEnabled: true,
+      environmentHolds: [],
+      paymentChannels: Object.fromEntries(
+        original.PAYMENT_CONCEPTS.map((concept) => [
+          concept,
+          Object.fromEntries(
+            original.PAYMENT_CHANNELS.map((channel) => [
+              channel,
+              !platformDouble.closed.has(`${concept}:${channel}`),
+            ]),
+          ),
+        ]),
+      ),
+    })),
+  }
+})
 
 /**
  * Render real del editor (jsdom). Complementa a eventAdminService.test.js, que
@@ -29,6 +60,8 @@ beforeAll(() => {
 })
 
 afterEach(() => {
+  platformDouble.closed.clear()
+  invalidatePlatformPaymentChannels()
   // Sin cleanup cada render se acumula en el body y aparecen tablists/dialogs
   // duplicados (mismo patrón que adminAuditSection.test.jsx).
   cleanup()
@@ -116,6 +149,8 @@ describe('AdminEventEditor — estructura del formulario', () => {
   it('deja los dos cierres a un clic de capítulo, sin desplegables', () => {
     renderEditor()
     activateEditorTab(/ventas y cupos/i)
+    // Venta abre en Módulos; los cierres viven en Cupo y Entradas.
+    fireEvent.click(salesChapter(/^cupo/i))
 
     const athleteIds = ['#event-reg-opens', '#event-reg-closes']
     for (const id of athleteIds) {
@@ -150,6 +185,7 @@ describe('AdminEventEditor — estructura del formulario', () => {
     const onChange = vi.fn()
     renderEditor({ capacityProgressPublic: true }, { onChange })
     activateEditorTab(/ventas y cupos/i)
+    fireEvent.click(salesChapter(/^cupo/i))
 
     const toggle = document.querySelector('#event-capacity-progress-public')
     expect(toggle).not.toBeNull()
@@ -232,6 +268,7 @@ describe('AdminEventEditor — estructura del formulario', () => {
           canEdit
           draft={draft}
           forcedTab="sales"
+          forcedChapter="cupo"
           onCancel={() => {}}
           onChange={() => {}}
           onSubmit={() => {}}
@@ -262,7 +299,7 @@ describe('AdminEventEditor — estructura del formulario', () => {
   it('agrupa el cupo de atletas junto a su ventana de inscripción', () => {
     renderEditor()
     activateEditorTab(/ventas y cupos/i)
-    const lane = document.querySelector('#event-section-sales .admin-event-form__lane')
+    const lane = document.querySelector('#event-section-sales .admin-event-form__lane--cupo')
 
     expect(lane.querySelector('[name="slots"]')).not.toBeNull()
     expect(lane.querySelector('.admin-event-form__occupancy')).not.toBeNull()
@@ -382,6 +419,8 @@ describe('AdminEventEditor — venta de entradas bloqueada', () => {
       slots: 120,
       startsAt: '2026-09-15T12:00:00.000Z',
       endsAt: '2026-09-15T23:00:00.000Z',
+      registrationOpensAt: '2026-06-01T10:00',
+      registrationClosesAt: '2026-09-01T18:00',
       pricing: { membership: 75000, registration: 75000, combo: 120000, ticketsEnabled: true },
       eventDays: [{ dayIndex: 0, label: 'Sábado' }],
       ticketTypes: [],
@@ -452,11 +491,18 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     fireEvent.click(salesChapter(/^cobro/i))
   }
 
-  it('sin override muestra igual la matriz, con los ocho medios abiertos', () => {
+  /** La matriz se bloquea hasta leer la plataforma: se espera a que habilite. */
+  async function platformMatrix() {
+    const matrix = screen.getByRole('group', { name: /medios de pago por concepto/i })
+    await waitFor(() => expect(matrix.getAttribute('aria-busy')).toBeNull())
+    return matrix
+  }
+
+  it('sin override muestra la matriz de la plataforma, con los ocho medios abiertos', async () => {
     renderEditor()
     openPaymentChapter()
 
-    const matrix = screen.getByRole('group', { name: /medios de pago por concepto/i })
+    const matrix = await platformMatrix()
     const boxes = within(matrix).getAllByRole('checkbox')
     expect(boxes).toHaveLength(8)
     expect(boxes.every((box) => box.checked)).toBe(true)
@@ -465,30 +511,184 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     expect(screen.queryByRole('button', { name: /volver a los medios de la plataforma/i })).toBeNull()
   })
 
-  it('destildar un medio crea el override sin cerrar ningún otro', () => {
+  it('destildar un medio guarda solo esa celda y deja el resto heredando', async () => {
     const onChange = vi.fn()
     renderEditor({}, { onChange })
     openPaymentChapter()
 
-    const matrix = screen.getByRole('group', { name: /medios de pago por concepto/i })
-    fireEvent.click(within(matrix).getByRole('checkbox', { name: /efectivo pitbull · entradas/i }))
+    const matrix = await platformMatrix()
+    fireEvent.click(within(matrix).getByRole('checkbox', { name: /efectivo en el lugar · entradas/i }))
 
-    // El punto de partida es todo abierto: cerrar uno no puede cerrar el resto.
+    // Sólo se guarda lo que difiere de la plataforma: cerrar una celda no
+    // escribe las otras siete.
     expect(onChange).toHaveBeenCalledTimes(1)
     expect(onChange.mock.calls[0][0].paymentChannelOverrides).toEqual({
-      registration: {
-        mercado_pago: true,
-        bank_transfer: true,
-        cash_pitbull: true,
-        wise_transfer: true,
-      },
-      ticket: {
-        mercado_pago: true,
-        bank_transfer: true,
-        cash_pitbull: false,
-        wise_transfer: true,
+      ticket: { cash_pitbull: false },
+    })
+  })
+
+  it('con el efectivo abierto pide dónde se paga y muestra la sede como respaldo', async () => {
+    const onChange = vi.fn()
+    renderEditor({}, { onChange })
+    openPaymentChapter()
+    await platformMatrix()
+
+    const place = screen.getByLabelText(/^dónde se paga/i)
+    expect(place.placeholder).toBe('Maximal Strength Club · Buenos Aires')
+    expect(screen.getByText(/vacío = la sede del evento: maximal strength club/i)).toBeTruthy()
+    expect(screen.getByText(/sede del evento \(no cargaste un lugar propio\)/i)).toBeTruthy()
+    expect(screen.queryByText(/efectivo está cerrado en este evento/i)).toBeNull()
+
+    fireEvent.change(place, { target: { value: 'Recepción del gimnasio' } })
+    expect(onChange.mock.calls.at(-1)[0].cashPayment).toEqual({
+      place: 'Recepción del gimnasio',
+      notes: '',
+      address: '',
+      hours: '',
+      contact: '',
+    })
+  })
+
+  it('el efectivo lleva dirección, horario y contacto, con Google Maps y Waze para probarla', async () => {
+    const onChange = vi.fn()
+    renderEditor(
+      { cashPayment: { place: 'Gimnasio Pitbull', notes: '', address: 'Av. Mitre 1234, Avellaneda' } },
+      { onChange },
+    )
+    openPaymentChapter()
+    await platformMatrix()
+
+    fireEvent.change(screen.getByLabelText(/días y horario/i), {
+      target: { value: 'Lun a vie de 18 a 21' },
+    })
+    expect(onChange.mock.calls.at(-1)[0].cashPayment.hours).toBe('Lun a vie de 18 a 21')
+    const maps = screen.getByRole('link', { name: /abrir en google maps/i })
+    expect(maps.getAttribute('href')).toContain('Av.%20Mitre%201234')
+    expect(screen.getByRole('link', { name: /abrir en waze/i })).toBeTruthy()
+  })
+
+  it('resume el destino que verá quien paga antes de guardar', async () => {
+    renderEditor({ bankTransfer: { alias: 'pitbull.clasico', cbu: '', holder: '' } })
+    openPaymentChapter()
+    await platformMatrix()
+
+    // El estado vive en la fila de cada medio, junto a sus interruptores.
+    expect(screen.getByText(/^acepta .*transferencia/i)).toBeTruthy()
+    expect(screen.getByText('Alias: pitbull.clasico')).toBeTruthy()
+    expect(screen.getByText('Lugar: Maximal Strength Club · Buenos Aires')).toBeTruthy()
+    expect(screen.getByText('Cuenta general de la plataforma.')).toBeTruthy()
+  })
+
+  it('con el efectivo cerrado no muestra el bloque de lugar', async () => {
+    renderEditor({
+      paymentChannelOverrides: {
+        registration: { cash_pitbull: false },
+        ticket: { cash_pitbull: false },
       },
     })
+    openPaymentChapter()
+    await platformMatrix()
+
+    expect(screen.queryByLabelText(/^dónde se paga/i)).toBeNull()
+    expect(screen.getByText(/efectivo está cerrado en este evento/i)).toBeTruthy()
+  })
+
+  it('con transferencia cerrada indica que hay que abrirla para cargar alias', async () => {
+    renderEditor({
+      paymentChannelOverrides: {
+        registration: { bank_transfer: false },
+        ticket: { bank_transfer: false },
+      },
+    })
+    openPaymentChapter()
+    await platformMatrix()
+
+    expect(screen.getByText(/transferencia está cerrada en este evento/i)).toBeTruthy()
+    expect(screen.queryByLabelText(/alias/i)).toBeNull()
+  })
+
+  it('avisa si el efectivo está abierto y no hay sede ni lugar', async () => {
+    renderEditor({
+      venue: '',
+      location: '',
+      cashPayment: { place: '', notes: '' },
+    })
+    openPaymentChapter()
+    await platformMatrix()
+
+    expect(screen.getByText(/no hay lugar ni sede/i)).toBeTruthy()
+  })
+
+  it('abre un medio que la plataforma tiene cerrado, solo para este evento', async () => {
+    platformDouble.closed.add('registration:bank_transfer')
+    const onChange = vi.fn()
+    renderEditor({}, { onChange })
+    openPaymentChapter()
+
+    const matrix = await platformMatrix()
+    const box = within(matrix).getByRole('checkbox', { name: /transferencia · inscripción/i })
+    expect(box.checked).toBe(false)
+
+    fireEvent.click(box)
+
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(onChange.mock.calls[0][0].paymentChannelOverrides).toEqual({
+      registration: { bank_transfer: 'open' },
+    })
+  })
+
+  it('muestra lo que el evento abre y avisa que es solo acá', async () => {
+    platformDouble.closed.add('registration:cash_pitbull')
+    renderEditor({ paymentChannelOverrides: { registration: { cash_pitbull: 'open' } } })
+    openPaymentChapter()
+
+    const matrix = await platformMatrix()
+    expect(
+      within(matrix).getByRole('checkbox', { name: /efectivo en el lugar · inscripción/i }).checked,
+    ).toBe(true)
+    expect(within(matrix).getByText(/abierto solo en este evento \(inscripción\)/i)).toBeTruthy()
+  })
+
+  it('volver a coincidir con la plataforma borra la decisión del evento', async () => {
+    platformDouble.closed.add('registration:bank_transfer')
+    const onChange = vi.fn()
+    renderEditor(
+      { paymentChannelOverrides: { registration: { bank_transfer: 'open' } } },
+      { onChange },
+    )
+    openPaymentChapter()
+
+    const matrix = await platformMatrix()
+    fireEvent.click(within(matrix).getByRole('checkbox', { name: /transferencia · inscripción/i }))
+
+    expect(onChange.mock.calls[0][0].paymentChannelOverrides).toBeNull()
+  })
+
+  it('muestra lo que el evento abre y avisa que es solo acá', async () => {
+    platformDouble.closed.add('registration:cash_pitbull')
+    renderEditor({ paymentChannelOverrides: { registration: { cash_pitbull: 'open' } } })
+    openPaymentChapter()
+
+    const matrix = await platformMatrix()
+    expect(
+      within(matrix).getByRole('checkbox', { name: /efectivo en el lugar · inscripción/i }).checked,
+    ).toBe(true)
+    expect(within(matrix).getByText(/abierto solo en este evento \(inscripción\)/i)).toBeTruthy()
+  })
+
+  it('volver a coincidir con la plataforma borra la decisión del evento', async () => {
+    platformDouble.closed.add('registration:bank_transfer')
+    const onChange = vi.fn()
+    renderEditor(
+      { paymentChannelOverrides: { registration: { bank_transfer: 'open' } } },
+      { onChange },
+    )
+    openPaymentChapter()
+
+    const matrix = await platformMatrix()
+    fireEvent.click(within(matrix).getByRole('checkbox', { name: /transferencia · inscripción/i }))
+
+    expect(onChange.mock.calls[0][0].paymentChannelOverrides).toBeNull()
   })
 
   it('con override ofrece volver a heredar la matriz de plataforma', () => {
@@ -518,7 +718,7 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
     expect(within(matrix).getAllByRole('checkbox')).toHaveLength(8)
 
     fireEvent.click(
-      within(matrix).getByRole('checkbox', { name: /efectivo pitbull · entradas/i }),
+      within(matrix).getByRole('checkbox', { name: /efectivo en el lugar · entradas/i }),
     )
 
     expect(onChange).toHaveBeenCalledTimes(1)
@@ -534,10 +734,10 @@ describe('AdminEventEditor — medios de cobro por concepto', () => {
 
     const matrix = screen.getByRole('group', { name: /medios de pago por concepto/i })
     expect(
-      within(matrix).getByRole('checkbox', { name: /efectivo pitbull · inscripción/i }).checked,
+      within(matrix).getByRole('checkbox', { name: /efectivo en el lugar · inscripción/i }).checked,
     ).toBe(false)
     expect(
-      within(matrix).getByRole('checkbox', { name: /efectivo pitbull · entradas/i }).checked,
+      within(matrix).getByRole('checkbox', { name: /efectivo en el lugar · entradas/i }).checked,
     ).toBe(false)
     expect(
       within(matrix).getByRole('checkbox', { name: /mercado pago · entradas/i }).checked,
@@ -614,7 +814,12 @@ describe('AdminEventEditor — Publicación con bloque Avanzado', () => {
   const advancedSummary = () => screen.getByText(/textos de la página, módulos y transmisión/i)
 
   it('deja estado, publicación y acceso arriba y lo demás colapsado', () => {
-    renderEditor()
+    // Meet genérico (no editorial): el bloque Avanzado arranca cerrado.
+    renderEditor({
+      slug: 'winter-open-2026',
+      landing: { templateId: 'meet', slots: {} },
+      publicCopy: {},
+    })
     activateEditorTab(/publicación/i)
     const advanced = advancedSummary().closest('details')
     expect(advanced.open).toBe(false)
@@ -623,7 +828,7 @@ describe('AdminEventEditor — Publicación con bloque Avanzado', () => {
     const firstAdvanced = advanced.compareDocumentPosition(toggles[0])
     // El primer control de decisión queda antes del desplegable.
     expect(firstAdvanced & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
-    expect(advanced.contains(document.getElementById('event-public-title'))).toBe(true)
+    expect(advanced.contains(document.getElementById('event-landing-heroTitle'))).toBe(true)
     expect(advanced.contains(document.getElementById('event-live-url'))).toBe(true)
     expect(advanced.contains(document.getElementById('event-access'))).toBe(false)
   })
@@ -632,5 +837,364 @@ describe('AdminEventEditor — Publicación con bloque Avanzado', () => {
     renderEditor({ publicCopy: { heroLead: 'Tres días de fierro' } })
     activateEditorTab(/publicación/i)
     expect(advancedSummary().closest('details').open).toBe(true)
+  })
+})
+
+describe('AdminEventEditor — landing por secciones', () => {
+  function openLanding(overrides = {}, options) {
+    renderEditor(
+      { slug: 'winter-open-2026', landing: { templateId: 'meet', slots: {} }, ...overrides },
+      options,
+    )
+    activateEditorTab(/publicación/i)
+    // Avanzado arranca cerrado en un meet genérico: abrirlo como lo haría el staff.
+    const advanced = screen.getByText(/textos de la página, módulos y transmisión/i).closest('details')
+    advanced.open = true
+    return within(screen.getByRole('group', { name: /secciones de la página/i }))
+  }
+
+  it('cada sección con interruptor lleva sus textos al lado', () => {
+    const sections = openLanding()
+    const faq = sections.getByRole('checkbox', { name: /faq/i }).closest('li')
+
+    expect(faq.contains(document.getElementById('event-landing-faq1Question'))).toBe(true)
+    expect(faq.contains(document.getElementById('event-landing-faq3Answer'))).toBe(true)
+  })
+
+  it('portada e inscripción son siempre visibles: sin interruptor', () => {
+    const sections = openLanding()
+    const hero = sections.getByText(/^portada$/i).closest('li')
+    const inscription = sections.getByText(/cupo e inscripción/i).closest('li')
+
+    expect(hero.querySelector('input[type="checkbox"]')).toBeNull()
+    expect(inscription.querySelector('input[type="checkbox"]:not([id*="capacity"])')).toBeNull()
+    expect(hero.contains(document.getElementById('event-landing-heroTitle'))).toBe(true)
+    expect(inscription.contains(document.getElementById('event-inscription-mark'))).toBe(true)
+  })
+
+  it('apagar una sección actualiza publicSurface y conserva sus textos', () => {
+    const onChange = vi.fn()
+    const sections = openLanding(
+      { landing: { templateId: 'meet', slots: { faq1Question: '¿Hay pesaje?', faq1Answer: 'Sí.' } } },
+      { onChange },
+    )
+
+    fireEvent.click(sections.getByRole('checkbox', { name: /faq/i }))
+
+    const next = onChange.mock.calls.at(-1)[0]
+    expect(next.publicSurface.faq).toBe(false)
+    expect(next.landing.slots.faq1Question).toBe('¿Hay pesaje?')
+    expect(next.landing.slots.faq1Answer).toBe('Sí.')
+  })
+
+  it('la ficha meet no ofrece secciones de landing propia; editorial sí', () => {
+    const meet = openLanding()
+    expect(meet.queryByRole('checkbox', { name: /experiencia/i })).toBeNull()
+    expect(meet.queryByRole('checkbox', { name: /categorías/i })).toBeNull()
+    cleanup()
+
+    const editorial = openLanding({ landing: { templateId: 'editorial', slots: {} } })
+    expect(editorial.getByRole('checkbox', { name: /experiencia/i })).toBeTruthy()
+    expect(editorial.getByRole('checkbox', { name: /categorías/i })).toBeTruthy()
+    expect(editorial.getByRole('checkbox', { name: /lugar/i })).toBeTruthy()
+  })
+
+  it('una sección oculta lo avisa en su resumen', () => {
+    const sections = openLanding({ publicSurface: { faq: false } })
+    const faq = sections.getByRole('checkbox', { name: /faq/i })
+
+    expect(faq.checked).toBe(false)
+    expect(faq.closest('li').textContent).toMatch(/oculta en el sitio/i)
+  })
+})
+
+/** Editor con estado: lo tipeado vuelve como `draft`, igual que en el panel. */
+function StatefulEditor({ initial, onSnapshot = () => {} }) {
+  const [draft, setDraft] = useState(initial)
+  return (
+    <I18nProvider>
+      <AdminEventEditor
+        canEdit
+        canManageUsers={false}
+        draft={draft}
+        sourceEvent={null}
+        onCancel={() => {}}
+        onChange={(next) => {
+          setDraft(next)
+          onSnapshot(next)
+        }}
+        onListSecurityUsers={async () => []}
+        onSubmit={() => {}}
+      />
+    </I18nProvider>
+  )
+}
+
+function typeInto(element, text) {
+  let value = ''
+  for (const char of text) {
+    value += char
+    fireEvent.change(element, { target: { value } })
+  }
+}
+
+describe('AdminEventEditor — escribir en la landing', () => {
+  function openStateful(landing) {
+    const initial = buildAdminEventDraft({
+      id: 'evt-1',
+      slug: 'winter-open-2026',
+      title: 'Winter Open',
+      venue: 'Sede',
+      location: 'Ciudad',
+      status: 'inscripcion_abierta',
+      slots: 100,
+      startsAt: '2026-09-15T12:00:00.000Z',
+      endsAt: '2026-09-15T23:00:00.000Z',
+      pricing: { membership: 1, registration: 1, combo: 1, ticketsEnabled: true },
+      landing,
+    })
+    const snapshots = []
+    render(<StatefulEditor initial={initial} onSnapshot={(next) => snapshots.push(next)} />)
+    activateEditorTab(/publicación/i)
+    screen.getByText(/textos de la página, módulos y transmisión/i).closest('details').open = true
+    return snapshots
+  }
+
+  it('se pueden escribir varias palabras: los espacios no se pierden al tipear', () => {
+    openStateful({ templateId: 'meet', slots: {} })
+    const lead = document.getElementById('event-landing-heroLead')
+
+    typeInto(lead, 'uno dos tres')
+    expect(lead.value).toBe('uno dos tres')
+  })
+
+  it('se puede tipear un link letra por letra en un botón propio', () => {
+    openStateful({
+      templateId: 'builder',
+      slots: {},
+      layout: { blocks: [{ id: 'hero', type: 'hero' }, { id: 'cta-1', type: 'cta', props: { label: 'Ir' } }] },
+    })
+    const href = document.getElementById('event-landing-block-cta-1-href')
+
+    typeInto(href, 'https://plu.com.ar/reglamento')
+    expect(href.value).toBe('https://plu.com.ar/reglamento')
+    expect(href.getAttribute('aria-invalid')).toBeNull()
+  })
+
+  it('marca el link inválido en vez de borrarlo', () => {
+    openStateful({
+      templateId: 'builder',
+      slots: {},
+      layout: { blocks: [{ id: 'hero', type: 'hero' }, { id: 'cta-1', type: 'cta', props: { label: 'Ir' } }] },
+    })
+    const href = document.getElementById('event-landing-block-cta-1-href')
+
+    typeInto(href, 'javascript:alert(1)')
+    expect(href.value).toBe('javascript:alert(1)')
+    expect(href.getAttribute('aria-invalid')).toBe('true')
+    expect(screen.getByText(/empiece con https/i)).toBeTruthy()
+  })
+})
+
+describe('AdminEventEditor — landing Constructor', () => {
+  const BLOCKS = [
+    { id: 'hero', type: 'hero' },
+    { id: 'facts', type: 'facts' },
+    { id: 'faq', type: 'faq' },
+    { id: 'location', type: 'location' },
+  ]
+
+  function openBuilder(landing = {}, overrides = {}, options) {
+    renderEditor(
+      {
+        slug: 'winter-open-2026',
+        landing: { templateId: 'builder', slots: {}, layout: { blocks: BLOCKS }, ...landing },
+        ...overrides,
+      },
+      options,
+    )
+    activateEditorTab(/publicación/i)
+    screen
+      .getByText(/textos de la página, módulos y transmisión/i)
+      .closest('details').open = true
+    return within(screen.getByRole('group', { name: /bloques de la página/i }))
+  }
+
+  const lastLayout = (onChange) => onChange.mock.calls.at(-1)[0].landing.layout
+  const ids = (layout) => layout.blocks.map((block) => block.id)
+
+  it('lista los bloques en orden y la portada no se puede mover ni ocultar', () => {
+    const blocks = openBuilder()
+    const items = blocks.getAllByRole('listitem')
+    expect(items.map((item) => item.getAttribute('data-block'))).toEqual([
+      'hero',
+      'facts',
+      'faq',
+      'location',
+    ])
+    expect(within(items[0]).queryByRole('checkbox')).toBeNull()
+    // Las flechas de orden se llaman «Subir «bloque»» / «Bajar «bloque»»; la
+    // portada tiene "Subir imagen del hero", que no es mover el bloque.
+    expect(within(items[0]).queryByRole('button', { name: /^(subir|bajar) «/i })).toBeNull()
+  })
+
+  it('sube y baja bloques, sin pasar por encima de la portada', () => {
+    const onChange = vi.fn()
+    const blocks = openBuilder({}, {}, { onChange })
+
+    expect(blocks.getByRole('button', { name: /subir «fecha y sede»/i }).disabled).toBe(true)
+    fireEvent.click(blocks.getByRole('button', { name: /subir «lugar y mapa»/i }))
+    expect(ids(lastLayout(onChange))).toEqual(['hero', 'facts', 'location', 'faq'])
+
+    fireEvent.click(blocks.getByRole('button', { name: /bajar «fecha y sede»/i }))
+    expect(ids(lastLayout(onChange))).toEqual(['hero', 'faq', 'facts', 'location'])
+    expect(blocks.getByRole('button', { name: /bajar «lugar y mapa»/i }).disabled).toBe(true)
+  })
+
+  it('ocultar un bloque integrado apaga también su módulo público, en un solo cambio', () => {
+    const onChange = vi.fn()
+    const blocks = openBuilder({}, {}, { onChange })
+
+    fireEvent.click(blocks.getByRole('checkbox', { name: /preguntas frecuentes/i }))
+
+    const next = onChange.mock.calls.at(-1)[0]
+    expect(next.landing.layout.blocks.find((block) => block.id === 'faq').visible).toBe(false)
+    expect(next.publicSurface.faq).toBe(false)
+  })
+
+  it('un bloque sin módulo público (fecha y sede) solo cambia el layout', () => {
+    const onChange = vi.fn()
+    const blocks = openBuilder({}, {}, { onChange })
+
+    fireEvent.click(blocks.getByRole('checkbox', { name: /fecha y sede/i }))
+
+    const next = onChange.mock.calls.at(-1)[0]
+    expect(next.landing.layout.blocks.find((block) => block.id === 'facts').visible).toBe(false)
+  })
+
+  it('agrega bloques propios y los edita; los integrados no se pueden borrar', () => {
+    const onChange = vi.fn()
+    const blocks = openBuilder({}, {}, { onChange })
+
+    expect(blocks.queryByRole('button', { name: /eliminar «fecha y sede»/i })).toBeNull()
+    fireEvent.click(blocks.getByRole('button', { name: /^texto$/i }))
+    const layout = lastLayout(onChange)
+    expect(layout.blocks.at(-1)).toMatchObject({ id: 'text-1', type: 'text', visible: true })
+  })
+
+  it('edita el contenido de un bloque propio y lo puede eliminar', () => {
+    const onChange = vi.fn()
+    const blocks = openBuilder(
+      {
+        layout: {
+          blocks: [
+            ...BLOCKS,
+            { id: 'text-1', type: 'text', props: { title: 'Viejo', body: '' } },
+          ],
+        },
+      },
+      {},
+      { onChange },
+    )
+
+    fireEvent.change(document.getElementById('event-landing-block-text-1-title'), {
+      target: { value: 'Cómo se compite' },
+    })
+    expect(
+      lastLayout(onChange).blocks.find((block) => block.id === 'text-1').props.title,
+    ).toBe('Cómo se compite')
+
+    fireEvent.click(blocks.getByRole('button', { name: /eliminar «texto 1»/i }))
+    expect(ids(lastLayout(onChange))).not.toContain('text-1')
+  })
+
+  it('cambiar la plantilla a Constructor arma los bloques por defecto', () => {
+    const onChange = vi.fn()
+    renderEditor(
+      { slug: 'winter-open-2026', landing: { templateId: 'meet', slots: {} } },
+      { onChange },
+    )
+    activateEditorTab(/publicación/i)
+    screen
+      .getByText(/textos de la página, módulos y transmisión/i)
+      .closest('details').open = true
+
+    fireEvent.click(screen.getByRole('radio', { name: /^constructor$/i }))
+    const next = onChange.mock.calls.at(-1)[0].landing
+    expect(next.templateId).toBe('builder')
+    expect(next.layout.blocks[0].type).toBe('hero')
+    expect(next.layout.blocks.length).toBeGreaterThan(5)
+  })
+
+  describe('colores', () => {
+    // Sin colores propios el editor arranca plegado bajo "Usar colores propios".
+    const palette = () => {
+      const toggle = screen.queryByRole('button', { name: /usar colores propios/i })
+      if (toggle?.getAttribute('aria-expanded') === 'false') fireEvent.click(toggle)
+      return within(screen.getByRole('group', { name: /colores del evento/i }))
+    }
+
+    it('guarda un color válido en la paleta y muestra el aviso de contraste', () => {
+      const onChange = vi.fn()
+      openBuilder({}, {}, { onChange })
+
+      fireEvent.change(palette().getByRole('textbox', { name: /^acento$/i }), {
+        target: { value: '#FF8800' },
+      })
+      expect(lastLayout(onChange).palette).toEqual({ accent: '#ff8800' })
+    })
+
+    it('no guarda un hex inválido y lo explica', () => {
+      const onChange = vi.fn()
+      openBuilder({}, {}, { onChange })
+      const before = onChange.mock.calls.length
+
+      fireEvent.change(palette().getByRole('textbox', { name: /^acento$/i }), {
+        target: { value: '#ff88' },
+      })
+      expect(onChange.mock.calls.length).toBe(before)
+      expect(palette().getByRole('alert').textContent).toMatch(/hexadecimal/i)
+    })
+
+    it('avisa cuando el acento no se distingue del fondo', () => {
+      openBuilder({
+        layout: { blocks: BLOCKS, palette: { accent: '#101820', background: '#0d0f12' } },
+      })
+      expect(palette().getByRole('status').textContent).toMatch(/acento casi no se distingue/i)
+    })
+
+    it('"Volver al tema" limpia la paleta', () => {
+      const onChange = vi.fn()
+      openBuilder({ layout: { blocks: BLOCKS, palette: { accent: '#ff8800' } } }, {}, { onChange })
+
+      fireEvent.click(palette().getByRole('button', { name: /volver al tema/i }))
+      expect(lastLayout(onChange).palette).toEqual({})
+    })
+  })
+
+  describe('animaciones', () => {
+    const motion = () => within(screen.getByRole('group', { name: /animaciones/i }))
+
+    it('arranca en Suave y explica qué hace la opción elegida', () => {
+      openBuilder({ layout: { blocks: BLOCKS } })
+      expect(motion().getByRole('button', { name: /^suave$/i }).getAttribute('aria-pressed')).toBe('true')
+      expect(screen.getByText(/fundido corto al llegar a la pantalla/i)).toBeTruthy()
+    })
+
+    it('elegir Marcada o Sin animaciones se guarda en el layout', () => {
+      const onChange = vi.fn()
+      openBuilder({ layout: { blocks: BLOCKS } }, {}, { onChange })
+
+      fireEvent.click(motion().getByRole('button', { name: /^marcada$/i }))
+      expect(lastLayout(onChange).motion).toBe('bold')
+
+      fireEvent.click(motion().getByRole('button', { name: /^sin animaciones$/i }))
+      expect(lastLayout(onChange).motion).toBe('none')
+    })
+
+    it('avisa que el movimiento reducido del visitante manda', () => {
+      openBuilder({ layout: { blocks: BLOCKS } })
+      expect(screen.getByText(/movimiento reducido/i)).toBeTruthy()
+    })
   })
 })

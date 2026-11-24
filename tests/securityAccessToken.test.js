@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { createAccessToken, verifyAccessToken } from '../server/services/securityAccessToken.js'
+import {
+  accessTokenMatchesVersion,
+  createAccessToken,
+  verifyAccessToken,
+} from '../server/services/securityAccessToken.js'
 
 const SECRET = 'un-secreto-de-prueba-largo-y-aleatorio'
 
@@ -52,5 +56,28 @@ describe('securityAccessToken', () => {
   it('rechaza basura sin formato de token', () => {
     expect(verifyAccessToken('no-es-un-token', { secret: SECRET })).toBeNull()
     expect(verifyAccessToken('', { secret: SECRET })).toBeNull()
+  })
+
+  it('un token sin versión solo coincide con una cuenta que todavía no rotó', () => {
+    const legacy = verifyAccessToken(tokenFor(), { secret: SECRET })
+    const rotated = verifyAccessToken(
+      createAccessToken({
+        userId: 'usr-1',
+        eventId: 'evt-1',
+        expiresAt: new Date(Date.now() + 60_000),
+        version: 2,
+        secret: SECRET,
+      }),
+      { secret: SECRET },
+    )
+
+    expect(legacy.ver).toBeUndefined()
+    expect(rotated.ver).toBe(2)
+    expect(accessTokenMatchesVersion(legacy, 0)).toBe(true)
+    expect(accessTokenMatchesVersion(legacy, null)).toBe(true)
+    expect(accessTokenMatchesVersion(legacy, 2)).toBe(false)
+    expect(accessTokenMatchesVersion(rotated, 2)).toBe(true)
+    expect(accessTokenMatchesVersion(rotated, 1)).toBe(false)
+    expect(accessTokenMatchesVersion(rotated, 0)).toBe(false)
   })
 })

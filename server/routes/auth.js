@@ -13,7 +13,7 @@ import {
   securityGateSchema,
   updateSecurityUserStatusSchema,
 } from '../../src/lib/schemas/auth.js'
-import { buildSecurityGatePath } from '../../src/lib/securityGateRoute.js'
+import { isPendingInviteEmail, PENDING_INVITE_NAME } from '../../src/lib/staffInvitationRoute.js'
 import { HttpError } from '../lib/errors.js'
 import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
@@ -25,7 +25,13 @@ import {
   recordOperationalAuditEvent,
   requestAuditMetadata,
 } from '../modules/audit/operationalAuditWriter.js'
-import { createAccessToken, verifyAccessToken } from '../services/securityAccessToken.js'
+import {
+  ensureSecurityAccess,
+  findSecurityUserByDoorCode,
+  isStoredAccessCurrent,
+  readStoredSecurityAccess,
+} from '../services/securityAccessCredential.js'
+import { accessTokenMatchesVersion, verifyAccessToken } from '../services/securityAccessToken.js'
 import {
   createStaffEmailChangeToken,
   verifyStaffEmailChangeToken,
@@ -54,6 +60,7 @@ import {
 } from '../services/passwordService.js'
 import { ensureSupabaseSessionToken } from '../services/supabaseAuthBridge.js'
 import { ACCESS_ROLE_INCLUDE } from '../services/accessControlService.js'
+import { assertEventAccess } from '../lib/eventScope.js'
 import {
   createSession,
   getClearSessionCookieOptions,
@@ -72,32 +79,7 @@ import {
 } from '../services/athleteSessionService.js'
 import { staffSessionCache } from '../lib/sessionCache.js'
 
-// Vigencia de una credencial de acceso de puerta. Si el evento tiene fin
-// conocido, la credencial dura hasta 7 días después (margen operativo);
-// si no, un default de 30 días.
-const ACCESS_LINK_POST_EVENT_MS = 1000 * 60 * 60 * 24 * 7
-const ACCESS_LINK_DEFAULT_TTL_MS = 1000 * 60 * 60 * 24 * 30
-
 const invalidCredentials = () => new HttpError(401, 'Credenciales invalidas.')
-
-function resolveAccessLinkExpiry(event, requestedExpiresAt = null, now = new Date()) {
-  const eventEnd = event?.endsAt ? new Date(event.endsAt) : null
-  const latestAllowed =
-    eventEnd && !Number.isNaN(eventEnd.getTime()) && eventEnd > now
-      ? new Date(eventEnd.getTime() + ACCESS_LINK_POST_EVENT_MS)
-      : new Date(now.getTime() + ACCESS_LINK_DEFAULT_TTL_MS)
-
-  if (!requestedExpiresAt) return latestAllowed
-
-  const requested = new Date(requestedExpiresAt)
-  if (Number.isNaN(requested.getTime()) || requested <= now) {
-    throw new HttpError(400, 'El vencimiento de la credencial debe ser futuro.')
-  }
-  if (requested > latestAllowed) {
-    throw new HttpError(400, 'El vencimiento supera la ventana segura del evento.')
-  }
-  return requested
-}
 
 function splitName(name) {
   const [firstName, ...rest] = name.trim().split(/\s+/)
@@ -113,7 +95,13 @@ export function createAuthRoutes({
   env,
 } = {}) {
   const router = Router()
-  const manageUsersGuard = requirePermission('admin.users.write', { prisma: getPrisma() })
+  // Equipo de puerta (cuentas seguridad_plu_arg de un evento). `admin.users.write` está
+  // reservado a Super Admin y Administrador; un organizador gestiona SOLO el equipo de
+  // sus eventos con `admin.event_team.write`, y cada handler verifica el evento.
+  const manageUsersGuard = requirePermission('admin.users.write', { prisma: getPrisma() }, {
+    eventScoped: true,
+    scopedPermissions: ['admin.event_team.write'],
+  })
 
   function auditClient() {
     try {
@@ -201,17 +189,40 @@ export function createAuthRoutes({
     return /^https?:\/\//i.test(origin) ? origin.replace(/\/$/, '') : ''
   }
 
-  function createPersonalAccess(user, event, req, requestedExpiresAt = null) {
-    const expiresAt = resolveAccessLinkExpiry(event, requestedExpiresAt)
-    const token = createAccessToken({
-      userId: user.id,
-      eventId: user.eventId,
-      expiresAt,
+  function createPersonalAccess(user, event, req, requestedExpiresAt = null, { rotate = false } = {}) {
+    return ensureSecurityAccess({
+      prisma: getPrisma(),
+      user,
+      event,
+      appUrl: resolveAppUrl(req),
+      requestedExpiresAt,
+      rotate,
       secret: accessLinkSecret,
     })
-    const url = `${resolveAppUrl(req)}${buildSecurityGatePath(user.eventSlug)}?acceso=${token}`
+  }
 
-    return { url, token, expiresAt }
+  const gateUserInclude = {
+    profile: true,
+    accessRole: { include: ACCESS_ROLE_INCLUDE },
+    securityZone: {
+      select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true },
+    },
+  }
+
+  async function denyGate(req, entityId, reason) {
+    await recordIdentity(
+      {
+        action: 'auth.login_failed',
+        entityType: 'staff_user',
+        entityId,
+        actorType: 'anonymous',
+        status: 'failed',
+        severity: 'warning',
+        metadata: { method: 'security_gate', reason },
+      },
+      req,
+    )
+    return new HttpError(401, 'Credencial inválida o vencida.')
   }
 
   // Crea una cuenta seguridad_plu_arg con password temporal. Compartido por
@@ -291,6 +302,56 @@ export function createAuthRoutes({
     }
   }
 
+  // Vista previa de la invitación: le dice a quien abre el enlace para quién es
+  // y con qué rol queda, antes de elegir la clave. Exige el mismo token firmado
+  // que el alta, así que sólo lo ve quien ya tiene el enlace.
+  router.get('/staff-invitation', authLimiter, async (req, res, next) => {
+    try {
+      const token = typeof req.query.token === 'string' ? req.query.token.trim() : ''
+      const userId =
+        token.length >= 40 && token.length <= 2000 ? readStaffInvitationSubject(token) : null
+      const user = userId
+        ? await getPrisma().user.findUnique({
+            where: { id: userId },
+            include: { profile: true, accessRole: { include: ACCESS_ROLE_INCLUDE } },
+          })
+        : null
+      const payload = user
+        ? verifyStaffInvitationToken(token, {
+            credentialHash: user.passwordHash,
+            secret: accessLinkSecret,
+          })
+        : null
+
+      if (
+        payload?.uid !== user?.id ||
+        user?.mustChangePassword !== true ||
+        !['active', 'invited'].includes(user.status) ||
+        isTempPasswordExpired(user)
+      ) {
+        throw new HttpError(400, 'La invitación es inválida, ya fue utilizada o venció.', {
+          code: 'staff_invitation_invalid',
+        })
+      }
+
+      const serialized = serializeUser(user)
+      // Invitación abierta: la cuenta todavía no tiene email propio, así que no
+      // se devuelve el reservado y la página pide nombre y email.
+      const needsProfile = isPendingInviteEmail(user.email)
+      res.json({
+        invitation: {
+          needsProfile,
+          name: serialized.name === PENDING_INVITE_NAME ? '' : serialized.name,
+          email: needsProfile ? '' : serialized.email,
+          roleName: user.accessRole?.name ?? serialized.roleKey ?? null,
+          expiresAt: payload ? new Date(payload.exp * 1000).toISOString() : null,
+        },
+      })
+    } catch (error) {
+      next(error)
+    }
+  })
+
   router.post(
     '/accept-staff-invitation',
     authLimiter,
@@ -309,7 +370,9 @@ export function createAuthRoutes({
                 // El puesto de seguridad viaja con la sesión: sin esto, quien
                 // escanea no sabe a qué sector está habilitado hasta el
                 // siguiente request.
-                securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
+                securityZone: {
+                  select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true },
+                },
               },
             })
           : null
@@ -343,26 +406,67 @@ export function createAuthRoutes({
           })
         }
 
+        // Invitación abierta: el email y el nombre los elige quien abre el
+        // enlace. En una nominal se ignoran (la identidad ya la fijó el admin).
+        let identity = {}
+        if (isPendingInviteEmail(user.email)) {
+          const { name, email } = req.validatedBody
+          if (!name || !email || isPendingInviteEmail(email)) {
+            throw new HttpError(400, 'Completá tu nombre y tu email para activar la cuenta.', {
+              code: 'staff_invitation_profile_required',
+            })
+          }
+          // Mensaje genérico a propósito: no confirma qué emails ya tienen cuenta.
+          const emailTaken = await prisma.user.findUnique({ where: { email } })
+          if (emailTaken) {
+            throw new HttpError(409, 'No pudimos usar ese email. Probá con otro.', {
+              code: 'staff_invitation_email_unavailable',
+            })
+          }
+          const [firstName, ...rest] = name.split(/\s+/)
+          const lastName = rest.join(' ') || firstName
+          identity = {
+            email,
+            profile: {
+              update: { firstName, lastName, displayName: `${firstName} ${lastName}`.trim() },
+            },
+          }
+        }
+
         const now = new Date()
         await revokeSessionsForUser({ prisma, userId: user.id, now })
-        const updated = await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            passwordHash: await hashPassword(password),
-            mustChangePassword: false,
-            passwordExpiresAt: null,
-            status: 'active',
-            lastLoginAt: now,
-          },
-          include: {
-            profile: true,
-            accessRole: { include: ACCESS_ROLE_INCLUDE },
-            // El puesto de seguridad viaja con la sesión: sin esto, quien
-            // escanea no sabe a qué sector está habilitado hasta el
-            // siguiente request.
-            securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
-          },
-        })
+        let updated
+        try {
+          updated = await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              ...identity,
+              passwordHash: await hashPassword(password),
+              mustChangePassword: false,
+              passwordExpiresAt: null,
+              status: 'active',
+              lastLoginAt: now,
+            },
+            include: {
+              profile: true,
+              accessRole: { include: ACCESS_ROLE_INCLUDE },
+              // El puesto de seguridad viaja con la sesión: sin esto, quien
+              // escanea no sabe a qué sector está habilitado hasta el
+              // siguiente request.
+              securityZone: {
+                select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true },
+              },
+            },
+          })
+        } catch (error) {
+          // Dos personas completando el mismo email a la vez: gana la primera.
+          if (error?.code === 'P2002') {
+            throw new HttpError(409, 'No pudimos usar ese email. Probá con otro.', {
+              code: 'staff_invitation_email_unavailable',
+            })
+          }
+          throw error
+        }
         const session = await createSession({ prisma, userId: user.id, req, now })
         const serialized = serializeUser(updated)
         const supabaseAuth = await ensureSupabaseSessionToken({
@@ -434,7 +538,9 @@ export function createAuthRoutes({
           include: {
             profile: true,
             accessRole: { include: ACCESS_ROLE_INCLUDE },
-            securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
+            securityZone: {
+              select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true },
+            },
           },
         })
 
@@ -536,7 +642,8 @@ export function createAuthRoutes({
   // Cualquier rol de staff activo puede afiliarse / inscribirse con el mismo email.
   router.post(
     '/athlete-session',
-    requireAuth({ prisma: getPrisma() }),
+    // Cuenta propia, no datos de eventos: el organizador también puede.
+    requireAuth({ prisma: getPrisma(), allowEventScoped: true }),
     authLimiter,
     async (req, res, next) => {
       try {
@@ -678,7 +785,7 @@ export function createAuthRoutes({
   // estado `mustChangePassword`, así que no puede quedar detrás del corte.
   router.post(
     '/me/password',
-    requireAuth({ prisma: getPrisma(), allowPasswordChangePending: true }),
+    requireAuth({ prisma: getPrisma(), allowPasswordChangePending: true, allowEventScoped: true }),
     authLimiter,
     validateBody(changeOwnPasswordSchema),
     async (req, res, next) => {
@@ -714,7 +821,9 @@ export function createAuthRoutes({
             // El puesto de seguridad viaja con la sesión: sin esto, quien
             // escanea no sabe a qué sector está habilitado hasta el
             // siguiente request.
-            securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
+            securityZone: {
+              select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true },
+            },
           },
         })
 
@@ -732,7 +841,7 @@ export function createAuthRoutes({
   // usuario sigue entrando con la dirección vieja.
   router.post(
     '/me/email',
-    requireAuth({ prisma: getPrisma() }),
+    requireAuth({ prisma: getPrisma(), allowEventScoped: true }),
     authLimiter,
     validateBody(requestEmailChangeSchema),
     async (req, res, next) => {
@@ -880,6 +989,9 @@ export function createAuthRoutes({
         const prisma = getPrisma()
         const { name, email, eventId, sendEmail } = req.validatedBody
 
+        // Primero el alcance y después la consulta: así un id ajeno no se distingue de
+        // uno inexistente (403 igual en los dos casos).
+        assertEventAccess(req, { eventId })
         const event = await resolveEvent(eventId)
         assertEventOpen(event)
         await requireSecurityAccessRole(prisma)
@@ -920,7 +1032,7 @@ export function createAuthRoutes({
           },
           req,
         )
-        const access = createPersonalAccess(user, event, req)
+        const access = await createPersonalAccess(user, event, req)
         const emailed = sendEmail
           ? await dispatchAccessEmail({ user, event, accessUrl: access.url })
           : false
@@ -930,6 +1042,7 @@ export function createAuthRoutes({
           tempPassword,
           emailed,
           accessUrl: access.url,
+          accessCode: access.code,
           expiresAt: access.expiresAt.toISOString(),
           reused,
         })
@@ -952,6 +1065,9 @@ export function createAuthRoutes({
         const prisma = getPrisma()
         const { eventId, users, sendEmail } = req.validatedBody
 
+        // Primero el alcance y después la consulta: así un id ajeno no se distingue de
+        // uno inexistente (403 igual en los dos casos).
+        assertEventAccess(req, { eventId })
         const event = await resolveEvent(eventId)
         assertEventOpen(event)
         await requireSecurityAccessRole(prisma)
@@ -989,22 +1105,26 @@ export function createAuthRoutes({
         )
 
         const created = []
-        settled.forEach((result, index) => {
+        for (let index = 0; index < settled.length; index += 1) {
+          const result = settled[index]
           if (result.status === 'fulfilled') {
-            const access = createPersonalAccess(result.value.user, event, req)
+            // En serie: dos códigos del mismo evento no pueden elegirse a la vez
+            // y chocar antes de que el primero quede guardado.
+            const access = await createPersonalAccess(result.value.user, event, req)
             created.push({
               user: result.value.user,
               tempPassword: result.value.tempPassword,
               accessUrl: access.url,
+              accessCode: access.code,
               expiresAt: access.expiresAt.toISOString(),
               emailed: false,
               reused: result.value.reused,
             })
-            return
+            continue
           }
           const reason = result.reason?.code === 'P2002' ? 'exists' : 'error'
           skipped.push({ email: toCreate[index].email, reason })
-        })
+        }
 
         // Envío de credenciales best-effort, en paralelo, recién después de
         // crear todas las cuentas.
@@ -1060,6 +1180,7 @@ export function createAuthRoutes({
     async (req, res, next) => {
       try {
         const prisma = getPrisma()
+        assertEventAccess(req, { eventId: req.validatedBody.eventId })
         const result = await prisma.user.updateMany({
           where: {
             role: 'seguridad_plu_arg',
@@ -1091,12 +1212,15 @@ export function createAuthRoutes({
       const prisma = getPrisma()
       const eventId = String(req.query.eventId ?? '')
       if (!eventId) throw new HttpError(400, 'Falta eventId.')
+      assertEventAccess(req, { eventId })
 
       const users = await prisma.user.findMany({
         where: { role: 'seguridad_plu_arg', eventId },
         include: {
           profile: true,
-          securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
+          securityZone: {
+            select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true },
+          },
         },
         orderBy: { createdAt: 'desc' },
       })
@@ -1119,6 +1243,8 @@ export function createAuthRoutes({
         if (!target || target.role !== 'seguridad_plu_arg') {
           throw new HttpError(404, 'Usuario de seguridad no encontrado.')
         }
+        // Una cuenta por evento solo toca el equipo de SUS eventos.
+        assertEventAccess(req, { eventId: target.eventId })
 
         // status pasa a 'disabled' -> readSession corta la sesion activa en
         // el proximo request (chequea user.status === 'active'), sin tener
@@ -1128,7 +1254,9 @@ export function createAuthRoutes({
           data: { status: req.validatedBody.status },
           include: {
             profile: true,
-            securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
+            securityZone: {
+              select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true },
+            },
           },
         })
 
@@ -1139,8 +1267,34 @@ export function createAuthRoutes({
     },
   )
 
-  // Genera una credencial de acceso: un link (con token firmado) que deja
-  // entrar a la puerta sin contraseña. Se puede copiar/QR o mandar por mail.
+  // La credencial vigente, sin emitir otra. 404 si esta cuenta nunca tuvo una.
+  router.get(
+    '/security-users/:userId/access-link',
+    ...manageUsersGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const user = await getPrisma().user.findUnique({ where: { id: req.params.userId } })
+        if (!user || user.role !== 'seguridad_plu_arg') {
+          throw new HttpError(404, 'Usuario de seguridad no encontrado.')
+        }
+        assertEventAccess(req, { eventId: user.eventId })
+        const stored = readStoredSecurityAccess(user, { appUrl: resolveAppUrl(req) })
+        if (!stored) throw new HttpError(404, 'No hay una credencial vigente.')
+        res.json({
+          url: stored.url,
+          code: stored.code,
+          expiresAt: stored.expiresAt.toISOString(),
+          expired: stored.expired,
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  // Genera o reenvía la credencial de acceso. Sin `rotate` devuelve la vigente
+  // (y la crea si no había). `rotate` cambia el código y deja inválido el link anterior.
   router.post(
     '/security-users/:userId/access-link',
     ...manageUsersGuard,
@@ -1156,6 +1310,7 @@ export function createAuthRoutes({
         if (!user || user.role !== 'seguridad_plu_arg') {
           throw new HttpError(404, 'Usuario de seguridad no encontrado.')
         }
+        assertEventAccess(req, { eventId: user.eventId })
         if (!user.eventId || !user.eventSlug) {
           throw new HttpError(400, 'La cuenta no tiene un evento asignado.')
         }
@@ -1166,14 +1321,11 @@ export function createAuthRoutes({
         const event = (await fetchSupabaseEvent(getSupabaseAdmin?.(), user.eventId)) ?? {
           slug: user.eventSlug,
         }
-        const access = createPersonalAccess(
-          serializeUser(user),
-          event,
-          req,
-          req.validatedBody.expiresAt,
-        )
+        const access = await createPersonalAccess(user, event, req, req.validatedBody.expiresAt, {
+          rotate: Boolean(req.validatedBody.rotate),
+        })
 
-        const emailed = req.validatedBody.sendEmail
+        const emailed = req.validatedBody.sendEmail && !access.expired
           ? await dispatchAccessEmail({
               user: serializeUser(user),
               event,
@@ -1184,6 +1336,7 @@ export function createAuthRoutes({
 
         res.json({
           url: access.url,
+          code: access.code,
           token: access.token,
           expiresAt: access.expiresAt.toISOString(),
           emailed,
@@ -1204,55 +1357,52 @@ export function createAuthRoutes({
     async (req, res, next) => {
       try {
         const prisma = getPrisma()
-        const payload = verifyAccessToken(req.validatedBody.token, { secret: accessLinkSecret })
-        if (!payload) {
-          await recordIdentity(
-            {
-              action: 'auth.login_failed',
-              entityType: 'staff_user',
-              entityId: anonymousIdentityId('access_token', req.validatedBody.token),
-              actorType: 'anonymous',
-              status: 'failed',
-              severity: 'warning',
-              metadata: { method: 'security_gate', reason: 'invalid_or_expired_token' },
-            },
-            req,
-          )
-          next(new HttpError(401, 'Credencial inválida o vencida.'))
-          return
-        }
+        const { token, code, eventSlug } = req.validatedBody
+        let user = null
 
-        const user = await prisma.user.findUnique({
-          where: { id: payload.uid },
-          include: {
-            profile: true,
-            accessRole: { include: ACCESS_ROLE_INCLUDE },
-            // El puesto viaja en la respuesta del link mágico: sin esto, la
-            // consola de puerta no sabe qué zona está operando hasta un
-            // request posterior (y el aviso del puesto no se pinta).
-            securityZone: { select: { id: true, name: true, scope: true, shiftStart: true, shiftEnd: true } },
-          },
-        })
-        if (
-          !user ||
-          user.role !== 'seguridad_plu_arg' ||
-          user.status !== 'active' ||
-          user.eventId !== payload.eid
-        ) {
-          await recordIdentity(
-            {
-              action: 'auth.login_failed',
-              entityType: 'staff_user',
-              entityId: payload.uid,
-              actorType: 'anonymous',
-              status: 'failed',
-              severity: 'warning',
-              metadata: { method: 'security_gate', reason: 'account_or_scope_mismatch' },
-            },
-            req,
-          )
-          next(new HttpError(401, 'Credencial inválida o vencida.'))
-          return
+        if (token) {
+          const payload = verifyAccessToken(token, { secret: accessLinkSecret })
+          if (!payload) {
+            next(await denyGate(req, anonymousIdentityId('access_token', token), 'invalid_or_expired_token'))
+            return
+          }
+
+          user = await prisma.user.findUnique({
+            where: { id: payload.uid },
+            include: gateUserInclude,
+          })
+          if (
+            !user ||
+            user.role !== 'seguridad_plu_arg' ||
+            user.status !== 'active' ||
+            user.eventId !== payload.eid ||
+            !accessTokenMatchesVersion(payload, user.securityAccessVersion)
+          ) {
+            next(
+              await denyGate(
+                req,
+                payload.uid,
+                'account_or_scope_mismatch',
+              ),
+            )
+            return
+          }
+        } else {
+          user = await findSecurityUserByDoorCode(prisma, {
+            code,
+            eventSlug,
+            include: gateUserInclude,
+          })
+          if (!user || user.status !== 'active' || !isStoredAccessCurrent(user)) {
+            next(
+              await denyGate(
+                req,
+                anonymousIdentityId('access_code', code),
+                'invalid_or_expired_code',
+              ),
+            )
+            return
+          }
         }
 
         const session = await createSession({ prisma, userId: user.id, req })

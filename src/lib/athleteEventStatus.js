@@ -52,6 +52,40 @@ export function isRegistrationForEvent(registration, event) {
 }
 
 /**
+ * Clave estable para filtros admin: slug si existe; si no, título (filas viejas).
+ * El valor del filtro es esta clave; la etiqueta visible sigue siendo el título.
+ */
+export function registrationEventFilterKey(registration) {
+  const slug = String(registration?.eventSlug ?? '').trim()
+  if (slug) return slug
+  const title = String(registration?.event ?? '').trim()
+  return title || null
+}
+
+/**
+ * ¿La inscripción cae en el filtro de evento del admin?
+ * `filterEvent` es `all` | slug | título legacy (bookmarks / estado viejo).
+ * Con catálogo de eventos, un slug resuelve también filas que solo tienen título.
+ */
+export function matchesRegistrationEventFilter(registration, filterEvent, events = []) {
+  if (!filterEvent || filterEvent === 'all') return true
+  if (!registration) return false
+
+  const slug = String(registration.eventSlug ?? '').trim()
+  if (slug && slug === filterEvent) return true
+
+  const title = String(registration.event ?? '').trim()
+  if (title && title === filterEvent) return true
+
+  if (!Array.isArray(events) || events.length === 0) return false
+  const catalogEvent = events.find(
+    (event) => event?.slug === filterEvent || event?.title === filterEvent,
+  )
+  if (!catalogEvent) return false
+  return isRegistrationForEvent(registration, catalogEvent)
+}
+
+/**
  * La inscripción vigente del atleta para el evento, o null.
  *
  * Un atleta puede acumular varias filas del mismo meet (canceló y volvió a

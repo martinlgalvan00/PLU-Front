@@ -6,7 +6,8 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { validateTicketAttendees, validateTicketBuyer } from '../../lib/validation.js'
 import { useAdminModal } from './useAdminModal.js'
 
-const MAX_ATTENDEES = 8
+// Igual que el checkout público y la RPC (`create_ticket_order_v3`).
+const MAX_ATTENDEES = 10
 const MANUAL_CHANNELS = ['cash_pitbull', 'bank_transfer']
 
 function emptyAttendee() {

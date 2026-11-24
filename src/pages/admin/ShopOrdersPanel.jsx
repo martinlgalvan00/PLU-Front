@@ -70,59 +70,43 @@ function OrderRow({ canEdit, locale, onChanged, order, t }) {
 
   return (
     <li className="admin-shop-order" data-status={status}>
-      <div className="admin-shop-order__main">
+      <div className="admin-shop-order__identity">
         <div className="admin-shop-order__head">
           <strong className="admin-shop-order__ref">{order.reference}</strong>
           <span className="admin-shop-order__status">
             <span className="admin-shop-order__dot" aria-hidden />
             {t(`${k}.status.${status}`)}
           </span>
-          <span className="admin-shop-order__total">{money(order.amount, locale)}</span>
         </div>
-        <p className="admin-shop-order__meta">
-          {order.buyerName} · {order.buyerEmail}
-          {order.buyerPhone ? ` · ${order.buyerPhone}` : ''}
-        </p>
-        <ul className="admin-shop-order__items">
-          {order.items.map((item) => (
-            <li key={`${item.productId ?? item.title}-${item.sizeLabel ?? ''}`}>
-              {item.quantity} × {item.title}
-              {item.sizeLabel ? ` · ${item.sizeLabel}` : ''}
-            </li>
-          ))}
-        </ul>
-        {order.buyerNote ? (
-          <p className="admin-shop-order__note">
-            {t(`${k}.note`)}: {order.buyerNote}
-          </p>
-        ) : null}
         <p className="admin-shop-order__meta admin-shop-order__meta--muted">
           {t(`${k}.method.${order.paymentMethod}`)} · {t(`${k}.created`)}{' '}
           {formatDateTime(order.createdAt, locale)}
           {order.paymentPending && pending ? ` · ${t(`${k}.processing`)}` : ''}
         </p>
+      </div>
 
-        {order.needsRefund ? (
-          <p className="admin-shop-order__alert" role="alert">
-            {t(`${k}.needsRefund`)}
-            {canEdit ? (
-              <button
-                type="button"
-                className="admin-shop-order__link"
-                disabled={busy}
-                onClick={() => run(() => resolveShopOrderRefund(order.id))}
-              >
-                {t(`${k}.resolveRefund`)}
-              </button>
-            ) : null}
-          </p>
-        ) : null}
-        {error ? (
-          <p className="admin-shop-order__alert" role="alert">
-            {error}
+      <div className="admin-shop-order__buyer">
+        <p className="admin-shop-order__meta">
+          {order.buyerName} · {order.buyerEmail}
+          {order.buyerPhone ? ` · ${order.buyerPhone}` : ''}
+        </p>
+        {order.buyerNote ? (
+          <p className="admin-shop-order__note">
+            {t(`${k}.note`)}: {order.buyerNote}
           </p>
         ) : null}
       </div>
+
+      <ul className="admin-shop-order__items">
+        {order.items.map((item) => (
+          <li key={`${item.productId ?? item.title}-${item.sizeLabel ?? ''}`}>
+            {item.quantity} × {item.title}
+            {item.sizeLabel ? ` · ${item.sizeLabel}` : ''}
+          </li>
+        ))}
+      </ul>
+
+      <p className="admin-shop-order__total">{money(order.amount, locale)}</p>
 
       <div className="admin-shop-order__actions">
         {order.paymentMethod === 'bank_transfer' && pending ? (
@@ -222,7 +206,37 @@ function OrderRow({ canEdit, locale, onChanged, order, t }) {
           </>
         ) : null}
       </div>
+
+      {order.needsRefund ? (
+        <p className="admin-shop-order__alert" role="alert">
+          {t(`${k}.needsRefund`)}
+          {canEdit ? (
+            <button
+              type="button"
+              className="admin-shop-order__link"
+              disabled={busy}
+              onClick={() => run(() => resolveShopOrderRefund(order.id))}
+            >
+              {t(`${k}.resolveRefund`)}
+            </button>
+          ) : null}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="admin-shop-order__alert" role="alert">
+          {error}
+        </p>
+      ) : null}
     </li>
+  )
+}
+
+function OrdersEmpty({ lead, title }) {
+  return (
+    <div className="admin-shop-orders__empty">
+      <p className="admin-shop-orders__empty-title">{title}</p>
+      <p className="admin-shop-orders__empty-lead">{lead}</p>
+    </div>
   )
 }
 
@@ -304,9 +318,9 @@ export default function ShopOrdersPanel({ canEdit }) {
       </div>
 
       {orders.length === 0 ? (
-        <p className="admin-shop__state">{t(`${k}.empty`)}</p>
+        <OrdersEmpty title={t(`${k}.empty`)} lead={t(`${k}.emptyLead`)} />
       ) : visible.length === 0 ? (
-        <p className="admin-shop__state">{t(`${k}.emptyFilter`)}</p>
+        <OrdersEmpty title={t(`${k}.emptyFilter`)} lead={t(`${k}.emptyLead`)} />
       ) : (
         <ul className="admin-shop-orders__list">
           {visible.map((order) => (

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Camera,
   CheckCircle2,
@@ -11,6 +11,11 @@ import {
   Medal,
   Trash2,
 } from 'lucide-react'
+import {
+  carryDeclaredTotalOnModeChange,
+  isValidDeclaredTotalKg,
+  optionalDeclaredTotalKg,
+} from '../../../shared/declaredMeetTotal.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { AutocompleteField, DateField, Field, Select } from '../../components/ui/FormFields.jsx'
 import GymNameConfirmationDialog from '../../components/ui/GymNameConfirmationDialog.jsx'
@@ -18,7 +23,9 @@ import { formatIdentityDocumentId, formatShortDate, initials } from '../../lib/f
 import { isNewGymName } from '../../lib/gymNormalize.js'
 import { isProfileComplete, PROFILE_FIELD_GROUPS } from '../../lib/athleteProfile.js'
 import { getFormOptions } from '../../lib/formOptions.js'
+import { useAgeDivisionOptions } from '../../hooks/useAgeDivisionOptions.js'
 import { fetchGyms } from '../../services/athleteApi.js'
+import DocumentPackSection from './DocumentPackSection.jsx'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const RING_RADIUS = 48
@@ -39,18 +46,34 @@ function exclusiveGroups(openKey) {
 }
 
 function firstIncompleteGroup(missing) {
-  if (missing.some((field) => ['phone', 'city', 'province'].includes(field))) return 'contact'
-  if (missing.some((field) => ['division', 'category', 'estimatedWeight'].includes(field))) {
+  if (
+    missing.some((field) =>
+      ['phone', 'city', 'province', 'streetAddress', 'postalCode', 'email'].includes(field),
+    )
+  ) {
+    return 'contact'
+  }
+  if (missing.some((field) => ['category', 'estimatedWeight'].includes(field))) {
     return 'competition'
   }
-  if (missing.includes('gym')) return 'sports'
+  if (missing.some((field) => ['gym', 'sex'].includes(field))) return 'sports'
+  if (missing.some((field) => ['emergencyContactName', 'emergencyContactPhone'].includes(field))) {
+    return 'emergency'
+  }
   return null
 }
 
 function firstErrorGroup(nextErrors) {
   if (nextErrors.email || nextErrors.phone) return 'contact'
-  if (nextErrors.division || nextErrors.category || nextErrors.estimatedWeight) return 'competition'
-  if (nextErrors.instagramHandle || nextErrors.bestTotalKg || nextErrors.sex) return 'sports'
+  if (nextErrors.category || nextErrors.estimatedWeight) return 'competition'
+  if (
+    nextErrors.instagramHandle ||
+    nextErrors.bestTotalKg ||
+    nextErrors.trainingBestTotalKg ||
+    nextErrors.sex
+  ) {
+    return 'sports'
+  }
   if (nextErrors.emergencyContactPhone) return 'emergency'
   return null
 }
@@ -60,6 +83,8 @@ export default function PersonalDataSection({
   onUpdateProfile,
   onUpdatePhoto,
   onRemovePhoto,
+  onUploadDocument = null,
+  showMemberDocuments = false,
 }) {
   const { t } = useI18n()
   const [form, setForm] = useState({
@@ -67,6 +92,8 @@ export default function PersonalDataSection({
     phone: athlete.phone ?? '',
     city: athlete.city ?? '',
     province: athlete.province ?? '',
+    streetAddress: athlete.streetAddress ?? '',
+    postalCode: athlete.postalCode ?? '',
     gym: athlete.gym ?? '',
     sex: athlete.sex ?? '',
     fullName: athlete.fullName ?? '',
@@ -75,10 +102,24 @@ export default function PersonalDataSection({
     emergencyContactName: athlete.emergencyContactName ?? '',
     emergencyContactPhone: athlete.emergencyContactPhone ?? '',
     instagramHandle: athlete.instagramHandle ?? '',
-    bestTotalKg:
-      athlete.bestTotalKg === null || athlete.bestTotalKg === undefined
-        ? ''
-        : String(athlete.bestTotalKg),
+    ...(() => {
+      const carried = carryDeclaredTotalOnModeChange({
+        competition:
+          athlete.bestTotalKg === null || athlete.bestTotalKg === undefined
+            ? ''
+            : String(athlete.bestTotalKg),
+        training:
+          athlete.trainingBestTotalKg === null || athlete.trainingBestTotalKg === undefined
+            ? ''
+            : String(athlete.trainingBestTotalKg),
+        firstMeet: athlete.isFirstMeet === true,
+      })
+      return {
+        bestTotalKg: String(carried.competition ?? ''),
+        firstMeet: carried.firstMeet,
+        trainingBestTotalKg: String(carried.training ?? ''),
+      }
+    })(),
     division: athlete.division ?? '',
     category: athlete.category ?? '',
     estimatedWeight:
@@ -136,7 +177,23 @@ export default function PersonalDataSection({
   // Evaluar completitud del perfil mezclando lo que hay en BD + cambios locales del form
   const athleteWithForm = { ...athlete, ...form }
   const profileStatus = isProfileComplete(athleteWithForm)
-  const formOptions = getFormOptions(t)
+  const formOptions = useMemo(() => getFormOptions(t), [t])
+  const ageDivision = useAgeDivisionOptions({
+    birthDate: form.birthDate || athlete.birthDate,
+    allDivisions: formOptions.division,
+    currentDivision: form.division,
+  })
+
+  // Auto-completa / clampa división cuando hay DOB (franja natural + Open).
+  useEffect(() => {
+    if (!ageDivision.changed || !ageDivision.value) return
+    setForm((current) =>
+      current.division === ageDivision.value
+        ? current
+        : { ...current, division: ageDivision.value },
+    )
+  }, [ageDivision.changed, ageDivision.value])
+
   const contactSummary = filledSummary(
     [form.phone, form.city, form.province],
     t('account.personalData.contactSummary'),
@@ -291,14 +348,11 @@ export default function PersonalDataSection({
     if (instagramHandle && !/^[A-Za-z0-9._]{1,30}$/.test(instagramHandle)) {
       nextErrors.instagramHandle = t('account.personalData.errorInstagram')
     }
-    if (form.bestTotalKg.trim()) {
-      const total = Number(form.bestTotalKg.replace(',', '.').replace(/\s*kg$/i, ''))
-      if (!Number.isFinite(total) || total < 10 || total > 2000) {
-        nextErrors.bestTotalKg = t('account.personalData.errorBestTotal')
-      }
+    if (form.bestTotalKg.trim() && !isValidDeclaredTotalKg(form.bestTotalKg)) {
+      nextErrors.bestTotalKg = t('account.personalData.errorBestTotal')
     }
-    if (!formOptions.division.includes(form.division)) {
-      nextErrors.division = t('account.personalData.errorDivision')
+    if (form.trainingBestTotalKg.trim() && !isValidDeclaredTotalKg(form.trainingBestTotalKg)) {
+      nextErrors.trainingBestTotalKg = t('account.personalData.errorBestTotal')
     }
     if (!formOptions.category.includes(form.category)) {
       nextErrors.category = t('account.personalData.errorCategory')
@@ -320,13 +374,14 @@ export default function PersonalDataSection({
 
     setErrors({})
     setSaving(true)
-    const bestTotalKg = form.bestTotalKg.trim()
-      ? Number(form.bestTotalKg.replace(',', '.').replace(/\s*kg$/i, ''))
-      : null
+    const bestTotalKg = optionalDeclaredTotalKg(form.bestTotalKg)
+    const trainingBestTotalKg = optionalDeclaredTotalKg(form.trainingBestTotalKg)
     const result = await onUpdateProfile(athlete.id, {
       ...form,
       instagramHandle,
       bestTotalKg,
+      firstMeet: form.firstMeet === true,
+      trainingBestTotalKg,
       estimatedWeight,
     })
     setSaving(false)
@@ -345,7 +400,7 @@ export default function PersonalDataSection({
     ['phone', 'city', 'province'].includes(field),
   )
   const competitionPending = profileStatus.missing.some((field) =>
-    ['division', 'category', 'estimatedWeight'].includes(field),
+    ['category', 'estimatedWeight'].includes(field),
   )
   const teamPending = profileStatus.missing.includes('gym')
 
@@ -378,6 +433,14 @@ export default function PersonalDataSection({
           ) : null}
         </div>
       </header>
+
+      {showMemberDocuments ? (
+        <DocumentPackSection
+          athlete={athlete}
+          onUploadDocument={onUploadDocument}
+          variant="member"
+        />
+      ) : null}
 
       {!profileStatus.complete ? (
         <div className="account-profile-checklist" role="status">
@@ -621,6 +684,20 @@ export default function PersonalDataSection({
               value={form.province}
               onChange={changeField}
             />
+            <Field
+              label={t('account.personalData.streetAddress')}
+              name="streetAddress"
+              value={form.streetAddress}
+              onChange={changeField}
+              placeholder={t('account.personalData.streetAddressPlaceholder')}
+            />
+            <Field
+              label={t('account.personalData.postalCode')}
+              name="postalCode"
+              value={form.postalCode}
+              onChange={changeField}
+              placeholder={t('account.personalData.postalCodePlaceholder')}
+            />
           </div>
         </section>
 
@@ -660,14 +737,6 @@ export default function PersonalDataSection({
             hidden={!openGroups.competition}
           >
             <Select
-              error={errors.division}
-              label={`${t('account.personalData.division')} *`}
-              name="division"
-              options={[['', t('formOptions.selectPlaceholder')], ...formOptions.division]}
-              value={form.division}
-              onChange={changeField}
-            />
-            <Select
               error={errors.category}
               label={`${t('account.personalData.category')} *`}
               name="category"
@@ -684,6 +753,13 @@ export default function PersonalDataSection({
               value={form.estimatedWeight}
               onChange={changeField}
             />
+            {ageDivision.hasAgeRule && ageDivision.suggested ? (
+              <p className="account-data-group__note form-grid__span-full" role="status">
+                {t('account.personalData.divisionByAge', {
+                  division: ageDivision.suggested,
+                })}
+              </p>
+            ) : null}
             <p className="account-data-group__note form-grid__span-full">
               {t('account.personalData.competitionDefaultsNote')}
             </p>
@@ -752,13 +828,57 @@ export default function PersonalDataSection({
               error={errors.instagramHandle}
               onChange={changeField}
             />
+            <label className="account-first-meet">
+              <input
+                type="checkbox"
+                name="firstMeet"
+                checked={form.firstMeet === true}
+                onChange={(event) => {
+                  setForm((current) => {
+                    const carried = carryDeclaredTotalOnModeChange({
+                      competition: current.bestTotalKg,
+                      training: current.trainingBestTotalKg,
+                      firstMeet: event.target.checked,
+                    })
+                    return {
+                      ...current,
+                      firstMeet: carried.firstMeet,
+                      bestTotalKg: String(carried.competition ?? ''),
+                      trainingBestTotalKg: String(carried.training ?? ''),
+                    }
+                  })
+                  setErrors((current) => ({
+                    ...current,
+                    bestTotalKg: '',
+                    trainingBestTotalKg: '',
+                  }))
+                }}
+              />
+              <span>
+                <span className="account-first-meet__label">
+                  {t('account.personalData.firstMeet')}
+                </span>
+                <span className="account-first-meet__note">
+                  {t('account.personalData.firstMeetNote')}
+                </span>
+              </span>
+            </label>
             <Field
-              error={errors.bestTotalKg}
+              key={form.firstMeet === true ? 'training-total' : 'competition-total'}
+              error={form.firstMeet === true ? errors.trainingBestTotalKg : errors.bestTotalKg}
               inputMode="decimal"
-              label={t('account.personalData.bestTotal')}
-              name="bestTotalKg"
-              placeholder={t('account.personalData.bestTotalPlaceholder')}
-              value={form.bestTotalKg}
+              label={
+                form.firstMeet === true
+                  ? t('account.personalData.trainingBestTotal')
+                  : t('account.personalData.bestTotal')
+              }
+              name={form.firstMeet === true ? 'trainingBestTotalKg' : 'bestTotalKg'}
+              placeholder={
+                form.firstMeet === true
+                  ? t('account.personalData.trainingBestTotalPlaceholder')
+                  : t('account.personalData.bestTotalPlaceholder')
+              }
+              value={form.firstMeet === true ? form.trainingBestTotalKg : form.bestTotalKg}
               onChange={changeField}
             />
           </div>
@@ -836,13 +956,12 @@ export default function PersonalDataSection({
           )}
         </div>
       </form>
-      {pendingGymConfirmation ? (
-        <GymNameConfirmationDialog
-          gymName={pendingGymConfirmation}
-          onCancel={cancelGymNameConfirmation}
-          onConfirm={confirmGymName}
-        />
-      ) : null}
+      <GymNameConfirmationDialog
+        open={Boolean(pendingGymConfirmation)}
+        gymName={pendingGymConfirmation ?? ''}
+        onCancel={cancelGymNameConfirmation}
+        onConfirm={confirmGymName}
+      />
     </section>
   )
 }

@@ -1,12 +1,18 @@
+import { CHECKIN_SYNC, nextRetryDelayMs } from '../lib/checkinSyncConfig.js'
 import {
   addResolvedConflict,
   downloadAllowlist as saveAllowlist,
+  getAllowlist,
   listPending,
+  noteSyncJournal,
   removePending,
+  touchAllowlistDownload,
+  updatePending,
 } from '../lib/offlineCheckinDb.js'
 import { checkInRegistration, getEventCheckinAllowlist } from './athleteApi.js'
 import { checkInTicket } from './ticketApi.js'
 import { classifyCheckinFailure, isAlreadyAdmittedConflict } from './checkinFailure.js'
+import { runDoorAttempts } from './doorRetry.js'
 
 /**
  * offlineCheckinSync.js — PLU ARG
@@ -21,19 +27,88 @@ import { classifyCheckinFailure, isAlreadyAdmittedConflict } from './checkinFail
  * resuelto", no como un error.
  */
 
-export async function downloadAllowlist(eventSlug) {
-  const data = await getEventCheckinAllowlist(eventSlug)
-  return saveAllowlist(eventSlug, data)
+function asAllowlistResponse(result) {
+  if (result && Object.hasOwn(result, 'notModified')) return result
+  return { notModified: false, etag: result?.etag ?? null, data: result }
 }
 
-async function syncEntry(entry) {
+const allowlistDownloads = new Map()
+
+async function downloadAllowlistOnce(eventSlug) {
+  const cached = await getAllowlist(eventSlug)
+  const result = asAllowlistResponse(
+    await runDoorAttempts(() =>
+      getEventCheckinAllowlist(eventSlug, { etag: cached?.etag ?? null }),
+    ),
+  )
+  if (result.notModified) {
+    return (await touchAllowlistDownload(eventSlug, result.etag)) ?? cached
+  }
+  return saveAllowlist(eventSlug, result.data ?? {}, { etag: result.etag ?? null })
+}
+
+/** Una sola descarga por evento aunque el puesto y el aviso en vivo la pidan juntos. */
+export function downloadAllowlist(eventSlug) {
+  const current = allowlistDownloads.get(eventSlug)
+  if (current) return current
+  const task = downloadAllowlistOnce(eventSlug).finally(() => {
+    if (allowlistDownloads.get(eventSlug) === task) allowlistDownloads.delete(eventSlug)
+  })
+  allowlistDownloads.set(eventSlug, task)
+  return task
+}
+
+function pendingKey(entry) {
+  if (entry?.kind === 'registration') return `r:${entry.registrationId ?? ''}`
+  return `t:${entry?.qrToken ?? ''}`
+}
+
+function isDue(entry, now) {
+  if (entry.status === 'exhausted') return false
+  if (!entry.nextAttemptAt) return true
+  const at = Date.parse(entry.nextAttemptAt)
+  return Number.isNaN(at) || at <= now
+}
+
+async function scheduleRetry(entry, failure, now) {
+  const attemptCount = (entry.attemptCount ?? 0) + 1
+  if (attemptCount >= CHECKIN_SYNC.maxAttempts) {
+    await updatePending(entry.localId, {
+      attemptCount,
+      status: 'exhausted',
+      nextAttemptAt: null,
+      lastError: failure,
+    })
+    await noteSyncJournal({ ...entry, status: 'exhausted' })
+    return { localId: entry.localId, outcome: 'exhausted', attemptCount }
+  }
+
+  const nextAttemptAt = new Date(now + nextRetryDelayMs(attemptCount)).toISOString()
+  await updatePending(entry.localId, {
+    attemptCount,
+    status: 'pending',
+    nextAttemptAt,
+    lastError: failure,
+  })
+  return { localId: entry.localId, outcome: 'retry', nextAttemptAt, attemptCount }
+}
+
+async function syncEntry(entry, now) {
   try {
     if (entry.kind === 'ticket') {
-      await checkInTicket(entry.qrToken, entry.gate)
+      const reason = typeof entry.reason === 'string' ? entry.reason.trim() : ''
+      const forced =
+        (entry.force === 'validity' || entry.force === 'zone') && reason.length >= 8
+      await checkInTicket(
+        entry.qrToken,
+        entry.gate,
+        forced ? { force: entry.force, reason } : {},
+      )
     } else {
       await checkInRegistration(entry.registrationId, entry.gate)
     }
     await removePending(entry.localId)
+    await noteSyncJournal({ ...entry, status: 'synced' })
     return { localId: entry.localId, outcome: 'ok' }
   } catch (error) {
     const failure = classifyCheckinFailure(error)
@@ -46,39 +121,68 @@ async function syncEntry(entry) {
       // guarda con su motivo para que Administración lo revise, no se descarta
       // como si nada.
       const reason = error?.body?.code ?? null
+      const status = isAlreadyAdmittedConflict(error) ? 'conflict' : 'rejected'
       await addResolvedConflict({ ...entry, reason })
+      await noteSyncJournal({ ...entry, status, reason })
       return {
         localId: entry.localId,
-        outcome: isAlreadyAdmittedConflict(error) ? 'conflict' : 'rejected',
+        outcome: status,
         reason,
       }
     }
     if (failure === 'not_found') {
       await removePending(entry.localId)
+      await noteSyncJournal({ ...entry, status: 'not_found' })
       return { localId: entry.localId, outcome: 'not_found' }
     }
     // Sesión vencida o sin permiso: reintentar no lo arregla y el operador
     // tiene que saberlo. Queda en la cola, sin consumir intentos.
     if (failure === 'auth') return { localId: entry.localId, outcome: 'auth' }
 
-    // Red caída, 429 o 5xx: se deja en la cola, el próximo ciclo lo reintenta.
-    return { localId: entry.localId, outcome: 'retry' }
+    // Red caída, 429, 5xx u otro fallo transitorio: backoff y tope.
+    return scheduleRetry(entry, failure, now)
   }
 }
 
 /**
- * Recorre la cola pendiente en orden FIFO y la sincroniza contra el servidor.
- * Con la sesión vencida corta en el primer rechazo de autenticación: el resto
- * recibiría lo mismo y sólo gastaría pedidos.
+ * Drena la cola contra el servidor. El orden de arranque es FIFO. A la vez
+ * salen como máximo `concurrency` ingresos, y nunca dos del mismo QR.
+ * Con la sesión vencida no se arrancan más: el resto recibiría lo mismo.
+ * Lo que ya está en vuelo puede terminar.
  */
-export async function syncPendingCheckins() {
+export async function syncPendingCheckins({
+  now = Date.now(),
+  concurrency = CHECKIN_SYNC.concurrency,
+} = {}) {
   const queue = await listPending()
-  const results = []
+  const due = []
+  const seen = new Set()
   for (const entry of queue) {
-    // eslint-disable-next-line no-await-in-loop -- FIFO intencional, no en paralelo
-    const result = await syncEntry(entry)
-    results.push(result)
-    if (result.outcome === 'auth') break
+    if (!isDue(entry, now)) continue
+    const key = pendingKey(entry)
+    if (seen.has(key)) continue
+    seen.add(key)
+    due.push(entry)
   }
+
+  if (due.length === 0) return []
+
+  const results = []
+  let cursor = 0
+  let authStopped = false
+
+  async function worker() {
+    while (!authStopped) {
+      const index = cursor
+      cursor += 1
+      if (index >= due.length) return
+      const result = await syncEntry(due[index], now)
+      results.push(result)
+      if (result.outcome === 'auth') authStopped = true
+    }
+  }
+
+  const width = Math.max(1, Math.min(concurrency, due.length))
+  await Promise.all(Array.from({ length: width }, () => worker()))
   return results
 }

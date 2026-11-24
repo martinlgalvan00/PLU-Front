@@ -26,10 +26,10 @@ import { useMotionConfig } from '../../motion/MotionProvider.tsx'
  */
 const ITEM_CHROME = {
   'account-qr': { icon: QrCode, labelKey: 'qr' },
-  'account-tickets': { icon: Ticket, labelKey: 'tickets' },
   'account-benefits': { icon: BadgePercent, labelKey: 'benefits' },
   'account-offer': { icon: Sparkles, labelKey: 'offer' },
   'account-events': { icon: Trophy, labelKey: 'events' },
+  'account-tickets': { icon: Ticket, labelKey: 'tickets' },
   'account-history': { icon: History, labelKey: 'history' },
   'account-membership': { icon: ShieldCheck, labelKey: 'membership' },
   'account-payments': { icon: Receipt, labelKey: 'payments' },

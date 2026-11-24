@@ -416,6 +416,8 @@ export function createMercadoPagoAdapter({
           failure: safeUrl(returnBase, returnQuery('failure')),
         },
         ...(supportsAutoReturn(returnBase) ? { auto_return: 'approved' } : {}),
+        // Tope de cuotas del evento (`rules.paymentPolicy`): sin él decide la cuenta.
+        ...(order.maxInstallments ? { payment_methods: { installments: order.maxInstallments } } : {}),
         ...preferenceExpiration(order.expiresAt),
         metadata: {
           payment_order_id: order.id,

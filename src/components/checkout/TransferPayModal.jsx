@@ -1,9 +1,8 @@
-import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
+import PublicDialogFrame from '../ui/PublicDialogFrame.jsx'
 import TransferReceipt from './TransferReceipt.jsx'
-import { usePaymentModal } from './usePaymentModal.js'
 import '../../styles/components/transfer-pay-modal.css'
 
 /**
@@ -19,6 +18,7 @@ import '../../styles/components/transfer-pay-modal.css'
  * footer institucional pintaba encima al scrollear.
  */
 export default function TransferPayModal({
+  open = true,
   amount,
   currency = 'ARS',
   onClose,
@@ -31,21 +31,19 @@ export default function TransferPayModal({
   accountDetails = null,
 }) {
   const { t, locale } = useI18n()
-  const panelRef = usePaymentModal(onClose)
   const isCompetition = purpose === 'competition'
   const isWise = channel === 'wise_transfer'
 
-  return createPortal(
-    <div className="account-payment-modal__overlay" role="presentation" onMouseDown={onClose}>
-      <section
-        ref={panelRef}
-        aria-labelledby="transfer-title"
-        aria-describedby="transfer-verify"
-        aria-modal="true"
-        className="account-payment-modal account-payment-modal--transfer"
-        onMouseDown={(event) => event.stopPropagation()}
-        role="dialog"
-      >
+  return (
+    <PublicDialogFrame
+      open={open}
+      onClose={onClose}
+      portal
+      overlayClassName="account-payment-modal__overlay"
+      panelClassName="account-payment-modal account-payment-modal--transfer"
+      labelledBy="transfer-title"
+      describedBy="transfer-verify"
+    >
         <header className="account-payment-modal__header">
           <div className="account-transfer-receipt__heading">
             <h2 id="transfer-title">
@@ -86,8 +84,6 @@ export default function TransferPayModal({
             {t('account.membership.transferUnderstood')}
           </button>
         </div>
-      </section>
-    </div>,
-    document.body,
+    </PublicDialogFrame>
   )
 }

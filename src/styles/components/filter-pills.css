@@ -1,0 +1,15 @@
+/*
+ * FilterPills — regla base de la etiqueta corta.
+ *
+ * Vive con el componente y no en la hoja de una página: antes estaba solo en
+ * events.css, que carga con el Calendario. Entrando directo a Resultados o
+ * Récords se veían las dos etiquetas juntas ("Publicados Pub."). Cada página
+ * decide después cuándo cambiar a la corta (events.css lo hace por ancho).
+ */
+.filter-pills__label--short {
+  display: none;
+}
+
+.filter-pills__item:has(.filter-pills__label--short) .filter-pills__label--full {
+  display: inline;
+}

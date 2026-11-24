@@ -22,6 +22,8 @@ function eventPayload(overrides = {}) {
     location: 'Buenos Aires',
     startsAt: '2026-08-15T09:00',
     endsAt: '2026-08-15T20:00',
+    registrationOpensAt: '2026-06-01T10:00',
+    registrationClosesAt: '2026-08-10T18:00',
     status: 'proximamente',
     published: false,
     slots: 120,
@@ -72,10 +74,9 @@ function canonicalEvent() {
     created_at: '2026-07-01T00:00:00.000Z',
     updated_at: '2026-07-26T12:00:00.000Z',
     capacityRules: [{ key: '', limit_count: 120 }],
-    eventRegistrations: [
-      ...Array.from({ length: 48 }, () => ({ status: 'confirmada' })),
-      { status: 'cancelada' },
-    ],
+    // La base ya cuenta solo las inscripciones que ocupan cupo (ver el filtro
+    // `.in('event_registrations.status', …)` de readEventRows).
+    eventRegistrations: [{ count: 48 }],
     eventDays: [
       {
         id: '22222222-2222-4222-8222-222222222222',
@@ -113,21 +114,27 @@ function createSupabaseDouble({ rpcResult, publishedRows, storageFiles = [] } = 
   const orderPublished = vi.fn(async () => ({ data: published, error: null }))
   const inFilter = vi.fn(() => ({ order: orderPublished }))
   const eq = vi.fn(() => ({ in: inFilter }))
-  const select = vi.fn(() => ({ order: orderAll, eq }))
+  const selectIn = vi.fn(() => ({ order: orderAll }))
+  const select = vi.fn(() => ({ order: orderAll, eq, in: selectIn }))
   const rpc = vi.fn(async () => rpcResult ?? { data: { id: EVENT_ID }, error: null })
   const list = vi.fn(async () => ({ data: storageFiles, error: null }))
   const remove = vi.fn(async () => ({ data: [], error: null }))
-  const storage = { from: vi.fn(() => ({ list, remove })) }
+  const getPublicUrl = vi.fn((path) => ({
+    data: { publicUrl: `https://storage.test/event-logos/${path}` },
+  }))
+  const storage = { from: vi.fn(() => ({ list, remove, getPublicUrl })) }
 
   return {
     client: { from: vi.fn(() => ({ select })), rpc, storage },
     rpc,
     eq,
     inFilter,
+    selectIn,
     orderPublished,
     storage,
     list,
     remove,
+    getPublicUrl,
   }
 }
 
@@ -152,7 +159,7 @@ async function setup(role = 'admin_maximal', supabaseOptions, extraUsers = []) {
 
 describe('API administrativa de eventos', () => {
   it('lee eventos completos con cupo, inscripciones y catálogo', async () => {
-    const { target, cookie } = await setup()
+    const { target, cookie, supabase } = await setup()
 
     try {
       const response = await fetch(`${target.url}/api/events`, {
@@ -162,10 +169,14 @@ describe('API administrativa de eventos', () => {
 
       expect(response.status).toBe(200)
       expect(body.events[0]).toMatchObject({ id: EVENT_ID, capacity: 120 })
-      // El embed viaja con el status de cada inscripción: es lo que permite a
-      // mapSupabaseEventRow contar solo las que realmente ocupan cupo.
-      expect(body.events[0].eventRegistrations).toHaveLength(49)
-      expect(body.events[0].eventRegistrations.at(-1)).toEqual({ status: 'cancelada' })
+      // El conteo se resuelve en la base y solo con las inscripciones que
+      // ocupan cupo: antes viajaba una fila por inscripción para contarlas acá.
+      expect(supabase.selectIn).toHaveBeenCalledWith('event_registrations.status', [
+        'pendiente_pago',
+        'pagada',
+        'confirmada',
+      ])
+      expect(body.events[0].eventRegistrations).toEqual([{ count: 48 }])
       expect(body.events[0].eventDays).toHaveLength(1)
       expect(body.events[0].ticketTypes).toHaveLength(1)
     } finally {
@@ -198,8 +209,35 @@ describe('API administrativa de eventos', () => {
     }
   })
 
+  it('expone la URL pública del logo sin filtrar la ruta interna de Storage', async () => {
+    const logoPath = `${EVENT_ID}/barbell-submission.webp`
+    const { target } = await setup('admin_maximal', {
+      publishedRows: [
+        {
+          ...canonicalEvent(),
+          published: true,
+          logo_path: logoPath,
+        },
+      ],
+    })
+
+    try {
+      const response = await fetch(`${target.url}/api/events/catalog`)
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body.events[0].logo_url).toBe(`https://storage.test/event-logos/${logoPath}`)
+      expect(body.events[0].logo_path).toBeUndefined()
+    } finally {
+      await target.close()
+    }
+  })
+
   it('si ticket_types.wise_price no existe, lee el catalogo sin esa columna', async () => {
-    const staff = await buildStaffUser({ role: 'admin_maximal', email: 'catalog-compat@events.test' })
+    const staff = await buildStaffUser({
+      role: 'admin_maximal',
+      email: 'catalog-compat@events.test',
+    })
     const prisma = createPrismaDouble([staff])
     const published = [
       {
@@ -236,7 +274,9 @@ describe('API administrativa de eventos', () => {
       const body = await response.json()
       expect(response.status).toBe(200)
       expect(select).toHaveBeenCalledTimes(2)
-      expect(String(select.mock.calls[1][0])).not.toContain('price, wise_price, manual_price, quota')
+      expect(String(select.mock.calls[1][0])).not.toContain(
+        'price, wise_price, manual_price, quota',
+      )
       expect(body.events[0]).toMatchObject({ id: EVENT_ID, published: true })
     } finally {
       await target.close()
@@ -348,14 +388,14 @@ describe('API administrativa de eventos', () => {
         'staff_merge_event_public_surface',
         expect.objectContaining({
           p_slug: payload.slug,
-          p_surface: {
+          p_surface: expect.objectContaining({
             calendar: true,
             weighIns: true,
             livestream: true,
             experience: true,
             categories: true,
             location: true,
-          },
+          }),
         }),
       )
       expect(supabase.rpc).toHaveBeenCalledWith(
@@ -381,6 +421,136 @@ describe('API administrativa de eventos', () => {
     } finally {
       await target.close()
     }
+  })
+
+  it('si no se puede crear el perfil de cobro, el evento se guarda igual y se avisa', async () => {
+    // El doble de Supabase no sabe consultar `payment_profiles`: crear el perfil
+    // falla, que es lo que pasaba en producción con un nombre ya tomado.
+    const { target, cookie, supabase } = await setup()
+
+    try {
+      const response = await fetch(`${target.url}/api/events/upsert`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify(
+          eventPayload({
+            published: true,
+            bankTransfer: { alias: 'club.nuevo', cbu: '', holder: '' },
+            // Como el editor: al tipear un alias suelto el perfil queda en null.
+            bankTransferProfileId: null,
+            cashPayment: { place: 'Virtus fitness', notes: 'Sujeta a la fecha de pago.' },
+            paymentChannelOverrides: { registration: { bank_transfer: 'open' } },
+          }),
+        ),
+      })
+      const body = await response.json()
+
+      expect(response.status, JSON.stringify(body)).toBeLessThan(300)
+      // Se guardó todo lo demás, con el alias en el evento y sin el perfil viejo
+      // (si no, el checkout seguiría mostrando la cuenta anterior).
+      expect(supabase.rpc).toHaveBeenCalledWith(
+        'staff_save_event',
+        expect.objectContaining({
+          p_event: expect.objectContaining({
+            bankTransfer: expect.objectContaining({ alias: 'club.nuevo' }),
+            bankTransferProfileId: null,
+            cashPayment: { place: 'Virtus fitness', notes: 'Sujeta a la fecha de pago.' },
+          }),
+        }),
+      )
+      expect(body.warnings).toEqual([
+        expect.objectContaining({
+          code: 'EVENT_BANK_PROFILE_NOT_SAVED',
+          field: 'bankTransferProfileId',
+        }),
+      ])
+    } finally {
+      await target.close()
+    }
+  })
+
+  describe('transferencia abierta sin destino de cobro', () => {
+    const OPEN_TRANSFER = { registration: { bank_transfer: 'open' } }
+
+    function withoutGlobalAlias() {
+      vi.stubEnv('PAYMENT_TRANSFER_ALIAS', '')
+      vi.stubEnv('VITE_PAYMENT_TRANSFER_ALIAS', '')
+    }
+
+    it('un evento oculto se guarda igual y devuelve el aviso con el campo a completar', async () => {
+      withoutGlobalAlias()
+      const { target, cookie, supabase } = await setup()
+
+      try {
+        const response = await fetch(`${target.url}/api/events/upsert`, {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify(
+            eventPayload({ published: false, paymentChannelOverrides: OPEN_TRANSFER }),
+          ),
+        })
+        const body = await response.json()
+
+        expect(response.status).toBe(201)
+        expect(supabase.rpc).toHaveBeenCalledWith('staff_save_event', expect.anything())
+        expect(body.warnings).toEqual([
+          expect.objectContaining({
+            code: 'EVENT_BANK_TRANSFER_ALIAS_REQUIRED',
+            field: 'bankTransferProfileId',
+          }),
+        ])
+      } finally {
+        await target.close()
+        vi.unstubAllEnvs()
+      }
+    })
+
+    it('un evento publicado se rechaza, con el campo que falta', async () => {
+      withoutGlobalAlias()
+      const { target, cookie, supabase } = await setup()
+
+      try {
+        const response = await fetch(`${target.url}/api/events/upsert`, {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify(
+            eventPayload({ published: true, paymentChannelOverrides: OPEN_TRANSFER }),
+          ),
+        })
+        const body = await response.json()
+
+        expect(response.status).toBe(400)
+        expect(body.code).toBe('EVENT_BANK_TRANSFER_ALIAS_REQUIRED')
+        expect(Object.keys(body.fields)).toEqual(['bankTransferProfileId'])
+        expect(supabase.rpc).not.toHaveBeenCalledWith('staff_save_event', expect.anything())
+      } finally {
+        await target.close()
+        vi.unstubAllEnvs()
+      }
+    })
+
+    it('con un alias global configurado no hay aviso ni rechazo', async () => {
+      vi.stubEnv('PAYMENT_TRANSFER_ALIAS', 'global.pesas')
+      const { target, cookie } = await setup()
+
+      try {
+        const response = await fetch(`${target.url}/api/events/upsert`, {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify(
+            eventPayload({
+              published: true,
+              paymentChannelOverrides: OPEN_TRANSFER,
+            }),
+          ),
+        })
+        expect(response.status).toBe(201)
+        expect((await response.json()).warnings).toEqual([])
+      } finally {
+        await target.close()
+        vi.unstubAllEnvs()
+      }
+    })
   })
 
   it('persiste una vigencia de QR de 12 horas desde la acreditación', async () => {
@@ -467,6 +637,216 @@ describe('API administrativa de eventos', () => {
         mode: 'created',
         event: { id: EVENT_ID },
       })
+    } finally {
+      await target.close()
+    }
+  })
+
+  // Un solo test con un solo login: el limitador de logins es por archivo.
+  it('guarda dónde se paga el efectivo aparte, y sin migración avisa en vez de perderlo', async () => {
+    const { target, cookie, supabase } = await setup()
+    const upsert = (body) =>
+      fetch(`${target.url}/api/events/upsert`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify(body),
+      })
+
+    try {
+      const saved = await upsert(
+        eventPayload({
+          cashPayment: {
+            place: '  Virtus Fitness, recepción ',
+            notes: 'Lunes a viernes de 18 a 21.',
+          },
+        }),
+      )
+      expect(saved.status).toBe(201)
+      expect(supabase.rpc).toHaveBeenCalledWith('staff_merge_event_cash_payment', {
+        p_slug: 'pitbull-classic-2026',
+        p_place: 'Virtus Fitness, recepción',
+        p_notes: 'Lunes a viernes de 18 a 21.',
+      })
+
+      // Un guardado que no manda cashPayment no pisa el lugar ya cargado.
+      supabase.rpc.mockClear()
+      expect((await upsert(eventPayload())).status).toBe(201)
+      expect(supabase.rpc).not.toHaveBeenCalledWith(
+        'staff_merge_event_cash_payment',
+        expect.anything(),
+      )
+
+      supabase.rpc.mockImplementation(async (name) => {
+        if (name === 'staff_merge_event_cash_payment') {
+          return {
+            data: null,
+            error: {
+              code: 'PGRST202',
+              message:
+                'Could not find the function public.staff_merge_event_cash_payment(p_notes, p_place, p_slug) in the schema cache',
+            },
+          }
+        }
+        return { data: { id: EVENT_ID }, error: null }
+      })
+      const pending = await upsert(eventPayload({ cashPayment: { place: 'Virtus Fitness' } }))
+      expect(pending.status).toBe(201)
+      expect((await pending.json()).warnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'EVENT_CASH_PAYMENT_NOT_SAVED',
+            field: 'cashPayment.place',
+          }),
+        ]),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  // Un solo test con un solo login: el limitador de logins es por archivo.
+  it('guarda el formulario de Google del evento, lo valida y avisa si falta la migración', async () => {
+    const { target, cookie, supabase } = await setup()
+    const upsert = (body) =>
+      fetch(`${target.url}/api/events/upsert`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify(body),
+      })
+
+    try {
+      const saved = await upsert(
+        eventPayload({
+          externalForm: { url: ' https://forms.gle/AbC123xyz ', label: ' Encuesta de atletas ' },
+        }),
+      )
+      expect(saved.status).toBe(201)
+      expect(supabase.rpc).toHaveBeenCalledWith('staff_merge_event_external_form', {
+        p_slug: 'pitbull-classic-2026',
+        p_url: 'https://forms.gle/AbC123xyz',
+        p_label: 'Encuesta de atletas',
+      })
+
+      // Un guardado que no manda el formulario no lo pisa.
+      supabase.rpc.mockClear()
+      expect((await upsert(eventPayload())).status).toBe(201)
+      expect(supabase.rpc).not.toHaveBeenCalledWith(
+        'staff_merge_event_external_form',
+        expect.anything(),
+      )
+
+      // Vaciar la URL lo quita.
+      supabase.rpc.mockClear()
+      expect((await upsert(eventPayload({ externalForm: { url: '', label: '' } }))).status).toBe(201)
+      expect(supabase.rpc).toHaveBeenCalledWith('staff_merge_event_external_form', {
+        p_slug: 'pitbull-classic-2026',
+        p_url: '',
+        p_label: '',
+      })
+
+      // Solo Google Forms por https: nada llega a la base.
+      supabase.rpc.mockClear()
+      for (const url of ['https://evil.example/forms', 'http://forms.gle/AbC123', 'javascript:alert(1)']) {
+        const rejected = await upsert(eventPayload({ externalForm: { url, label: '' } }))
+        expect(rejected.status, url).toBe(400)
+      }
+      expect(supabase.rpc).not.toHaveBeenCalledWith(
+        'staff_merge_event_external_form',
+        expect.anything(),
+      )
+
+      supabase.rpc.mockImplementation(async (name) => {
+        if (name === 'staff_merge_event_external_form') {
+          return {
+            data: null,
+            error: {
+              code: 'PGRST202',
+              message:
+                'Could not find the function public.staff_merge_event_external_form(p_label, p_slug, p_url) in the schema cache',
+            },
+          }
+        }
+        return { data: { id: EVENT_ID }, error: null }
+      })
+      const pending = await upsert(
+        eventPayload({ externalForm: { url: 'https://forms.gle/AbC123xyz', label: '' } }),
+      )
+      expect(pending.status).toBe(201)
+      expect((await pending.json()).warnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'EVENT_EXTERNAL_FORM_NOT_SAVED',
+            field: 'externalForm.url',
+          }),
+        ]),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('guarda qué ofrece el evento, solo lo que restringe, y rechaza lo inválido', async () => {
+    const { target, cookie, supabase } = await setup()
+    const upsert = (body) =>
+      fetch(`${target.url}/api/events/upsert`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify(body),
+      })
+
+    try {
+      const saved = await upsert(
+        eventPayload({
+          offering: {
+            categories: ['Raw'],
+            divisions: ['Open', 'Junior', 'Masters', 'Youth', 'Sub-Masters'],
+            modalities: ['full_power', 'bench'],
+          },
+        }),
+      )
+      expect(saved.status).toBe(201)
+      // Las divisiones están todas: no se guarda la clave, queda "ofrece todo".
+      expect(supabase.rpc).toHaveBeenCalledWith('staff_merge_event_offering', {
+        p_slug: 'pitbull-classic-2026',
+        p_offering: { categories: ['Raw'], modalities: ['full_power', 'bench'] },
+      })
+
+      // Un guardado que no manda la oferta no la pisa.
+      supabase.rpc.mockClear()
+      expect((await upsert(eventPayload())).status).toBe(201)
+      expect(supabase.rpc).not.toHaveBeenCalledWith('staff_merge_event_offering', expect.anything())
+
+      // Todo seleccionado = sin restricción: manda vacío para quitar la anterior.
+      supabase.rpc.mockClear()
+      expect((await upsert(eventPayload({ offering: {} }))).status).toBe(201)
+      expect(supabase.rpc).toHaveBeenCalledWith('staff_merge_event_offering', {
+        p_slug: 'pitbull-classic-2026',
+        p_offering: {},
+      })
+
+      supabase.rpc.mockClear()
+      const invalid = await upsert(eventPayload({ offering: { categories: ['Fantasía'] } }))
+      expect(invalid.status).toBe(400)
+      expect(supabase.rpc).not.toHaveBeenCalledWith('staff_merge_event_offering', expect.anything())
+
+      supabase.rpc.mockImplementation(async (name) => {
+        if (name === 'staff_merge_event_offering') {
+          return {
+            data: null,
+            error: {
+              code: 'PGRST202',
+              message:
+                'Could not find the function public.staff_merge_event_offering(p_offering, p_slug) in the schema cache',
+            },
+          }
+        }
+        return { data: { id: EVENT_ID }, error: null }
+      })
+      const pending = await upsert(eventPayload({ offering: { categories: ['Raw'] } }))
+      expect(pending.status).toBe(201)
+      expect((await pending.json()).warnings).toEqual(
+        expect.arrayContaining([expect.objectContaining({ code: 'EVENT_OFFERING_NOT_SAVED' })]),
+      )
     } finally {
       await target.close()
     }

@@ -25,9 +25,6 @@ describe('cinta de la cuenta como fuente única del orden', () => {
     // dejaría el panel entrando por el lado contrario al del tab que lo abrió.
     expect(ACCOUNT_TAB_IDS).toEqual([
       'account-qr',
-      // Entradas de espectador con QR, al lado de la credencial: las dos son lo
-      // que se muestra en una puerta.
-      'account-tickets',
       // Sin ficha de canje suelta: Beneficios se retiró de la cinta y el código
       // se canjea dentro del checkout de Afiliación o de Inscripción, que es
       // también donde se escanea su QR. No hay ruta pública de canje.
@@ -39,6 +36,7 @@ describe('cinta de la cuenta como fuente única del orden', () => {
       // poder abrirla: `fetchOfferUnlocks` filtra por la modalidad viva.
       'account-offer',
       'account-events',
+      'account-tickets',
       'account-history',
       'account-membership',
       // Los pagos van pegados a Afiliación: es donde nace el cobro y adonde

@@ -33,7 +33,7 @@ import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER } from '../../motion/tokens.ts'
 import BrandLogo from './BrandLogo.jsx'
 import Button from './Button.jsx'
-import { isTicketSalesEnabled } from '../../lib/eventPricing.js'
+import { canBuyEventTickets } from '../../lib/eventPublicActions.js'
 import CapacityBar from './CapacityBar.jsx'
 import { describePublicCapacity } from '../../lib/eventCapacityPublic.js'
 import { resolvePublicInscriptionCopy } from '../../lib/eventInscriptionCopy.js'
@@ -273,6 +273,7 @@ export default function PitbullSpotlight({
       primaryAction = onRegister ?? onDetail
     }
     const showSecondary = primaryAction !== onDetail
+    const repeatsHomeAffiliation = primaryAction === onJoin
     const soonHint =
       !checkoutOpen && !isFinished && openDayLabel
         ? t('pages.pitbull.spotlight.opensOnCta', { date: openDayLabel })
@@ -477,14 +478,24 @@ export default function PitbullSpotlight({
 
             <OverlayItem {...overlayItemProps}>
               <footer className="pitbull-spotlight__home-actions">
-                <Button
-                  variant="gold"
-                  className="pitbull-spotlight__home-cta motion-icon-shift"
-                  onClick={() => primaryAction?.()}
-                >
-                  {primaryLabel}
-                  <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
-                </Button>
+                {repeatsHomeAffiliation ? (
+                  <button
+                    type="button"
+                    className="pitbull-spotlight__home-cta-secondary"
+                    onClick={() => primaryAction?.()}
+                  >
+                    {primaryLabel}
+                  </button>
+                ) : (
+                  <Button
+                    variant="gold"
+                    className="pitbull-spotlight__home-cta motion-icon-shift"
+                    onClick={() => primaryAction?.()}
+                  >
+                    {primaryLabel}
+                    <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
+                  </Button>
+                )}
                 {soonHint ? <p className="pitbull-spotlight__home-soon-hint">{soonHint}</p> : null}
                 {showSecondary ? (
                   <button
@@ -501,7 +512,7 @@ export default function PitbullSpotlight({
                     que hasta acá no tenía ninguna entrada desde la portada.
                     Sólo aparece si el evento tiene la venta prendida: un link
                     a una compra cerrada es peor que no tenerlo. */}
-                {onTickets && isTicketSalesEnabled(event) ? (
+                {onTickets && canBuyEventTickets(event) ? (
                   <button
                     type="button"
                     className="pitbull-spotlight__home-cta-tickets motion-icon-shift"

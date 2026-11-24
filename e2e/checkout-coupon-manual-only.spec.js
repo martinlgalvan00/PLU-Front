@@ -305,12 +305,17 @@ test.describe('Orden abierta por transferencia — el atleta la cancela', () => 
 /**
  * El perfil competitivo incompleto — división, categoría y peso en null en la
  * ficha del atleta. Es el estado de la cuenta que reportó "el botón no hace
- * nada": `validateCompetitionForm` exige los tres, y el submit corta antes de
- * llamar a la API.
+ * nada".
  *
  * Lo que se protege es que el corte SE VEA. Un CTA que no responde y no dice
- * por qué no tiene salida: el atleta no sabe que le falta cargar su división,
- * y desde la pantalla de pago no hay nada que se lo indique.
+ * por qué no tiene salida: el atleta no sabe que le falta cargar su peso, y
+ * desde la pantalla de pago no hay nada que se lo indique.
+ *
+ * Desde que `isProfileComplete` (shared/athleteProfile.js) exige categoría y
+ * peso, el corte ya no ocurre en el checkout: "Inscribirme" en Mi cuenta no
+ * abre la inscripción y pinta, en la misma sección, el aviso con los campos
+ * que faltan y la salida a "Datos personales". Por eso el test ya no llega a
+ * canjear el código — no hay checkout que mostrar todavía.
  */
 test.describe('Inscripción a competencia — perfil competitivo incompleto', () => {
   test.beforeEach(async () => {
@@ -331,30 +336,31 @@ test.describe('Inscripción a competencia — perfil competitivo incompleto', ()
   test('el CTA explica qué falta en vez de no hacer nada', async ({ page }) => {
     await page.goto('/mi-cuenta?section=events')
     await acceptCookies(page)
-    const eventRow = page.locator('article.account-events-list__row', {
+    const eventsSection = page.locator('#account-events')
+    const eventRow = eventsSection.locator('article.account-events-list__row', {
       hasText: fixture.manualOnlyEventTitle,
     })
     await eventRow.getByRole('button', { name: /Inscribirme/i }).click()
 
-    await redeemCode(page, fixture.manualOnlyDiscountCode)
-    await page.locator('label.plu-checkout__pill', { hasText: 'Transferencia bancaria' }).click()
+    // El aviso sale en la sección donde el atleta hizo clic y nombra lo que
+    // falta: sin eso, el CTA cortaría en silencio.
+    const warning = eventsSection.getByRole('alert').filter({ hasText: /completá tu perfil/i })
+    await expect(warning).toBeVisible({ timeout: 10_000 })
+    await expect(warning).toContainText(/completá tu perfil/i)
+    await expect(warning).toContainText(/peso/i)
+    await expect(warning).toContainText(/categoría/i)
+    await expect(eventRow).toHaveClass(/is-warning-active/)
 
-    await page.getByRole('button', { name: /Continuar al pago/i }).click()
+    // No se abrió el checkout: el aviso reemplaza a la inscripción.
+    await expect(page.getByRole('button', { name: /Continuar al pago/i })).toHaveCount(0)
 
-    // Sin orden creada: el submit corta del lado del cliente, y está bien que
-    // corte. Lo que no puede pasar es que corte en silencio.
-    // El cartel tiene que salir donde el atleta hizo clic —`.form-submit-error`
-    // se pinta justo encima de la barra de pago—, no sólo junto al campo, que
-    // en esta pantalla queda scrolleado varias alturas más arriba.
-    const submitError = page.locator('.form-submit-error')
-    await expect(submitError).toBeVisible({ timeout: 10_000 })
-    await expect(submitError).toContainText(/peso|división|categoría/i)
+    // Y la salida lleva al campo que falta, a la vista y vacío.
+    await warning.getByRole('button', { name: /Completar perfil/i }).click()
+    const weight = page.locator('#account-personal-data [name="estimatedWeight"]')
+    await expect(weight).toBeVisible({ timeout: 10_000 })
+    await expect(weight).toHaveValue('')
 
-    // Y el campo que falta tiene que quedar a la vista, no fuera del viewport.
-    const weight = page.locator('[name="estimatedWeight"]')
-    await expect(weight).toBeInViewport()
-
-    // Sin orden creada: el submit corta del lado del cliente, y está bien que
+    // Sin orden creada: el corte es del lado del cliente, y está bien que
     // corte. Lo que no puede pasar es que corte en silencio.
     expect(await latestRegistrationOrder()).toBeNull()
   })

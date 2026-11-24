@@ -269,6 +269,86 @@ describe('verificación de credencial en la puerta', () => {
   })
 })
 
+describe('misma regla de ingreso que la credencial de la cuenta', () => {
+  it('un torneo que pide afiliación no se marca válido si la afiliación venció', async () => {
+    getMembershipByCodeOrToken.mockResolvedValue(
+      credential({
+        membership: {
+          id: 'mem-1',
+          status: 'activa',
+          memberCode: 'PLU-ARG-2026-014',
+          expirationDate: '2020-01-01',
+        },
+        registration: {
+          id: 'reg-1',
+          status: 'confirmada',
+          event: 'Pitbull Classic 2026',
+          requiresMembership: true,
+          checkedInAt: null,
+        },
+      }),
+    )
+    renderPage({ onCheckInRegistration: vi.fn() })
+
+    expect(await screen.findByText('Revisar antes de ingresar')).toBeTruthy()
+    expect(screen.getByText(/Cupo reservado/)).toBeTruthy()
+    expect(screen.queryByText('Credencial válida')).toBeNull()
+    expect(screen.queryByRole('button', { name: /marcar ingreso/i })).toBeNull()
+  })
+
+  it('sin evento en el QR, un meet abierto habilita la credencial y el ingreso', async () => {
+    getMembershipByCodeOrToken.mockResolvedValue(
+      credential({
+        membership: null,
+        registration: null,
+        registrations: [
+          {
+            id: 'reg-open',
+            status: 'confirmada',
+            event: 'Meet abierto',
+            requiresMembership: false,
+            checkedInAt: null,
+          },
+        ],
+      }),
+    )
+    renderPage({ eventSlug: null, onCheckInRegistration: vi.fn() })
+
+    expect(await screen.findByText('Credencial válida')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /marcar ingreso/i })).toBeTruthy()
+    expect(screen.queryByText(/Cupo reservado/)).toBeNull()
+  })
+
+  it('sin evento en el QR, la inscripción confirmada no alcanza si falta la afiliación', async () => {
+    getMembershipByCodeOrToken.mockResolvedValue(
+      credential({
+        membership: {
+          id: 'mem-1',
+          status: 'vencida',
+          memberCode: 'PLU-ARG-2026-014',
+          expirationDate: '2020-01-01',
+        },
+        registration: null,
+        registrations: [
+          {
+            id: 'reg-closed',
+            status: 'confirmada',
+            event: 'Pitbull Classic 2026',
+            requiresMembership: true,
+            checkedInAt: null,
+          },
+        ],
+      }),
+    )
+    renderPage({ eventSlug: null, onCheckInRegistration: vi.fn() })
+
+    expect(await screen.findByText('Revisar antes de ingresar')).toBeTruthy()
+    expect(screen.getByText(/Cupo reservado/)).toBeTruthy()
+    expect(screen.queryByText('Credencial válida')).toBeNull()
+    expect(screen.queryByRole('button', { name: /marcar ingreso/i })).toBeNull()
+  })
+})
+
 describe('verificación de una entrada', () => {
   function ticket(overrides = {}) {
     return {

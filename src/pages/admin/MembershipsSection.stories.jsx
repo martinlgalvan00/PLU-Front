@@ -24,7 +24,27 @@ function membership(overrides = {}) {
   return {
     id: 'd5fe8171-fd58-4906-a3bd-2d08f5c66073',
     athleteId: '57220358-ed7b-44ee-8c59-93287bda9a75',
-    athlete: { fullName: 'Melisa Quispe', documentId: '36725446', gym: 'La Cápsula / Pitbull' },
+    athlete: {
+      id: '57220358-ed7b-44ee-8c59-93287bda9a75',
+      fullName: 'Melisa Quispe',
+      documentId: '36725446',
+      gym: 'La Cápsula / Pitbull',
+      birthDate: '1994-03-02',
+      documents: [
+        {
+          kind: 'dni_front',
+          contentType: 'image/jpeg',
+          originalName: 'dni-frente.jpg',
+          uploadedAt: '2026-08-20T18:04:00.000Z',
+        },
+        {
+          kind: 'dni_back',
+          contentType: 'image/jpeg',
+          originalName: 'dni-dorso.jpg',
+          uploadedAt: '2026-08-20T18:05:00.000Z',
+        },
+      ],
+    },
     memberCode: 'PLU-ARG-2026-00000792',
     year: '2026',
     status: 'activa',

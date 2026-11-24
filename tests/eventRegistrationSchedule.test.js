@@ -3,12 +3,13 @@ import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   formatScheduleSummary,
+  formatScheduleTime,
   formatSessionDetail,
   hasScheduledDay,
   toCamelEventSchedule,
   toCamelSchedule,
 } from '../src/lib/eventSchedule.js'
-import { buildCheckinRows } from '../src/services/checkinWorkspaceService.js'
+import { buildCheckinRows, filterCheckinRows } from '../src/services/checkinWorkspaceService.js'
 import { resolveRegistrationScan, scheduleDayIndexes } from '../src/services/checkinScanService.js'
 
 /**
@@ -169,8 +170,14 @@ describe('formato de la grilla', () => {
   it('separa la logística de la tanda del resumen', () => {
     const schedule = toCamelSchedule(SCHEDULE_ROW)
     const detail = formatSessionDetail(schedule, 'es', { weighIn: 'Pesaje', starts: 'Inicio' })
-    expect(detail).toContain('Pesaje')
-    expect(detail).toContain('Plataforma 1')
+    // 11:30Z / 13:00Z → 08:30 / 10:00 en Buenos Aires, sin importar el TZ del runtime.
+    expect(detail).toBe('Pesaje 08:30 · Inicio 10:00 · Plataforma 1')
+  })
+
+  it('formatea horarios siempre en zona de la organización', () => {
+    expect(formatScheduleTime('2026-11-13T12:00:00.000Z')).toBe('09:00')
+    expect(formatScheduleTime('2026-11-13T12:00:00.000Z', 'en')).toBe('09:00')
+    expect(formatScheduleTime(null)).toBe('')
   })
 
   it('sin día asignado no inventa un resumen', () => {
@@ -207,17 +214,15 @@ describe('formato de la grilla', () => {
 })
 
 describe('la grilla en el roster de check-in', () => {
-  it('un atleta con día asignado deja de figurar en todos los días', () => {
-    // Antes iba fijo a 'all' y aparecía en la pestaña de cada día.
+  it('la grilla sigue diciendo en qué día levanta', () => {
     expect(scheduleDayIndexes(toCamelSchedule(SCHEDULE_ROW))).toEqual([1])
   })
 
-  it('sin grilla asignada sigue entrando en cualquier día', () => {
-    // No se lo saca del roster: todavía no le asignaron nada.
+  it('sin grilla asignada el día de levantamiento queda abierto', () => {
     expect(scheduleDayIndexes(null)).toBe('all')
   })
 
-  it('la fila del roster arrastra el día real de la inscripción', () => {
+  it('el competidor entra los dos días aunque levante en uno solo', () => {
     const [row] = buildCheckinRows({
       athletes: [{ id: 'ath-1', fullName: 'Ana Torres', documentId: '30111222' }],
       registrations: [
@@ -234,8 +239,11 @@ describe('la grilla en el roster de check-in', () => {
       eventSlug: 'pitbull-classic-2026',
     })
 
-    expect(row.dayIndexes).toEqual([1])
+    expect(row.dayIndexes).toBe('all')
     expect(row.schedule.sessionName).toBe('Tanda B')
+    expect(row.schedule.dayIndex).toBe(1)
+    expect(filterCheckinRows([row], { day: 0 })).toHaveLength(1)
+    expect(filterCheckinRows([row], { day: 1 })).toHaveLength(1)
   })
 })
 

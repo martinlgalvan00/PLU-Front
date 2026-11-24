@@ -168,7 +168,15 @@ un torneo. Su payload contiene solamente `athletes.credential_token`, que no
 cambia al acreditar el combo o renovar. Al escanear, Supabase proyecta la
 afiliación y las inscripciones vigentes; el puesto de seguridad aporta el evento
 que está acreditando. Las entradas generales conservan un token opaco separado,
-con `tipo=ticket` y contexto de evento.
+con `tipo=ticket` y contexto de evento. La lectura compartida está en
+`src/lib/athleteCredential.js`: la card y Mi QR usan `describeAthleteCredential` (si se abre desde un torneo, `focusEventSlug` elige esa inscripción),
+la página pública del QR usa `describeDoorCredential`, y el escáner junto con
+la lista de check-in usan `applyAthleteCheckinGate`. `parseCredentialScan` normaliza
+lo que devolvió el lector antes de buscar, y la puerta usa el evento del puesto. Si falta la afiliación que
+el meet pide, el escaneo queda en `not_ready` y la fila en `needs_membership`.
+El ingreso de un competidor es uno por día calendario de
+`America/Argentina/Buenos_Aires`
+(`supabase/migrations/20271116120000_competitor_daily_access.sql`).
 
 El alcance temporal de cada QR de entrada también se persiste como snapshot
 inmutable (`tickets.valid_from` / `tickets.valid_until`) al emitirlo, derivado de

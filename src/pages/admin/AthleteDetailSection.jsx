@@ -1,3 +1,5 @@
+import { registrationDeclaredTotalView } from '../../../shared/declaredMeetTotal.js'
+import { formatDeclaredBodyWeight } from '../../../shared/exportRows.js'
 import { useMemo, useState } from 'react'
 import { ArrowLeft, Bell, Check, CircleAlert, Pencil, Route, Trash2, X } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
@@ -5,6 +7,7 @@ import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmD
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import AdminAthleteActivity from '../../components/admin/AdminAthleteActivity.jsx'
+import AthletePanelAccess from '../../components/admin/AthletePanelAccess.jsx'
 import AdminMembershipCredential from '../../components/admin/AdminMembershipCredential.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import { EntitlementStateCell, PaymentStateCell } from '../../components/admin/AdminStateCell.jsx'
@@ -16,10 +19,11 @@ import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { ATHLETE_FILTER_STATUSES, PAYMENT_METHODS } from '../../lib/constants.js'
-import { money } from '../../lib/format.js'
+import { formatShortDate, money } from '../../lib/format.js'
 import { actorLabel, formatStateDateTime } from '../../lib/stateProvenance.js'
 import { canApproveManualOrder } from '../../services/paymentValidationService.js'
-import { isProfileComplete } from '../../lib/athleteProfile.js'
+import { isProfileNoticeComplete, getMissingProfileNoticeFields, profileFieldLabel } from '../../lib/athleteProfile.js'
+import AdminAthleteDocuments from '../../components/admin/AdminAthleteDocuments.jsx'
 import { PROFILE_NOTICE_MESSAGE_MAX } from '../../../shared/profileNotice.js'
 import {
   findAthleteStateDivergences,
@@ -48,9 +52,14 @@ function profileValue(value) {
 }
 
 export default function AthleteDetailSection({
+  accessRoles,
   detail,
   onBack,
   canEdit,
+  canGrantAccess = false,
+  onCreateUser,
+  onOpenUsers,
+  users,
   canRotateCredential = false,
   canDelete = false,
   canValidatePayments = false,
@@ -115,21 +124,12 @@ export default function AthleteDetailSection({
   // La credencial vigente es la de la afiliación activa; si no hay ninguna, se
   // muestra la última emitida para poder cotejar un QR viejo.
   const credentialMembership = activeMembership ?? memberships[0] ?? null
-  const profileStatus = isProfileComplete(athlete)
-  const missingFieldLabels = profileStatus.missing
-    .map((field) => {
-      const keys = {
-        phone: 'admin.athleteDetail.fields.phone',
-        city: 'admin.athleteDetail.fields.city',
-        province: 'admin.athleteDetail.fields.province',
-        gym: 'admin.athleteDetail.fields.gym',
-        division: 'admin.athleteDetail.fields.division',
-        category: 'admin.athleteDetail.fields.category',
-        estimatedWeight: 'admin.athleteDetail.fields.estimatedWeight',
-      }
-      return t(keys[field] ?? field)
-    })
-    .join(', ')
+  const profileMissing = getMissingProfileNoticeFields(athlete)
+  const profileStatus = {
+    complete: isProfileNoticeComplete(athlete),
+    missing: profileMissing,
+  }
+  const missingFieldLabels = profileStatus.missing.map((field) => profileFieldLabel(field, t)).join(', ')
 
   const tabs = useMemo(
     () => [
@@ -165,11 +165,35 @@ export default function AthleteDetailSection({
           { key: 'email', label: t('admin.athleteDetail.fields.email'), value: athlete?.email },
           { key: 'phone', label: t('admin.athleteDetail.fields.phone'), value: athlete?.phone },
           {
-            key: 'location',
-            label: t('admin.athleteDetail.fields.location'),
-            value: [athlete?.city, athlete?.province].filter(Boolean).join(', '),
+            key: 'birthDate',
+            label: t('admin.athleteDetail.fields.birthDate'),
+            value: athlete?.birthDate ? formatShortDate(String(athlete.birthDate).slice(0, 10), locale) : '',
+          },
+          { key: 'sex', label: t('admin.athleteDetail.fields.sex'), value: athlete?.sex },
+          { key: 'country', label: t('admin.athleteDetail.fields.country'), value: athlete?.country },
+          {
+            key: 'streetAddress',
+            label: t('admin.athleteDetail.fields.streetAddress'),
+            value: athlete?.streetAddress,
+          },
+          { key: 'city', label: t('admin.athleteDetail.fields.city'), value: athlete?.city },
+          { key: 'province', label: t('admin.athleteDetail.fields.province'), value: athlete?.province },
+          {
+            key: 'postalCode',
+            label: t('admin.athleteDetail.fields.postalCode'),
+            value: athlete?.postalCode,
           },
           { key: 'gym', label: t('admin.athleteDetail.fields.gym'), value: athlete?.gym },
+          {
+            key: 'emergencyContactName',
+            label: t('admin.athleteDetail.fields.emergencyContactName'),
+            value: athlete?.emergencyContactName,
+          },
+          {
+            key: 'emergencyContactPhone',
+            label: t('admin.athleteDetail.fields.emergencyContactPhone'),
+            value: athlete?.emergencyContactPhone,
+          },
         ],
       },
       {
@@ -191,10 +215,36 @@ export default function AthleteDetailSection({
             label: t('admin.athleteDetail.fields.estimatedWeight'),
             value: athlete?.estimatedWeight ? `${athlete.estimatedWeight} kg` : '',
           },
+          {
+            key: 'bestTotal',
+            label: t('admin.athleteDetail.fields.bestTotal'),
+            value:
+              athlete?.bestTotalKg != null
+                ? `${formatDeclaredBodyWeight(athlete.bestTotalKg)} kg`
+                : '',
+          },
+          {
+            key: 'trainingBestTotal',
+            label: t('admin.athleteDetail.fields.trainingBestTotal'),
+            value:
+              athlete?.trainingBestTotalKg != null
+                ? `${formatDeclaredBodyWeight(athlete.trainingBestTotalKg)} kg`
+                : '',
+          },
+          {
+            key: 'firstMeet',
+            label: t('admin.athleteDetail.fields.firstMeet'),
+            value:
+              athlete?.isFirstMeet == null
+                ? ''
+                : athlete.isFirstMeet
+                  ? t('admin.athleteDetail.yes')
+                  : t('admin.athleteDetail.no'),
+          },
         ],
       },
     ],
-    [athlete, t],
+    [athlete, locale, t],
   )
 
   if (!detail) {
@@ -424,6 +474,35 @@ export default function AthleteDetailSection({
 
       {activeTab === 'profile' && (
         <>
+          <div className="athlete-detail__sheet">
+            {profileGroups.map((group) => (
+              <section
+                key={group.id}
+                className={`athlete-detail__group athlete-detail__group--${group.id}`}
+                aria-labelledby={`athlete-group-${group.id}`}
+              >
+                <h3 id={`athlete-group-${group.id}`} className="athlete-detail__group-title">
+                  {group.title}
+                </h3>
+                <dl className="athlete-detail__rows">
+                  {group.fields.map((field) => (
+                    <div
+                      key={field.key}
+                      className={`athlete-detail__row${field.value ? '' : ' is-empty'}`}
+                    >
+                      <dt>{field.label}</dt>
+                      <dd title={typeof field.value === 'string' ? field.value : undefined}>
+                        {profileValue(field.value)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            ))}
+          </div>
+
+          <AdminAthleteDocuments athlete={athlete} />
+
           <section className="athlete-detail__notice" aria-labelledby="athlete-profile-notice-title">
             <h3 id="athlete-profile-notice-title" className="athlete-detail__group-title">
               {t('admin.athleteDetail.profileNotice.title')}
@@ -469,29 +548,18 @@ export default function AthleteDetailSection({
               </div>
             ) : null}
           </section>
-          <div className="athlete-detail__sheet">
-            {profileGroups.map((group) => (
-              <section
-                key={group.id}
-                className={`athlete-detail__group athlete-detail__group--${group.id}`}
-                aria-labelledby={`athlete-group-${group.id}`}
-              >
-                <h3 id={`athlete-group-${group.id}`} className="athlete-detail__group-title">
-                  {group.title}
-                </h3>
-                <dl className="athlete-detail__rows">
-                  {group.fields.map((field) => (
-                    <div key={field.key} className="athlete-detail__row">
-                      <dt>{field.label}</dt>
-                      <dd title={typeof field.value === 'string' ? field.value : undefined}>
-                        {profileValue(field.value)}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
-            ))}
-          </div>
+
+          {canGrantAccess && onCreateUser ? (
+            <AthletePanelAccess
+              accessRoles={accessRoles}
+              athlete={athlete}
+              locale={locale}
+              onCreateUser={onCreateUser}
+              onOpenUsers={onOpenUsers}
+              t={t}
+              users={users}
+            />
+          ) : null}
 
           {canDelete ? (
             <section
@@ -555,6 +623,20 @@ export default function AthleteDetailSection({
               { key: 'event', label: t('admin.columns.event'), mobile: 'primary' },
               { key: 'category', label: t('admin.columns.category') },
               { key: 'division', label: t('admin.columns.division') },
+              {
+                key: 'declaredTotal',
+                label: t('admin.columns.declaredTotal'),
+                render: (row) => {
+                  const declaredTotal = registrationDeclaredTotalView(row)
+                  if (!declaredTotal) return '—'
+                  return t(
+                    declaredTotal.source === 'training'
+                      ? 'admin.liftersExport.trainingTotalLine'
+                      : 'admin.liftersExport.competitionTotalLine',
+                    { total: formatDeclaredBodyWeight(declaredTotal.kg) },
+                  )
+                },
+              },
               {
                 key: 'status',
                 label: t('admin.columns.status'),

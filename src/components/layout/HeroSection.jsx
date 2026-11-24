@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import { m, useScroll, useTransform } from 'motion/react'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import heroPhoto from '../../assets/DSC00346-display.jpg'
 import heroPhotoAvif from '../../assets/DSC00346-display.avif'
 import heroPhotoAvif640 from '../../assets/DSC00346-display-640.avif'
@@ -10,13 +10,16 @@ import heroPhotoWebp640 from '../../assets/DSC00346-display-640.webp'
 import heroPhotoWebp1280 from '../../assets/DSC00346-display-1280.webp'
 import HeroStatusCard from '../ui/HeroStatusCard.jsx'
 import HomeQuickBand from '../ui/HomeQuickBand.jsx'
+import HomeSeasonActions from '../ui/HomeSeasonActions.jsx'
 import ResponsivePhoto from '../ui/ResponsivePhoto.jsx'
 import { env } from '../../config/env.js'
 import TiltCard from '../../motion/TiltCard.tsx'
+import { findMorphSource, morphNavigate } from '../../motion/routeMorph.ts'
 import { hasFinePointer } from '../../motion/useReducedMotion.ts'
 import { useMagneticHover } from '../../motion/useMagneticHover.ts'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { isTicketSalesEnabled } from '../../lib/eventPricing.js'
+import { getSeasonHomeActions } from '../../lib/eventNavigation.js'
+import { canBuyEventTickets } from '../../lib/eventPublicActions.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { getPublicEventStatus } from '../../lib/publicRegistrationPhase.js'
 import { isRegistrationOpen } from '../../lib/status.js'
@@ -26,6 +29,7 @@ import {
   MOTION_EASE,
   MOTION_STAGGER_BY_TIER,
   SHOWCASE_TILT_MAX_DEG,
+  scaleDuration,
 } from '../../motion/tokens.ts'
 import {
   heroActionsItem,
@@ -70,27 +74,55 @@ function HeroBackdropPhoto({ children, still }) {
   )
 }
 
-export default function HeroSection({ onNavigate, event }) {
+export default function HeroSection({
+  onNavigate,
+  onSelectEvent,
+  event,
+  events = [],
+  underConstructionEvents = [],
+  registrationEnabled = true,
+}) {
   const { t } = useI18n()
   const { reducedMotion, tier } = useMotionConfig()
   const magneticProps = useMagneticHover()
-  const titleLineVariants = useMemo(
-    () => (tier !== 'low' && hasFinePointer() ? heroTitleLineWipe : heroTitleLine),
-    [tier],
+  // La variante se elige una vez, al montar. El tier se sigue midiendo en vivo
+  // (MotionProvider) y baja a 'low' a los ~1.5s en equipos que no sostienen
+  // 60fps: si la variante cambiaba de wipe a fade, Motion dejaba de animar
+  // `clipPath` y el título quedaba en `inset(100%)` — el H1 de la portada
+  // desaparecía después de haberse mostrado. La entrada ya está corriendo o
+  // terminó; cambiarle la coreografía a mitad no tiene nada que ganar.
+  const [titleLineVariants] = useState(() =>
+    tier !== 'low' && hasFinePointer() ? heroTitleLineWipe : heroTitleLine,
   )
-  const eventStatus = getPublicEventStatus(event)
+  // El díptico anima sus propios carriles al montar (también cuando el
+  // catálogo llega después). Este wrapper no se desplaza: si no, el texto
+  // entra dos veces y, si el tier cambia a mitad, puede quedar invisible.
+  const [seasonProofRest] = useState(() => ({
+    hidden: { opacity: 1, y: 0 },
+    visible: { opacity: 1, y: 0, transition: { duration: scaleDuration(MOTION_DURATION.instant, tier) } },
+  }))
+  const eventStatus = getPublicEventStatus(event, new Date(), { registrationEnabled })
   const registrationCheckoutOpen = isPaidCheckoutOpen(event, env, new Date(), {
     checkoutKind: 'registration',
   })
   const registrationAvailable = registrationCheckoutOpen && isRegistrationOpen(eventStatus)
   // Mismo interruptor que PitbullSpotlight: si el evento vende entradas, el
   // hero no puede seguir diciendo "Cerrado" (eso es la inscripción de atletas).
-  const ticketsAvailable = env.ticketSalesEnabled && isTicketSalesEnabled(event)
+  const ticketsAvailable = canBuyEventTickets(event, { config: env })
   const statusLabelOverride = ticketsAvailable
     ? t('hero.statusTicketsOpen')
     : registrationAvailable
       ? t('hero.statusRegistrationOpen')
       : undefined
+  const seasonActions = useMemo(
+    () =>
+      getSeasonHomeActions(events.length ? events : event ? [event] : [], {
+        registrationEnabled,
+        ticketSalesEnabled: env.ticketSalesEnabled,
+        underConstructionEvents,
+      }),
+    [events, event, registrationEnabled, underConstructionEvents],
+  )
   // Cascada propia del hero (no la heroStaggerContainer compartida con
   // Tickets/PluPageHero/PitbullHero) para escalarla por tier de dispositivo
   // sin afectar esas otras páginas. Ver src/motion/deviceTier.ts.
@@ -158,26 +190,69 @@ export default function HeroSection({ onNavigate, event }) {
     </span>
   )
 
-  const proofCard = (
-    <HeroStatusCard
-      event={event}
-      onSelect={() => onNavigate('pitbull')}
-      onSelectTickets={
-        ticketsAvailable
-          ? () => onNavigate('tickets', { eventSlug: event?.slug ?? event?.id })
-          : undefined
-      }
-      statusLabelOverride={statusLabelOverride}
-      ticketsAvailable={ticketsAvailable}
-    />
-  )
+  /** `intent: 'page'` llega del link "Página oficial" del carril de
+   * inscripción: abre la ficha (o el aviso de construcción) sin el wizard. */
+  function handleSeasonAction(action, clickEvent, intent) {
+    if (!action?.event) return
+    if (action.kind === 'tickets') {
+      onNavigate?.('tickets', { eventSlug: action.event.slug ?? action.event.id })
+      return
+    }
+    if (
+      action.kind === 'registration' &&
+      intent !== 'page' &&
+      typeof onSelectEvent === 'function'
+    ) {
+      onSelectEvent(action.event)
+      return
+    }
+    // registration_soon, "Página oficial" (y fallback): ficha del evento, sin
+    // forzar el wizard. El nombre del meet del carril viaja hasta el título de
+    // la ficha.
+    const destination = action.event.slug
+      ? { view: 'events', options: { eventSlug: action.event.slug } }
+      : { view: 'events', options: {} }
+    morphNavigate(
+      findMorphSource(
+        clickEvent?.currentTarget?.closest?.('.home-season-actions__lane') ??
+          clickEvent?.currentTarget,
+        '.home-season-actions__meet',
+      ),
+      () => onNavigate?.(destination.view, destination.options),
+    )
+  }
+
+  const proofCard =
+    seasonActions.length > 0 ? (
+      <HomeSeasonActions actions={seasonActions} onActivate={handleSeasonAction} />
+    ) : (
+      <HeroStatusCard
+        event={event}
+        onSelect={(clickEvent) =>
+          morphNavigate(findMorphSource(clickEvent?.currentTarget, '.hero-meta__meet'), () =>
+            onNavigate('pitbull'),
+          )
+        }
+        onSelectTickets={
+          ticketsAvailable
+            ? () => onNavigate('tickets', { eventSlug: event?.slug ?? event?.id })
+            : undefined
+        }
+        statusLabelOverride={statusLabelOverride}
+        ticketsAvailable={ticketsAvailable}
+      />
+    )
   // La ficha del meet es la única pieza 3D del primer viewport; la credencial
-  // de afiliación vive en otro viewport y no compite con ella.
-  const proofBody = (
-    <TiltCard className="hero__proof-tilt" maxTilt={SHOWCASE_TILT_MAX_DEG}>
-      {proofCard}
-    </TiltCard>
-  )
+  // de afiliación vive en otro viewport y no compite con ella. El díptico de
+  // temporada no usa tilt: dos carriles accionables no deben inclinarse juntos.
+  const proofBody =
+    seasonActions.length > 0 ? (
+      proofCard
+    ) : (
+      <TiltCard className="hero__proof-tilt" maxTilt={SHOWCASE_TILT_MAX_DEG}>
+        {proofCard}
+      </TiltCard>
+    )
 
   const actions = (
     <div className="hero__cta-row">
@@ -264,7 +339,7 @@ export default function HeroSection({ onNavigate, event }) {
                 className="hero__proof"
                 initial="hidden"
                 animate="visible"
-                variants={heroProofItem}
+                variants={seasonActions.length > 0 ? seasonProofRest : heroProofItem}
               >
                 {proofBody}
               </m.div>

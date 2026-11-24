@@ -38,9 +38,14 @@
   gap: clamp(8px, 1.5vw, 16px);
   margin-inline: 0;
   max-width: none;
-  padding-inline: var(--layout-gutter-lg);
+  padding-inline: 0;
   padding-top: clamp(8px, 1.5vw, 16px);
   width: 100%;
+}
+
+.pitbull-page--premium .pitbull-page__body > * {
+  max-width: var(--max-width-content);
+  padding-inline: var(--institution-gutter);
 }
 
 /* Un solo Reveal envuelve todo el dossier — sin translateY para no trabar el scroll. */
@@ -4782,7 +4787,7 @@
 
 @media (max-width: 640px) {
   .pitbull-page--premium .pitbull-page__body {
-    padding-inline: var(--layout-gutter-sm);
+    padding-inline: 0;
   }
 
   .pitbull-dossier--minimal .pitbull-dossier__title,
@@ -8987,7 +8992,7 @@
    ═══════════════════════════════════════════════════════ */
 @media (min-width: 900px) and (max-width: 1399px) {
   .pitbull-page--premium .pitbull-page__body {
-    padding-inline: clamp(28px, 5vw, 64px);
+    padding-inline: 0;
   }
 
   .pitbull-dossier--minimal {
@@ -9102,7 +9107,7 @@
    ═══════════════════════════════════════════════════════ */
 @media (min-width: 641px) and (max-width: 899px) {
   .pitbull-page--premium .pitbull-page__body {
-    padding-inline: clamp(20px, 4vw, 40px);
+    padding-inline: 0;
   }
 
   .pitbull-dossier--minimal {
@@ -9316,9 +9321,9 @@
   gap: 0;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
-  height: min(78svh, 760px);
-  max-height: min(78svh, 760px);
-  min-height: min(520px, 78svh);
+  height: min(62svh, 580px);
+  max-height: min(62svh, 580px);
+  min-height: min(440px, 62svh);
   overflow: hidden;
   width: 100%;
 }
@@ -9348,7 +9353,12 @@
   gap: clamp(10px, 1.6vw, 16px);
   justify-content: flex-end;
   max-width: none;
-  padding: calc(var(--header-height) + 12px) var(--layout-gutter-lg) clamp(22px, 3.5vw, 40px);
+  padding: calc(var(--header-height) + 12px)
+    max(
+      var(--institution-gutter),
+      calc((100% - var(--max-width-content)) / 2 + var(--institution-gutter))
+    )
+    clamp(22px, 3.5vw, 40px);
   position: relative;
   z-index: 2;
 }
@@ -9698,9 +9708,9 @@
 @media (min-width: 768px) and (max-width: 1099px) {
   .pitbull-hero-masthead.pitbull-hero-masthead--bleed
     .pitbull-hero-masthead__layout.pitbull-hero-masthead__layout--bleed {
-    height: min(74svh, 720px);
-    max-height: min(74svh, 720px);
-    min-height: min(500px, 74svh);
+    height: min(60svh, 540px);
+    max-height: min(60svh, 540px);
+    min-height: min(420px, 60svh);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__title {
@@ -9754,8 +9764,8 @@
     max-width: none;
     padding-block: clamp(16px, 2vw, 28px);
     padding-inline: max(
-      var(--layout-gutter-lg),
-      calc((100vw - var(--max-width-content)) / 2 + var(--layout-gutter-lg))
+      var(--institution-gutter),
+      calc((100% - var(--max-width-content)) / 2 + var(--institution-gutter))
     );
     width: 100%;
   }
@@ -9779,9 +9789,9 @@
 @media (min-width: 1100px) {
   .pitbull-hero-masthead.pitbull-hero-masthead--bleed
     .pitbull-hero-masthead__layout.pitbull-hero-masthead__layout--bleed {
-    height: clamp(540px, 72vh, 780px);
-    max-height: none;
-    min-height: 540px;
+    height: min(62svh, 580px);
+    max-height: min(62svh, 580px);
+    min-height: min(440px, 62svh);
   }
 
   .pitbull-hero-masthead__collage {
@@ -10940,9 +10950,9 @@
 }
 
 [data-theme='light'] .pitbull-hero__badge {
-  background: rgba(31, 95, 158, 0.08);
-  border-color: rgba(31, 95, 158, 0.18);
-  color: var(--plu-celeste-700, #1f5f9e);
+  background: color-mix(in srgb, var(--plu-gold-600) 10%, transparent);
+  border-color: color-mix(in srgb, var(--plu-gold-600) 28%, transparent);
+  color: var(--color-brand-gold-ink);
 }
 
 .pitbull-hero-visual {
@@ -11389,6 +11399,58 @@
   position: absolute;
   top: 0.55em;
   width: 5px;
+}
+
+/* ── Landing FAQ (slots desde admin) ───────── */
+
+.pitbull-landing-faq {
+  display: grid;
+  gap: clamp(16px, 2.4vw, 24px);
+  margin: 0;
+  padding: clamp(8px, 1.5vw, 16px) 0 0;
+  scroll-margin-top: var(--pitbull-scroll-offset);
+}
+
+.pitbull-landing-faq__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.8vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0;
+  max-width: 22ch;
+}
+
+.pitbull-landing-faq__list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.pitbull-landing-faq__item {
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 12%, transparent);
+  display: grid;
+  gap: 6px;
+  padding: 14px 0;
+}
+
+.pitbull-landing-faq__item:last-child {
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 12%, transparent);
+}
+
+.pitbull-landing-faq__item dt {
+  font-size: 0.95rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.pitbull-landing-faq__item dd {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
 }
 
 /* ── FAQ ───────────────────────────────────── */
@@ -11912,8 +11974,18 @@
 .pitbull-page--premium {
   --pitbull-chapter-border: color-mix(in oklab, var(--color-text-primary) 10%, transparent);
   --pitbull-chapter-surface: color-mix(in oklab, var(--color-text-primary) 2.5%, transparent);
-  --pitbull-scroll-offset: calc(var(--header-height) + 24px);
+  --pitbull-nav-clearance: 48px;
+  --pitbull-scroll-offset: calc(
+    var(--header-height-scrolled) + var(--pitbull-nav-clearance) + 12px
+  );
   background: var(--color-page-canvas);
+}
+
+.pitbull-page--premium .pitbull-section-nav {
+  background: var(--color-page-canvas);
+  position: sticky;
+  top: var(--header-height-scrolled);
+  z-index: 4;
 }
 
 /* Portada showcase */
@@ -12051,6 +12123,23 @@
   gap: 8px;
 }
 
+.pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__cta--secondary {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 0;
+  color: color-mix(in oklab, var(--plu-warm-50) 72%, transparent);
+  font-weight: 600;
+  justify-content: flex-start;
+  min-height: 44px;
+  padding: 0;
+}
+
+.pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__cta--secondary:hover {
+  background: transparent;
+  border-color: transparent;
+  color: var(--plu-warm-50, #fff);
+}
+
 .pitbull-page--premium .pitbull-hero-masthead__cta--decision {
   box-shadow: none;
 }
@@ -12070,7 +12159,7 @@
   min-width: 44px;
 }
 
-/* Índice de recorrido — puente tipográfico con el masthead; no sticky. */
+/* Índice de recorrido. En la ficha premium queda fijo bajo el header. */
 .pitbull-section-nav {
   background: var(--color-page-canvas);
   border-bottom: 1px solid var(--pitbull-chapter-border);
@@ -12094,7 +12183,7 @@
   margin-inline: auto;
   max-width: var(--max-width-content);
   min-width: 0;
-  padding-inline: var(--layout-gutter-lg);
+  padding-inline: var(--institution-gutter);
 }
 
 .pitbull-section-nav__label {
@@ -12219,7 +12308,7 @@
 /* Capítulos */
 .pitbull-page--premium .pitbull-page__body {
   background: var(--color-page-canvas);
-  padding: clamp(34px, 5vw, 64px) var(--layout-gutter-lg) clamp(56px, 7vw, 88px);
+  padding: clamp(12px, 2vw, 20px) 0 clamp(48px, 6vw, 72px);
 }
 
 .pitbull-page--premium .pitbull-dossier--minimal {
@@ -12722,9 +12811,9 @@
   .pitbull-page--premium.pitbull-page
     .pitbull-hero-masthead.pitbull-hero-masthead--bleed
     .pitbull-hero-masthead__layout.pitbull-hero-masthead__layout--bleed {
-    height: clamp(560px, 74vh, 820px);
-    max-height: none;
-    min-height: 560px;
+    height: min(62svh, 580px);
+    max-height: min(62svh, 580px);
+    min-height: min(440px, 62svh);
   }
 
   .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
@@ -12780,9 +12869,13 @@
 }
 
 @media (max-width: 767px) {
+  .pitbull-page--premium {
+    --pitbull-nav-clearance: 56px;
+  }
+
   .pitbull-section-nav__inner {
     display: block;
-    padding-inline: var(--layout-gutter-sm);
+    padding-inline: var(--institution-gutter);
   }
 
   /* El track desborda en mobile: el fade lateral comunica "hay más" sin

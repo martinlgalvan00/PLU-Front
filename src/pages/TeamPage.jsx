@@ -28,7 +28,7 @@ export default function TeamPage({ onNavigate }) {
       />
 
       <div className="institutional-page__inner team-page__inner">
-        <section className="team-why" aria-labelledby="team-why-title">
+        <Reveal as="section" variant="fade" className="team-why" aria-labelledby="team-why-title">
           <header className="institutional-section-head institutional-section-head--compact">
             <p className="institutional-kicker">01 / {t('pages.team.whyEyebrow')}</p>
             <div>
@@ -44,9 +44,9 @@ export default function TeamPage({ onNavigate }) {
               </li>
             ))}
           </ul>
-        </section>
+        </Reveal>
 
-        <section className="team-paths" aria-labelledby="team-paths-title">
+        <Reveal as="section" variant="fade" className="team-paths" aria-labelledby="team-paths-title">
           <header className="institutional-section-head institutional-section-head--compact">
             <p className="institutional-kicker">02 / {t('pages.team.rolesEyebrow')}</p>
             <div>
@@ -86,7 +86,7 @@ export default function TeamPage({ onNavigate }) {
           </ol>
 
           <p className="team-paths__note">{t('pages.team.reviewNote')}</p>
-        </section>
+        </Reveal>
 
         <Reveal delay={40}>
           <section className="team-close" aria-labelledby="team-close-title">

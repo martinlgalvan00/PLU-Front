@@ -16,8 +16,8 @@ import {
   setTicketQuantity,
   toggleTicketAddon,
   assertCustomerConfirmation,
-  openTicketPassModal,
   chooseTicketProofFile,
+  rejectTicketProofFile,
   submitTicketProof,
   openTicketCredential,
   assertCredentialPage,
@@ -55,6 +55,8 @@ test.describe('Cliente — flujo de compra de entradas', () => {
     })
 
     await assertOrderCreated(page, { expectedAmount: '20.000', expectedQuantity: 1 })
+    // Con el pago pendiente la billetera muestra el nombre y que el QR se
+    // habilita al acreditar. El nombre también se verifica en la credencial.
     await assertCustomerConfirmation(page, {
       eventTitle: fixture.ticketEventTitle,
       name: 'Camila Cliente',
@@ -65,14 +67,14 @@ test.describe('Cliente — flujo de compra de entradas', () => {
     const tokens = await assertPassesOnConfirmation(page, { labels: ['Público general'] })
     expect(tokens).toHaveLength(1)
 
-    const dialog = await openTicketPassModal(page, { name: 'Camila Cliente' })
-    await dialog.locator('.card-modal__close').click()
-    await expect(dialog).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /ver mi entrada/i })).toHaveCount(0)
+    const heldRow = page.locator('.ticket-purchase--confirmation .buyer-tickets-wallet__row')
 
     await page.goto('/')
     await page.goto(`${TICKETS_PATH}?evento=${encodeURIComponent(fixture.ticketEventSlug)}`)
     await expect(page.locator('.ticket-purchase--confirmation')).toBeVisible({ timeout: 15_000 })
-    await expect(page.locator('.ticket-purchase--confirmation')).toContainText('Camila Cliente')
+    await expect(heldRow).toContainText('Camila Cliente')
+    await expect(heldRow).toContainText(/se habilita cuando se acredite el pago/i)
 
     await openTicketCredential(page, {
       qrToken: tokens[0],
@@ -131,13 +133,13 @@ test.describe('Cliente — flujo de compra de entradas', () => {
     await assertOrderCreated(page, { expectedAmount: '20.000', expectedQuantity: 1 })
     await assertTransferPanelVisible(page)
 
-    await chooseTicketProofFile(page, {
+    // El peso se controla al elegir el archivo, antes de subir nada.
+    await rejectTicketProofFile(page, {
       name: 'pesado.jpg',
       mimeType: 'image/jpeg',
       buffer: OVERSIZED_JPEG,
+      message: /2\s*MB/i,
     })
-    await submitTicketProof(page)
-    await expect(page.locator('.ticket-purchase__submit-error')).toContainText(/2\s*MB/i)
 
     await chooseTicketProofFile(page, {
       name: 'transferencia.jpg',

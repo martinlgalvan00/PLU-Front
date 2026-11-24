@@ -7,6 +7,7 @@ import {
   purchaseTickets,
   assertOrderCreated,
   assertPassesOnConfirmation,
+  readCurrentTicketOrder,
   assertTransferPanelVisible,
   setTicketQuantity,
   assertLiveTotal,
@@ -68,10 +69,14 @@ test.describe('Venta de Entradas', () => {
     const warmupZone = access.locator('.tickets-page__access-zone', {
       has: page.getByRole('heading', { name: 'Entrada en calor' }),
     })
-    await expect(warmupZone).toContainText('Entrenadores')
-    await expect(warmupZone).toContainText(/no la abren/i)
-    await expect(warmupZone).toContainText('Público general')
-    await expect(warmupZone).toContainText('VIP')
+    await expect(warmupZone.locator('.tickets-page__access-opens')).toContainText('Entrenadores')
+    const warmupClosed = warmupZone.locator('.tickets-page__access-closed')
+    await expect(warmupClosed).toContainText(/no la abren/i)
+    await expect(warmupClosed).toContainText('Público general')
+    // La matriz pasa a formato título los nombres cargados en mayúsculas
+    // (`shortTicketTypeName`), así que "VIP" se lee "Vip". Lo que importa acá
+    // es que figure entre los que no abren la zona, no cómo se capitaliza.
+    await expect(warmupClosed).toContainText('VIP', { ignoreCase: true })
   })
 
   test('el total sigue al tipo, a la cantidad y al beneficio extra', async ({ page }) => {
@@ -174,7 +179,8 @@ test.describe('Venta de Entradas', () => {
     await assertTransferPanelVisible(page)
     const tokens = await assertPassesOnConfirmation(page, { labels: ['Público general'] })
     expect(tokens).toHaveLength(1)
-    await expect(page.locator('.ticket-purchase--confirmation')).toContainText('Juan Público')
+    // Pendiente de pago, la fila muestra a la persona. El pase se dibuja al acreditar.
+    await expect(page.locator('.buyer-tickets-wallet__row')).toContainText('Juan Público')
   })
 
   test('dos entradas generales suman el doble y emiten dos pases', async ({ page }) => {
@@ -233,10 +239,13 @@ test.describe('Venta de Entradas', () => {
       attendees: [{ fullName: 'Rita Recarga', dni: '40123456', type: 'Público general' }],
     })
     const tokens = await assertPassesOnConfirmation(page, { labels: ['Público general'] })
+    const heldRow = page.locator('.ticket-purchase--confirmation .buyer-tickets-wallet__row')
+    const shownBefore = await heldRow.allInnerTexts()
 
     await page.reload()
     await expect(page.locator('.ticket-purchase--confirmation')).toBeVisible({ timeout: 15_000 })
-    await expect(page.locator('.ticket-purchase--confirmation')).toContainText('Rita Recarga')
+    await expect(heldRow).toHaveText(shownBefore)
+    await expect(heldRow.first()).toContainText('Rita Recarga')
     const reloaded = await assertPassesOnConfirmation(page, { labels: ['Público general'] })
     expect(reloaded).toEqual(tokens)
   })
@@ -247,6 +256,8 @@ test.describe('Venta de Entradas', () => {
       attendees: [{ fullName: 'Nora Puntos', dni: '40.555.666', type: 'Público general' }],
     })
     await assertOrderCreated(page, { expectedAmount: '20.000', expectedQuantity: 1 })
-    await expect(page.locator('.ticket-purchase--confirmation')).toContainText('40555666')
+    const order = await readCurrentTicketOrder(page)
+    expect(order.tickets.map((ticket) => ticket.attendeeDni)).toContain('40555666')
+    await expect(page.locator('.buyer-tickets-wallet__row')).toContainText('Nora Puntos')
   })
 })

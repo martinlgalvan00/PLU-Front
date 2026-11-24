@@ -6,10 +6,13 @@ import '../../styles/pages/admin.css'
 import '../../styles/pages/admin-institutional.css'
 import '../../styles/pages/admin-minimal.css'
 import '../../styles/pages/admin-event-console.css'
+import { useState } from 'react'
 import { Save } from 'lucide-react'
 import Button from '../ui/Button.jsx'
+import AdminEventEditor from './AdminEventEditor.jsx'
 import AdminEventStructureEditor from './AdminEventStructureEditor.jsx'
 import AdminEventWorkspace from './AdminEventWorkspace.jsx'
+import { buildAdminEventDraft } from '../../services/eventAdminService.js'
 
 /**
  * La página del evento: seis pestañas planas con URL propia, en reemplazo de
@@ -153,8 +156,6 @@ const baseArgs = {
   onSelectChapter: () => {},
   onSelectSection: () => {},
   onSetEventState: async () => ({ event: EVENT, events: [EVENT] }),
-  onToggleOccupancy: () => {},
-  onTogglePublicModule: () => {},
   paymentSummary: '3 pendientes',
   paymentsAttention: 3,
   paymentsSection: <EditorStub label="Triage de pagos del meet" />,
@@ -288,4 +289,174 @@ export const Angosto = {
       </div>
     ),
   ],
+}
+
+function SitioConEditorReal() {
+  const [draft, setDraft] = useState(() =>
+    buildAdminEventDraft({ ...EVENT, publicSurface: { recentRegistrants: false } }),
+  )
+  return (
+    <AdminEventWorkspace
+      {...baseArgs}
+      activeSection="visibility"
+      previewDraft={draft}
+      editor={
+        <AdminEventEditor
+          accordion
+          embedded
+          canEdit
+          draft={draft}
+          forcedTab="visibility"
+          sourceEvent={EVENT}
+          onCancel={() => {}}
+          onChange={setDraft}
+          onSubmit={async () => ({ event: EVENT })}
+        />
+      }
+    />
+  )
+}
+
+/**
+ * Sitio con el editor real: cada sección de la landing con su interruptor y
+ * sus textos juntos, y la vista previa a la derecha.
+ */
+export const SitioPorSecciones = { render: () => <SitioConEditorReal /> }
+
+const MP_PROFILES = [
+  {
+    id: 'mp-1',
+    name: 'PLU · Cuenta general',
+    kind: 'mercado_pago',
+    active: true,
+    connectionStatus: 'connected',
+    config: { connection: 'oauth', accountNickname: 'PLUARGENTINA', liveMode: true },
+  },
+]
+const BANK_PROFILES = [
+  {
+    id: 'bank-1',
+    name: 'Cuenta PLU ARG',
+    kind: 'bank_transfer',
+    active: true,
+    config: { alias: 'PLU.ARG.EVENTOS', cbu: '0000003100012345678901', holder: 'Maximal SRL' },
+  },
+]
+
+/** Perfiles de cobro y matriz de plataforma, sin backend. */
+function mockPaymentApis({ oauthAvailable = true } = {}) {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async (input, options = {}) => {
+    const url = String(input)
+    const json = (body) =>
+      new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    if (url.includes('/api/payment-profiles')) {
+      const kind = new URL(url, 'http://local').searchParams.get('kind')
+      return json({
+        profiles: kind === 'mercado_pago' ? MP_PROFILES : BANK_PROFILES,
+        secretsKeyConfigured: true,
+        mercadoPagoOAuth: { available: oauthAvailable, missing: [] },
+      })
+    }
+    if (url.includes('/api/platform-settings')) return json({})
+    return originalFetch(input, options)
+  }
+  return () => {
+    globalThis.fetch = originalFetch
+  }
+}
+
+function VentaConEditorReal({ chapter }) {
+  const [draft, setDraft] = useState(() => buildAdminEventDraft(EVENT))
+  return (
+    <AdminEventWorkspace
+      {...baseArgs}
+      activeSection="sales"
+      openChapter={chapter}
+      previewDraft={draft}
+      editor={
+        <AdminEventEditor
+          accordion
+          embedded
+          canEdit
+          draft={draft}
+          forcedTab="sales"
+          forcedChapter={chapter}
+          sourceEvent={EVENT}
+          onCancel={() => {}}
+          onChange={setDraft}
+          onSubmit={async () => ({ event: EVENT })}
+        />
+      }
+    />
+  )
+}
+
+/**
+ * Venta → Cobro con el editor real: Mercado Pago (vincular o cargar
+ * credenciales), transferencia y efectivo se configuran desde el evento.
+ */
+export const VentaCobro = {
+  render: () => <VentaConEditorReal chapter="payment" />,
+  beforeEach: () => mockPaymentApis(),
+}
+
+/** Venta con capítulo navegable: la tira y los atajos de Módulos cambian de capítulo. */
+function VentaNavegable({ initialChapter = 'modules', event = EVENT }) {
+  const [draft, setDraft] = useState(() => buildAdminEventDraft(event))
+  const [chapter, setChapter] = useState(initialChapter)
+  return (
+    <AdminEventWorkspace
+      {...baseArgs}
+      event={event}
+      activeSection="sales"
+      openChapter={chapter}
+      previewDraft={draft}
+      onSelectChapter={(_event, _section, next) => setChapter(next)}
+      editor={
+        <AdminEventEditor
+          accordion
+          embedded
+          canEdit
+          draft={draft}
+          forcedTab="sales"
+          forcedChapter={chapter}
+          sourceEvent={event}
+          onCancel={() => {}}
+          onChange={setDraft}
+          onRequestChapter={setChapter}
+          onSubmit={async () => ({ event })}
+          workspaceSections={['structure']}
+        />
+      }
+    />
+  )
+}
+
+/**
+ * Venta → Módulos: qué partes del evento están prendidas y cómo cobra cada una
+ * (medios propios y tope de cuotas). Es el capítulo con el que abre Venta.
+ */
+export const VentaModulos = {
+  render: () => <VentaNavegable />,
+  beforeEach: () => mockPaymentApis(),
+}
+
+/** Exhibición sin atletas: inscripciones en solo anuncio, entradas y puerta prendidas. */
+export const VentaModulosSoloEntradas = {
+  render: () => (
+    <VentaNavegable
+      event={{
+        ...EVENT,
+        salesIntent: 'announce',
+        pricing: { ...EVENT.pricing, ticketsEnabled: true },
+        modules: { combo: true, ticketAddons: false, door: true },
+        paymentPolicy: { ticket: { maxInstallments: 3 } },
+      }}
+    />
+  ),
+  beforeEach: () => mockPaymentApis(),
 }

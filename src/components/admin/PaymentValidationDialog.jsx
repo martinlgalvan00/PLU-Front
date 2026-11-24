@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ExternalLink, FileWarning, BadgeCheck, X, XCircle } from 'lucide-react'
+import { ExternalLink, FileWarning, BadgeCheck, Trash2, X, XCircle } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatRejectionActor } from '../../lib/paymentAudit.js'
@@ -10,6 +10,13 @@ import {
   PROOF_OVERRIDE_REASON_MIN_LENGTH,
   isProofOverrideReasonValid,
 } from '../../services/paymentValidationService.js'
+
+function splitAttendeeLine(line) {
+  const text = String(line ?? '').trim()
+  const match = text.match(/^(.*)\s+\(([^)]+)\)\s*$/)
+  if (!match) return { name: text, document: '' }
+  return { name: match[1].trim(), document: match[2].trim() }
+}
 
 function guessProofKind(...sources) {
   for (const source of sources) {
@@ -31,6 +38,13 @@ function guessProofKind(...sources) {
  * panel que suma un cobro al reporte financiero sin confirmación de Mercado
  * Pago. Es un modo del mismo diálogo y no un componente aparte porque la
  * evidencia que hay que mirar antes de decidir es exactamente la misma.
+ *
+ * `onTrashProof` (opcional) ofrece, sólo en `view` y sólo si el item trae
+ * `canTrashProof`, mover el comprobante de una orden ya resuelta a la papelera.
+ * Es reversible mientras el archivo siga ahí, pero deja la orden sin archivo, así
+ * que pide una confirmación en el mismo lugar. Quien lo pasa decide el permiso y
+ * qué hacer después (normalmente cerrar y recargar); si rechaza, el mensaje se
+ * muestra acá.
  */
 export default function PaymentValidationDialog({
   item,
@@ -40,6 +54,7 @@ export default function PaymentValidationDialog({
   onCancel,
   onConfirm,
   onReject,
+  onTrashProof,
 }) {
   const { locale, t } = useI18n()
   const titleId = useId()
@@ -49,7 +64,7 @@ export default function PaymentValidationDialog({
   const settleReferenceId = useId()
   const overrideReasonId = useId()
   const panelRef = useRef(null)
-  const dialogStateRef = useRef({ busy, onCancel, rejecting: false })
+  const dialogStateRef = useRef({ busy, onCancel, rejecting: false, confirmingTrash: false })
 
   const proofPath =
     typeof item?.paymentProofPath === 'string'
@@ -65,6 +80,9 @@ export default function PaymentValidationDialog({
   const [imageFailed, setImageFailed] = useState(false)
   const [imageExpanded, setImageExpanded] = useState(false)
   const [rejecting, setRejecting] = useState(false)
+  const [confirmingTrash, setConfirmingTrash] = useState(false)
+  const [trashing, setTrashing] = useState(false)
+  const [trashError, setTrashError] = useState('')
   const [rejectReason, setRejectReason] = useState('')
   const [settleReason, setSettleReason] = useState('')
   const [settleReference, setSettleReference] = useState('')
@@ -72,7 +90,7 @@ export default function PaymentValidationDialog({
   const rejectReasonValid = rejectReason.trim().length >= 3
   const settleReasonValid = settleReason.trim().length >= 3
   const overrideReasonValid = isProofOverrideReasonValid(overrideReason)
-  dialogStateRef.current = { busy, onCancel, rejecting }
+  dialogStateRef.current = { busy: busy || trashing, onCancel, rejecting, confirmingTrash }
 
   useEffect(() => {
     const previousFocus = document.activeElement
@@ -87,6 +105,11 @@ export default function PaymentValidationDialog({
         event.stopImmediatePropagation()
         if (dialogStateRef.current.rejecting) {
           setRejecting(false)
+          return
+        }
+        // Escape cierra primero la confirmación pendiente, no todo el diálogo.
+        if (dialogStateRef.current.confirmingTrash) {
+          setConfirmingTrash(false)
           return
         }
         dialogStateRef.current.onCancel()
@@ -164,8 +187,27 @@ export default function PaymentValidationDialog({
 
   const isView = mode === 'view'
   const isSettle = mode === 'settle'
+  const canTrashProof =
+    Boolean(onTrashProof) && isView && hasProof && item.canTrashProof === true
+
+  async function handleTrashProof() {
+    setTrashing(true)
+    setTrashError('')
+    try {
+      await onTrashProof()
+    } catch (trashFailure) {
+      setTrashError(trashFailure?.message || t('admin.paymentValidation.trashProofError'))
+      setConfirmingTrash(false)
+    } finally {
+      setTrashing(false)
+    }
+  }
   const needsProofOverride = Boolean(item.requiresProofOverride) && !isSettle && !isView
+  const isTicket = item.type === 'ticket' || item.type === 'ticket_order'
   const typeLabel = t(`admin.actionQueue.types.${item.type}`)
+  const attendeeLines = Array.isArray(item.subjects)
+    ? item.subjects.map((line) => String(line ?? '').trim()).filter(Boolean)
+    : []
   const previewKind = guessProofKind(item.paymentProofPath, proofUrl)
   const showImage = Boolean(
     proofUrl && !imageFailed && (previewKind === 'image' || previewKind === 'unknown'),
@@ -188,13 +230,17 @@ export default function PaymentValidationDialog({
   const showReject = Boolean(onReject) && !isSettle && (hasProof || item.cashAtPitbull || needsProofOverride)
   const noProofLead = isSettle
     ? t('admin.paymentValidation.settleNoProofLead')
-    : item.cashAtPitbull
-      ? 'Confirmá que el efectivo fue recibido en Pitbull antes de acreditar la orden.'
-      : needsProofOverride
-        ? t('admin.paymentValidation.overrideNoProofLead')
-        : isView
-          ? t('admin.paymentValidation.viewNoProofLead')
-          : t('admin.paymentValidation.noProofLead')
+    : isTicket && item.cashAtPitbull
+      ? t('admin.paymentValidation.ticketCashLead')
+      : isTicket && needsProofOverride
+        ? t('admin.paymentValidation.ticketOverrideLead')
+        : item.cashAtPitbull
+          ? 'Confirmá que el efectivo fue recibido en la sede antes de acreditar la orden.'
+          : needsProofOverride
+            ? t('admin.paymentValidation.overrideNoProofLead')
+            : isView
+              ? t('admin.paymentValidation.viewNoProofLead')
+              : t('admin.paymentValidation.noProofLead')
 
   const panelClassName = [
     'payment-validation-dialog__panel',
@@ -207,6 +253,58 @@ export default function PaymentValidationDialog({
 
   const proofBlock = (
     <div className="payment-validation-dialog__proof" aria-live="polite">
+      {/* Arriba y aparte de la vista previa a propósito: un comprobante que no carga (el
+          archivo falta en Storage) es justo el que hay que poder dar de baja, y al
+          final del panel quedaba detrás de la barra de acciones fija. */}
+      {canTrashProof && !proofLoading ? (
+        <div className="payment-validation-dialog__trash-zone">
+          {confirmingTrash ? (
+            <div className="payment-validation-dialog__trash-confirm" role="alert">
+              <p>{t('admin.paymentValidation.trashProofLead')}</p>
+              <div className="payment-validation-dialog__trash-actions">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="btn--small"
+                  disabled={trashing}
+                  onClick={() => void handleTrashProof()}
+                >
+                  {trashing
+                    ? t('admin.paymentValidation.trashProofBusy')
+                    : t('admin.paymentValidation.trashProofConfirm')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="btn--small"
+                  disabled={trashing}
+                  onClick={() => setConfirmingTrash(false)}
+                >
+                  {t('admin.paymentValidation.trashProofCancel')}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="payment-validation-dialog__trash"
+              onClick={() => {
+                setTrashError('')
+                setConfirmingTrash(true)
+              }}
+            >
+              <Trash2 size={14} aria-hidden />
+              {t('admin.paymentValidation.trashProof')}
+            </button>
+          )}
+          {trashError ? (
+            <p className="payment-validation-dialog__error" role="alert">
+              {trashError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {!hasProof ? (
         <div className="payment-validation-dialog__empty payment-validation-dialog__empty--workspace" role="status">
           <span className="payment-validation-dialog__empty-icon" aria-hidden>
@@ -223,7 +321,7 @@ export default function PaymentValidationDialog({
                 ? 'Cobro presencial en Pitbull'
                 : t('admin.paymentValidation.noProofTitle')}
             </strong>
-            <p>{noProofLead}</p>
+            {isTicket && !isView && !isSettle ? null : <p>{noProofLead}</p>}
           </div>
         </div>
       ) : null}
@@ -307,14 +405,22 @@ export default function PaymentValidationDialog({
               ? t('admin.paymentValidation.settleTitle')
               : isView
                 ? t('admin.paymentValidation.viewTitle')
-                : t('admin.paymentValidation.title')}
+                : isTicket
+                  ? t('admin.paymentValidation.ticketTitle')
+                  : t('admin.paymentValidation.title')}
           </h2>
           <p id={descriptionId} className="payment-validation-dialog__lead">
             {isSettle
               ? t('admin.paymentValidation.settleLead')
               : isView
                 ? t('admin.paymentValidation.viewLead')
-                : t('admin.paymentValidation.lead')}
+                : isTicket
+                  ? item.cashAtPitbull
+                    ? t('admin.paymentValidation.ticketCashLead')
+                    : needsProofOverride
+                      ? t('admin.paymentValidation.ticketOverrideLead')
+                      : t('admin.paymentValidation.ticketLead')
+                  : t('admin.paymentValidation.lead')}
           </p>
         </div>
         <button
@@ -329,10 +435,34 @@ export default function PaymentValidationDialog({
       </header>
 
       <dl className="payment-validation-dialog__meta payment-validation-dialog__meta--rail">
-        <div>
-          <dt>{t('admin.paymentValidation.subject')}</dt>
-          <dd>{item.subject}</dd>
+        <div className={attendeeLines.length > 1 ? 'payment-validation-dialog__people-row' : undefined}>
+          <dt>{isTicket ? t('admin.paymentValidation.ticketSubject') : t('admin.paymentValidation.subject')}</dt>
+          <dd>
+            {attendeeLines.length > 1 ? (
+              <ul className="payment-validation-dialog__people">
+                {attendeeLines.map((person) => {
+                  const { name, document } = splitAttendeeLine(person)
+                  return (
+                    <li key={person}>
+                      <span className="payment-validation-dialog__person-name">{name}</span>
+                      {document ? (
+                        <span className="payment-validation-dialog__person-doc">{document}</span>
+                      ) : null}
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              item.subject
+            )}
+          </dd>
         </div>
+        {item.method ? (
+          <div>
+            <dt>{t('admin.columns.method')}</dt>
+            <dd>{item.method}</dd>
+          </div>
+        ) : null}
         {item.meta ? (
           <div>
             <dt>{t('admin.paymentValidation.amount')}</dt>
@@ -427,7 +557,9 @@ export default function PaymentValidationDialog({
       {needsProofOverride && !rejecting ? (
         <div className="payment-validation-dialog__settle-form">
           <p className="payment-validation-dialog__settle-note" role="note">
-            {t('admin.paymentValidation.overrideAuditNote')}
+            {isTicket
+              ? t('admin.paymentValidation.ticketOverrideAuditNote')
+              : t('admin.paymentValidation.overrideAuditNote')}
           </p>
           <label htmlFor={overrideReasonId}>
             {t('admin.paymentValidation.overrideReasonLabel')}
@@ -440,7 +572,11 @@ export default function PaymentValidationDialog({
             required
             minLength={PROOF_OVERRIDE_REASON_MIN_LENGTH}
             aria-describedby={`${overrideReasonId}-hint`}
-            placeholder={t('admin.paymentValidation.overrideReasonPlaceholder')}
+            placeholder={t(
+              isTicket
+                ? 'admin.paymentValidation.ticketOverrideReasonPlaceholder'
+                : 'admin.paymentValidation.overrideReasonPlaceholder',
+            )}
             onChange={(event) => setOverrideReason(event.target.value)}
           />
           <span id={`${overrideReasonId}-hint`} className="payment-validation-dialog__settle-hint">
@@ -537,10 +673,16 @@ export default function PaymentValidationDialog({
                     <BadgeCheck size={15} aria-hidden />
                   )}
                   {busy
-                    ? t('admin.paymentValidation.confirming')
+                    ? t(
+                        isTicket && !isSettle
+                          ? 'admin.paymentValidation.ticketConfirming'
+                          : 'admin.paymentValidation.confirming',
+                      )
                     : isSettle
                       ? t('admin.paymentValidation.settleConfirm')
-                      : t('admin.paymentValidation.confirm')}
+                      : isTicket
+                        ? t('admin.paymentValidation.ticketConfirm')
+                        : t('admin.paymentValidation.confirm')}
                 </Button>
               </>
             )}

@@ -26,7 +26,10 @@
   display: flex;
   gap: clamp(20px, 4vw, 44px);
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   position: relative;
+  scroll-padding-inline: 4px;
+  scroll-snap-type: x proximity;
   scrollbar-width: none;
 }
 
@@ -49,6 +52,7 @@
   letter-spacing: -0.01em;
   min-height: 48px;
   padding: 10px 0 14px;
+  scroll-snap-align: start;
   transition: color var(--motion-base) var(--ease-out);
 }
 
@@ -89,6 +93,11 @@
   gap: clamp(36px, 5vw, 64px);
 }
 
+/* El calendario es otro capítulo: más aire que el hueco interno del destacado. */
+.shop-feature + .shop-section {
+  margin-top: clamp(12px, 2vw, 20px);
+}
+
 /* Evento destacado */
 .shop-feature {
   display: grid;
@@ -109,10 +118,10 @@
 .shop-feature__title {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(2.2rem, 6vw, 4.6rem);
-  font-weight: 300;
-  letter-spacing: -0.045em;
-  line-height: 0.98;
+  font-size: clamp(22px, 3.2vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
   margin: 0;
   text-wrap: balance;
 }
@@ -164,8 +173,11 @@
 }
 
 .shop-feature__price--status {
-  color: var(--color-text-secondary);
-  font-size: 1.1rem;
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2vw, 1.6rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
 }
 
 .shop-feature__soon {
@@ -181,6 +193,19 @@
   flex-wrap: wrap;
   gap: 14px 24px;
   margin-top: 6px;
+}
+
+.shop-feature__actions--quiet {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.shop-feature__actions--quiet .shop-link {
+  align-items: center;
+  display: inline-flex;
+  min-height: 44px;
+  padding-block: 10px;
 }
 
 /* Acción principal y enlace */
@@ -387,11 +412,11 @@
   align-items: center;
   color: var(--color-text-muted);
   display: inline-flex;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   gap: 8px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 /* Tarjetas de producto */
@@ -754,6 +779,41 @@
     letter-spacing: 0.14em;
     min-height: 48px;
     width: 100%;
+  }
+
+  .shop-feature__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .shop-feature__actions .shop-cta,
+  .shop-feature__actions .shop-link {
+    justify-content: center;
+    min-height: 48px;
+    width: 100%;
+  }
+
+  .shop-feature__actions--quiet {
+    align-items: flex-start;
+  }
+
+  .shop-feature__actions--quiet .shop-link {
+    justify-content: flex-start;
+    text-align: left;
+    width: auto;
+  }
+
+  .shop-drawer {
+    padding:
+      calc(16px + env(safe-area-inset-top, 0px))
+      16px
+      calc(24px + env(safe-area-inset-bottom, 0px));
+    width: 100%;
+  }
+
+  .shop-drawer__close {
+    height: 44px;
+    width: 44px;
   }
 }
 

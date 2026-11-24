@@ -1,15 +1,16 @@
+import { useMemo, useState } from 'react'
 import AdminFilterChipGroup from '../AdminFilterChipGroup.jsx'
 import { AlertTriangle, Eye, Radio, ShieldCheck, Star, Unlock } from 'lucide-react'
+import EventLandingSection from './EventLandingSection.jsx'
+import EventExternalFormField from './EventExternalFormField.jsx'
+import { AdvancedGroup, FormField } from './parts.jsx'
+import EventPublishChecklist from './EventPublishChecklist.jsx'
+import { resolveEventPublishReadiness } from '../../../lib/eventPublishReadiness.js'
 import {
-  defaultInscriptionCopy,
-  resolveInscriptionCopyVariant,
-} from '../../../lib/eventInscriptionCopy.js'
-import {
-  normalizeEventPublicSurface,
-  publicSurfaceModulesForEvent,
-} from '../../../lib/eventPublicSurface.js'
-import { patchPublicSurface } from './draftPatches.js'
-import { AdvancedGroup, CapacityPublicBreakdown, FormField } from './parts.jsx'
+  EVENT_REGISTRATION_MODES,
+  applyRegistrationModeToDraft,
+  registrationModeOfDraft,
+} from '../../../lib/eventRegistrationMode.js'
 
 export default function EventVisibilitySection({
   activePanelRef,
@@ -18,15 +19,54 @@ export default function EventVisibilitySection({
   canEdit,
   draft,
   patchDraft,
-  statusOptions,
+  // Cuenta por evento (organizador): estado, publicación, afiliación y destacado los decide
+  // PLU. El servidor los fuerza al valor actual; acá se muestran bloqueados para no prometer
+  // un cambio que no se guarda.
+  eventScoped = false,
   consistencyWarnings,
+  publishChecks = [],
   accessOptions,
   advancedOpen,
   setAdvancedOpen,
   err,
   sourceEvent,
   publicCapacityPreview,
+  onHeroUpload,
+  onImageUpload,
+  heroUploading = false,
+  heroPreviewUrl = null,
+  platform = null,
+  mpProfiles,
+  onGoTo,
+  studioSave = null,
+  landingSourceEvents = [],
 }) {
+  // "Abre en una fecha" recién elegido: hasta cargar la fecha el borrador se
+  // lee como abierta, y el campo no puede desaparecer en ese intervalo.
+  const [schedulingPending, setSchedulingPending] = useState(false)
+  // Solo mientras falta la fecha: con una fecha ya pasada la inscripción abre
+  // en cuanto se guarda, y el selector lo dice ("Abierta ya") en vez de
+  // prometer una apertura programada.
+  const registrationMode =
+    schedulingPending && !draft.registrationOpensAt && registrationModeOfDraft(draft) === 'open'
+      ? 'scheduled'
+      : registrationModeOfDraft(draft)
+
+  // Imagen y logo viven en el evento guardado, no en el draft.
+  const readiness = useMemo(
+    () =>
+      resolveEventPublishReadiness(
+        {
+          logoUrl: sourceEvent?.logoUrl,
+          logoPath: sourceEvent?.logoPath,
+          heroImageUrl: heroPreviewUrl ?? sourceEvent?.heroImageUrl,
+          ...draft,
+        },
+        { platform, mpProfiles },
+      ),
+    [draft, sourceEvent, heroPreviewUrl, platform, mpProfiles],
+  )
+
   return (
     <section
       ref={activePanelRef}
@@ -43,15 +83,42 @@ export default function EventVisibilitySection({
 
       {essentials ? null : (
         <>
+          {/* El estado no se elige a mano: se decide cuándo abre la
+              inscripción y el estado y la ventana quedan coherentes. */}
           <AdminFilterChipGroup
             compact
-            disabled={!canEdit}
-            id="event-status"
-            label={t('admin.eventEditor.publicStatus')}
-            value={draft.status}
-            onChange={(value) => patchDraft({ ...draft, status: value })}
-            options={statusOptions}
+            disabled={!canEdit || eventScoped}
+            id="event-registration-mode"
+            label={t('admin.eventQuickCreate.regLabel')}
+            value={registrationMode}
+            onChange={(mode) => {
+              setSchedulingPending(mode === 'scheduled')
+              patchDraft(applyRegistrationModeToDraft(draft, mode))
+            }}
+            options={EVENT_REGISTRATION_MODES.map((mode) => [
+              mode,
+              t(`admin.eventQuickCreate.reg${mode[0].toUpperCase()}${mode.slice(1)}`),
+            ])}
           />
+          {registrationMode === 'scheduled' ? (
+            <FormField
+              error={err('registrationOpensAt')}
+              htmlFor="event-registration-opens"
+              label={t('admin.eventEditor.supabase.registrationOpensAt')}
+            >
+              <input
+                id="event-registration-opens"
+                disabled={!canEdit || eventScoped}
+                name="registrationOpensAt"
+                type="datetime-local"
+                value={draft.registrationOpensAt ?? ''}
+                aria-invalid={Boolean(err('registrationOpensAt'))}
+                onChange={(event) =>
+                  patchDraft({ ...draft, registrationOpensAt: event.target.value })
+                }
+              />
+            </FormField>
+          ) : null}
 
           {consistencyWarnings.length > 0 ? (
             <div className="admin-event-form__consistency" role="status">
@@ -71,13 +138,15 @@ export default function EventVisibilitySection({
 
       {essentials ? null : (
         <>
+          <EventPublishChecklist readiness={readiness} onGoTo={onGoTo} />
+
           <label className="admin-event-form__toggle">
             <input
               checked={Boolean(draft.published)}
               className="admin-event-form__toggle-input"
               type="checkbox"
               onChange={(event) => patchDraft({ ...draft, published: event.target.checked })}
-              disabled={!canEdit}
+              disabled={!canEdit || eventScoped}
             />
             <span className="admin-event-form__toggle-ui" aria-hidden />
             <span className="admin-event-form__toggle-copy">
@@ -91,12 +160,28 @@ export default function EventVisibilitySection({
             </span>
           </label>
 
+          {/* Lo que el público va a encontrar al intentar pagar. Aviso, no
+              bloqueo: un evento puede anunciarse antes de abrir las ventas. */}
+          {publishChecks.length > 0 ? (
+            <div className="admin-event-form__consistency" role="status">
+              <p className="admin-event-form__consistency-head">
+                <AlertTriangle size={13} aria-hidden />
+                {t('admin.eventEditor.publishChecks.title')}
+              </p>
+              <ul>
+                {publishChecks.map((code) => (
+                  <li key={code}>{t(`admin.eventEditor.publishChecks.codes.${code}`)}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           {/* Acceso al meet: misma decisión que StateControl. En el
                           acordeón de la consola vive solo allá (PATCH parcial). */}
           <div className="admin-event-form__access">
             <AdminFilterChipGroup
               compact
-              disabled={!canEdit}
+              disabled={!canEdit || eventScoped}
               id="event-access"
               label={t('admin.eventEditor.accessLabel')}
               value={draft.requiresMembership === false ? 'open' : 'members'}
@@ -125,7 +210,7 @@ export default function EventVisibilitySection({
           className="admin-event-form__toggle-input"
           type="checkbox"
           onChange={(event) => patchDraft({ ...draft, featured: event.target.checked })}
-          disabled={!canEdit}
+          disabled={!canEdit || eventScoped}
         />
         <span className="admin-event-form__toggle-ui" aria-hidden />
         <span className="admin-event-form__toggle-copy">
@@ -143,217 +228,23 @@ export default function EventVisibilitySection({
         onToggle={setAdvancedOpen}
         summary={t('admin.eventEditor.advancedSummary')}
       >
-        {/* Cómo se presenta el evento en su página. Son los tres
-                      textos que de verdad cambian por evento; los encabezados
-                      de cada bloque los sigue fijando el diseño, que es lo que
-                      mantiene el sitio coherente entre meets. */}
-        <fieldset className="admin-event-form__public-copy">
-          <legend>{t('admin.eventEditor.publicCopyLegend')}</legend>
-          <p className="admin-event-form__section-note">{t('admin.eventEditor.publicCopyHint')}</p>
+        <EventLandingSection
+          canEdit={canEdit}
+          draft={draft}
+          err={err}
+          heroPreviewUrl={heroPreviewUrl}
+          heroUploading={heroUploading}
+          landingSourceEvents={landingSourceEvents}
+          patchDraft={patchDraft}
+          publicCapacityPreview={publicCapacityPreview}
+          sourceEvent={sourceEvent}
+          studioSave={studioSave}
+          t={t}
+          onHeroUpload={onHeroUpload}
+          onImageUpload={onImageUpload}
+        />
 
-          <FormField
-            htmlFor="event-public-title"
-            label={t('admin.eventEditor.publicTitleField')}
-            error={err('publicCopy.publicTitle')}
-          >
-            <input
-              id="event-public-title"
-              name="publicCopy.publicTitle"
-              data-field="publicCopy.publicTitle"
-              type="text"
-              maxLength={120}
-              value={draft.publicCopy?.publicTitle ?? ''}
-              placeholder={draft.title || t('admin.eventEditor.publicTitlePlaceholder')}
-              disabled={!canEdit}
-              onChange={(event) =>
-                patchDraft({
-                  ...draft,
-                  publicCopy: {
-                    ...(draft.publicCopy ?? {}),
-                    publicTitle: event.target.value,
-                  },
-                })
-              }
-            />
-          </FormField>
-
-          <FormField
-            htmlFor="event-hero-lead"
-            label={t('admin.eventEditor.heroLeadField')}
-            error={err('publicCopy.heroLead')}
-          >
-            <input
-              id="event-hero-lead"
-              name="publicCopy.heroLead"
-              data-field="publicCopy.heroLead"
-              type="text"
-              maxLength={240}
-              value={draft.publicCopy?.heroLead ?? ''}
-              placeholder={t('admin.eventEditor.heroLeadPlaceholder')}
-              disabled={!canEdit}
-              onChange={(event) =>
-                patchDraft({
-                  ...draft,
-                  publicCopy: {
-                    ...(draft.publicCopy ?? {}),
-                    heroLead: event.target.value,
-                  },
-                })
-              }
-            />
-          </FormField>
-
-          <FormField
-            htmlFor="event-cta-label"
-            label={t('admin.eventEditor.ctaLabelField')}
-            error={err('publicCopy.ctaLabel')}
-          >
-            <input
-              id="event-cta-label"
-              name="publicCopy.ctaLabel"
-              data-field="publicCopy.ctaLabel"
-              type="text"
-              maxLength={40}
-              value={draft.publicCopy?.ctaLabel ?? ''}
-              placeholder={t('admin.eventEditor.ctaLabelPlaceholder')}
-              disabled={!canEdit}
-              onChange={(event) =>
-                patchDraft({
-                  ...draft,
-                  publicCopy: {
-                    ...(draft.publicCopy ?? {}),
-                    ctaLabel: event.target.value,
-                  },
-                })
-              }
-            />
-          </FormField>
-
-          <p className="admin-event-form__section-note">
-            {t('admin.eventEditor.inscriptionCopyHint')}
-          </p>
-
-          <FormField
-            htmlFor="event-inscription-mark"
-            label={t('admin.eventEditor.inscriptionMarkField')}
-            error={err('publicCopy.inscriptionMark')}
-          >
-            <input
-              id="event-inscription-mark"
-              name="publicCopy.inscriptionMark"
-              data-field="publicCopy.inscriptionMark"
-              type="text"
-              maxLength={40}
-              value={draft.publicCopy?.inscriptionMark ?? ''}
-              placeholder={
-                defaultInscriptionCopy(
-                  resolveInscriptionCopyVariant({
-                    status: draft.status,
-                    progressPublic: draft.capacityProgressPublic !== false,
-                  }),
-                  t,
-                ).mark
-              }
-              disabled={!canEdit}
-              onChange={(event) =>
-                patchDraft({
-                  ...draft,
-                  publicCopy: {
-                    ...(draft.publicCopy ?? {}),
-                    inscriptionMark: event.target.value,
-                  },
-                })
-              }
-            />
-          </FormField>
-
-          <FormField
-            htmlFor="event-inscription-note"
-            label={t('admin.eventEditor.inscriptionNoteField')}
-            error={err('publicCopy.inscriptionNote')}
-          >
-            <textarea
-              id="event-inscription-note"
-              name="publicCopy.inscriptionNote"
-              data-field="publicCopy.inscriptionNote"
-              rows={2}
-              maxLength={160}
-              value={draft.publicCopy?.inscriptionNote ?? ''}
-              placeholder={
-                defaultInscriptionCopy(
-                  resolveInscriptionCopyVariant({
-                    status: draft.status,
-                    progressPublic: draft.capacityProgressPublic !== false,
-                  }),
-                  t,
-                ).hint
-              }
-              disabled={!canEdit}
-              onChange={(event) =>
-                patchDraft({
-                  ...draft,
-                  publicCopy: {
-                    ...(draft.publicCopy ?? {}),
-                    inscriptionNote: event.target.value,
-                  },
-                })
-              }
-            />
-          </FormField>
-        </fieldset>
-
-        {essentials ? null : (
-          <fieldset className="admin-event-form__surface">
-            <legend>{t('admin.eventEditor.publicSurfaceLegend')}</legend>
-            {publicSurfaceModulesForEvent(sourceEvent ?? draft).map((module) => (
-              <label key={module.key} className="admin-event-form__toggle">
-                <input
-                  checked={normalizeEventPublicSurface(draft.publicSurface)[module.key]}
-                  className="admin-event-form__toggle-input"
-                  type="checkbox"
-                  onChange={(event) =>
-                    patchDraft(patchPublicSurface(draft, module.key, event.target.checked))
-                  }
-                  disabled={!canEdit}
-                />
-                <span className="admin-event-form__toggle-ui" aria-hidden />
-                <span className="admin-event-form__toggle-copy">
-                  <strong>
-                    {t(
-                      `admin.eventEditor.publicSurface${module.key.charAt(0).toUpperCase()}${module.key.slice(1)}Title`,
-                    )}
-                  </strong>
-                  <small>
-                    {t(
-                      `admin.eventEditor.publicSurface${module.key.charAt(0).toUpperCase()}${module.key.slice(1)}Hint`,
-                    )}
-                  </small>
-                </span>
-              </label>
-            ))}
-            <CapacityPublicBreakdown
-              canEdit={canEdit}
-              preview={publicCapacityPreview}
-              progressChecked={draft.capacityProgressPublic !== false}
-              progressId="event-capacity-progress-public-surface"
-              t={t}
-              totalChecked={draft.capacityTotalPublic !== false}
-              totalId="event-capacity-total-public-surface"
-              onProgressChange={(value) =>
-                patchDraft({
-                  ...draft,
-                  capacityProgressPublic: value,
-                })
-              }
-              onTotalChange={(value) =>
-                patchDraft({
-                  ...draft,
-                  capacityTotalPublic: value,
-                })
-              }
-            />
-          </fieldset>
-        )}
+        <EventExternalFormField canEdit={canEdit} draft={draft} err={err} patchDraft={patchDraft} />
 
         {/* Transmisión: fuera del acordeón elemental (solo destacado). */}
         {!essentials ? (

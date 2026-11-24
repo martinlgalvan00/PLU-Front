@@ -347,7 +347,7 @@ describe('Tarifas — alta de planes y combo', () => {
     })
     fireEvent.click(screen.getByRole('checkbox', { name: 'Mercado Pago' }))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Transferencia bancaria' }))
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en el lugar' }))
 
     expect(screen.getByLabelText(/Precio promocional por transferencia/).value).toBe('85000')
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
@@ -527,7 +527,7 @@ describe('Tarifas — alta de planes y combo', () => {
 
     expect(screen.getByRole('checkbox', { name: 'Mercado Pago' }).checked).toBe(true)
     expect(screen.getByRole('checkbox', { name: 'Transferencia bancaria' }).checked).toBe(false)
-    expect(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }).checked).toBe(false)
+    expect(screen.getByRole('checkbox', { name: 'Efectivo en el lugar' }).checked).toBe(false)
     expect(screen.queryByRole('checkbox', { name: /Habilita al avisar el pago/ })).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
@@ -552,7 +552,7 @@ describe('Tarifas — alta de planes y combo', () => {
     fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
     fireEvent.click(screen.getByRole('checkbox', { name: 'Mercado Pago' }))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Transferencia bancaria' }))
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en el lugar' }))
 
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
     expect(onUpsertDiscountCode).toHaveBeenCalledWith(
@@ -629,7 +629,7 @@ describe('Tarifas — alta de planes y combo', () => {
       target: { value: 'como-quiera' },
     })
     fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en el lugar' }))
 
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
     expect(onUpsertDiscountCode).toHaveBeenCalledWith(
@@ -669,7 +669,7 @@ describe('Tarifas — alta de planes y combo', () => {
     })
     fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
     fireEvent.click(screen.getByRole('checkbox', { name: 'Mercado Pago' }))
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en el lugar' }))
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
     expect(onUpsertDiscountCode).toHaveBeenCalledWith(

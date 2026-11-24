@@ -15,20 +15,7 @@ import { getCheckInTourSteps } from '../../lib/adminTourSteps.js'
 import { useCheckInWorkspace } from '../../hooks/useCheckInWorkspace.js'
 import { formatDocumentWithKind } from '../../lib/format.js'
 import { checkinTypeLabel } from '../../services/checkinScanService.js'
-
-/** Etiqueta del día en el que compite una fila, según la grilla asignada. */
-function dayLabel(dayIndexes, eventDays, t) {
-  if (dayIndexes === 'all' || !Array.isArray(dayIndexes) || dayIndexes.length === 0) {
-    return t('admin.checkin.bothDays')
-  }
-  return dayIndexes
-    .map(
-      (dayIndex) =>
-        eventDays.find((day) => day.dayIndex === dayIndex)?.label ??
-        t('admin.checkin.dayNumber', { day: dayIndex + 1 }),
-    )
-    .join(' · ')
-}
+import { formatCheckinRowDay } from '../../services/checkinWorkspaceService.js'
 
 /**
  * Puerta del evento. Además del ingreso resuelve el cobro que lo traba: una
@@ -42,17 +29,22 @@ function dayLabel(dayIndexes, eventDays, t) {
 export default function CheckInSection({
   athletes,
   canCheckIn,
+  canEnableTickets = false,
+  canForceCheckIn = false,
   canValidatePayments = false,
   eventDays = [],
   eventSlug = 'pitbull-classic-2026',
   eventTitle = null,
   memberships = [],
   onApprovePayment,
+  onApproveTicketOrder,
   onCheckInRegistration,
   onCheckInTicket,
+  onReauthenticate = null,
   onRedeemTicketAddon,
   onRefreshTickets,
   onRejectPayment,
+  onRejectTicketOrder,
   payments = [],
   registrations,
   ticketTypes = [],
@@ -69,19 +61,22 @@ export default function CheckInSection({
   const workspace = useCheckInWorkspace({
     athletes,
     canCheckIn,
+    canEnableTickets,
+    canForceCheckIn,
     eventDays,
     eventSlug,
+    onApproveTicketOrder,
     onCheckInRegistration,
     onCheckInTicket,
     onRedeemTicketAddon,
     onRefreshTickets,
+    onRejectTicketOrder,
+    memberships,
     payments,
     registrations,
     ticketTypes,
     tickets,
   })
-
-  void memberships
 
   return (
     <AdminListSection
@@ -105,28 +100,30 @@ export default function CheckInSection({
             conflictCount={workspace.offlineSync.conflictCount}
             downloadAllowlist={workspace.offlineSync.downloadAllowlist}
             isOnline={workspace.offlineSync.isOnline}
-            realtimeConnected={workspace.realtimeConnected}
             lastDownloadedAt={workspace.offlineSync.lastDownloadedAt}
             lastSyncedAt={workspace.offlineSync.lastSyncedAt}
+            failedCount={workspace.offlineSync.failedCount}
+            onReloadAndSync={workspace.reloadAndSync}
             pendingCount={workspace.offlineSync.pendingCount}
+            queueLog={workspace.offlineSync.queueLog}
+            onReauthenticate={onReauthenticate}
+            onRetryExhausted={workspace.offlineSync.continueExhausted}
             syncIssue={workspace.offlineSync.syncIssue}
             syncNow={workspace.offlineSync.syncNow}
             syncing={workspace.offlineSync.syncing}
-          />
-
-          <AdminQrScanner
-            busy={workspace.scanBusy}
-            disabled={!canCheckIn}
-            feedbackPrefs={workspace.feedbackPrefs}
-            onFeedbackPrefsChange={workspace.persistFeedbackPrefs}
-            onScan={workspace.handleScan}
+            workList={!workspace.offlineSync.isOnline || workspace.offlineSync.pendingCount > 0}
           />
 
           <CheckInScanResult
             canCheckIn={canCheckIn}
+            canEnableTickets={canEnableTickets}
+            canForceCheckIn={canForceCheckIn}
             locale={locale}
             onDismiss={() => workspace.setScanResult(null)}
+            onEnableTicket={workspace.handleEnableTicket}
+            onForceCheckIn={workspace.handleForceCheckIn}
             onRedeemAddon={workspace.handleRedeemAddon}
+            onRejectTicket={workspace.handleRejectTicket}
             onScanCheckIn={workspace.handleScanCheckIn}
             onSelectMatch={workspace.selectScanMatch}
             redeemBusyId={workspace.redeemBusyId}
@@ -137,6 +134,14 @@ export default function CheckInSection({
             scanResult={workspace.scanResult}
             scanTicketPaid={workspace.scanTicketPaid}
             scanVerdict={workspace.scanVerdict}
+          />
+
+          <AdminQrScanner
+            busy={workspace.scanBusy}
+            disabled={!canCheckIn}
+            feedbackPrefs={workspace.feedbackPrefs}
+            onFeedbackPrefsChange={workspace.persistFeedbackPrefs}
+            onScan={workspace.handleScan}
           />
 
           <AdminCheckinScanHistory
@@ -216,6 +221,12 @@ export default function CheckInSection({
     >
       <AdminDataTable
         variant="admin"
+        pageResetKey={[
+          workspace.query,
+          workspace.type,
+          workspace.day,
+          workspace.checkinStatus,
+        ].join('|')}
         getRowClassName={(row) =>
           row.id === workspace.highlightRowId ? 'data-table__row--selected' : ''
         }
@@ -243,10 +254,7 @@ export default function CheckInSection({
             key: 'day',
             label: t('admin.checkin.dayLabel'),
             mobile: 'default',
-            // `buildCheckinRows` arma `dayIndexes` ('all' o una lista): esta
-            // celda leía un `row.day` que nunca existió y devolvía "Día 2"
-            // para todo el roster.
-            render: (row) => dayLabel(row.dayIndexes, eventDays, t),
+            render: (row) => formatCheckinRowDay(row, eventDays, t),
           },
           {
             key: 'status',
@@ -260,11 +268,22 @@ export default function CheckInSection({
             mobile: 'action',
             render: (row) => {
               if (row.status === 'usada') {
+                const at =
+                  row.checkedInAt && row.checkedInAt !== 'offline' ? new Date(row.checkedInAt) : null
+                const valid = at && !Number.isNaN(at.getTime())
+                if (!valid) {
+                  return (
+                    <span className="admin-checkin__done">
+                      <CheckCircle2 size={15} aria-hidden />
+                      <span className="admin-checkin__done-time">{t('admin.checkin.admittedAt')}</span>
+                    </span>
+                  )
+                }
                 const timeLabel = t('admin.checkin.checkedInAt', {
                   time: new Intl.DateTimeFormat(undefined, {
                     dateStyle: 'short',
                     timeStyle: 'short',
-                  }).format(new Date(row.checkedInAt)),
+                  }).format(at),
                 })
 
                 return (
@@ -274,7 +293,7 @@ export default function CheckInSection({
                       {new Intl.DateTimeFormat(undefined, {
                         hour: '2-digit',
                         minute: '2-digit',
-                      }).format(new Date(row.checkedInAt))}
+                      }).format(at)}
                     </span>
                   </span>
                 )

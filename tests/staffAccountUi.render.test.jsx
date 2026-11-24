@@ -243,4 +243,113 @@ describe('UsersSection — credencial temporal', () => {
       expect(screen.getByText(/Le enviamos un enlace personal a test@pluarg\.test/)).toBeTruthy(),
     )
   })
+
+  it('muestra el enlace generado y lo copia al portapapeles', async () => {
+    const writeText = vi.fn().mockResolvedValue()
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    const onResetPassword = vi.fn(async () => ({
+      user: USERS[0],
+      emailed: false,
+      invitationUrl: 'https://panel.pluarg.test/?invitacion-staff=abc.def',
+      invitationExpiresAt: '2099-01-10T12:00:00.000Z',
+    }))
+    renderUsers({ onResetPassword })
+
+    openRowMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Generar enlace' }))
+
+    await waitFor(() => expect(onResetPassword).toHaveBeenCalledWith(USERS[0].id, false))
+    const field = await screen.findByLabelText('Enlace de activación')
+    expect(field.value).toBe('https://panel.pluarg.test/?invitacion-staff=abc.def')
+    expect(screen.queryByText(/No pudimos enviar el mail/)).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /Copiar enlace/ }))
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(field.value))
+    expect(await screen.findByText('Enlace copiado')).toBeTruthy()
+    expect(screen.getByRole('link', { name: /WhatsApp/ }).getAttribute('href')).toContain(
+      'https://wa.me/?text=',
+    )
+  })
+})
+
+describe('StaffInvitationPage con vista previa', () => {
+  it('muestra para quién es la invitación y el rol ya asignado', async () => {
+    const onLoadInvitation = vi.fn().mockResolvedValue({
+      invitation: {
+        name: 'Alexis D’Alessandro',
+        email: 'alexis@pluarg.test',
+        roleName: 'Super Admin',
+      },
+    })
+    render(
+      <I18nProvider>
+        <StaffInvitationPage
+          token="token-firmado"
+          onAccept={vi.fn()}
+          onCancel={() => {}}
+          onLoadInvitation={onLoadInvitation}
+        />
+      </I18nProvider>,
+    )
+
+    expect(await screen.findByText('Super Admin')).toBeTruthy()
+    expect(screen.getByText('alexis@pluarg.test')).toBeTruthy()
+  })
+
+  it('en una invitación abierta pide nombre y email y los envía con la clave', async () => {
+    const onAccept = vi.fn().mockResolvedValue({})
+    const onLoadInvitation = vi.fn().mockResolvedValue({
+      invitation: { needsProfile: true, name: '', email: '', roleName: 'Super Admin' },
+    })
+    render(
+      <I18nProvider>
+        <StaffInvitationPage
+          token="token-firmado"
+          onAccept={onAccept}
+          onCancel={() => {}}
+          onLoadInvitation={onLoadInvitation}
+        />
+      </I18nProvider>,
+    )
+
+    fireEvent.change(await screen.findByLabelText('Nombre y apellido'), {
+      target: { value: 'Lucía Fernández' },
+    })
+    fireEvent.change(screen.getByLabelText(/^Tu email/), { target: { value: 'Lucia@pluarg.test' } })
+    fireEvent.change(screen.getByLabelText('Contraseña nueva'), {
+      target: { value: 'Nueva-clave-segura-2026' },
+    })
+    fireEvent.change(screen.getByLabelText('Repetí la contraseña nueva'), {
+      target: { value: 'Nueva-clave-segura-2026' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Crear contraseña y entrar/ }))
+
+    await waitFor(() =>
+      expect(onAccept).toHaveBeenCalledWith({
+        token: 'token-firmado',
+        password: 'Nueva-clave-segura-2026',
+        name: 'Lucía Fernández',
+        email: 'lucia@pluarg.test',
+      }),
+    )
+  })
+
+  it('reemplaza el formulario si el enlace ya no sirve', async () => {
+    const onLoadInvitation = vi
+      .fn()
+      .mockRejectedValue(Object.assign(new Error('x'), { status: 400 }))
+    render(
+      <I18nProvider>
+        <StaffInvitationPage
+          token="token-viejo"
+          onAccept={vi.fn()}
+          onCancel={() => {}}
+          onLoadInvitation={onLoadInvitation}
+        />
+      </I18nProvider>,
+    )
+
+    await waitFor(() => expect(screen.queryByLabelText('Contraseña nueva')).toBeNull())
+    expect(screen.getByText(/inválida, ya fue utilizada o venció/)).toBeTruthy()
+  })
 })

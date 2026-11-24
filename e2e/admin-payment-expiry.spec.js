@@ -52,9 +52,9 @@ test.describe('Admin — plazos, abandono y analítica', () => {
   }) => {
     await loginAsAdmin(page, adminCredentials())
     await adminNavItem(page, 'Cobros').click()
-    const panel = page.locator('.admin-payment-expiry')
+    // Comprobantes reutiliza la clase: se elige el panel por su nombre accesible.
+    const panel = page.getByRole('region', { name: 'Vencimiento de órdenes' })
     await expect(panel).toBeVisible({ timeout: 20_000 })
-    await expect(panel).toContainText(/Vencimiento de órdenes/)
     await expect(panel.getByText(/Error interno/)).toHaveCount(0)
     await expect(panel.getByText(/Plazo de pago manual/)).toBeVisible()
     await expect(panel.getByText(/Gracia de intentos abandonados/)).toBeVisible()

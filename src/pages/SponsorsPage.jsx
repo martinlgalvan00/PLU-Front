@@ -104,7 +104,7 @@ export default function SponsorsPage({ onNavigate }) {
           </section>
         </Reveal>
 
-        <section className="sponsors-benefits" aria-labelledby="sponsors-benefits-title">
+        <Reveal as="section" variant="fade" className="sponsors-benefits" aria-labelledby="sponsors-benefits-title">
           <header className="institutional-section-head">
             <p className="institutional-kicker">02 / {t('pages.sponsors.benefitsEyebrow')}</p>
             <div>
@@ -114,7 +114,7 @@ export default function SponsorsPage({ onNavigate }) {
           </header>
 
           <EditorialLedger items={benefits} ariaLabel={t('pages.sponsors.benefitsTitle')} />
-        </section>
+        </Reveal>
 
         <section
           className="sponsors-tiers"
@@ -184,7 +184,7 @@ export default function SponsorsPage({ onNavigate }) {
           ) : null}
         </section>
 
-        <section className="sponsors-process" aria-labelledby="sponsors-process-title">
+        <Reveal as="section" variant="fade" className="sponsors-process" aria-labelledby="sponsors-process-title">
           <header className="institutional-section-head">
             <p className="institutional-kicker">04 / {t('pages.sponsors.processEyebrow')}</p>
             <div>
@@ -194,7 +194,7 @@ export default function SponsorsPage({ onNavigate }) {
           </header>
 
           <EditorialLedger rail items={processSteps} ariaLabel={t('pages.sponsors.processTitle')} />
-        </section>
+        </Reveal>
 
         <Reveal delay={40}>
           <section

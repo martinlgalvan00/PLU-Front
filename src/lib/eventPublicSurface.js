@@ -3,17 +3,29 @@
  * Ausente o incompleto = todo encendido: no cambia el catálogo actual.
  *
  * `all`: ficha genérica y páginas custom.
- * `custom`: solo landing editorial (hoy Pitbull Classic).
+ * `custom`: landings de formato propio (`editorial` o `submission`).
+ *
+ * No importar `eventLanding.js` acá: ese módulo ya importa `normalizeEventPublicCopy`
+ * de este archivo (compat hero ← publicCopy).
  */
-import { isPitbullClassicEvent } from './eventNavigation.js'
+
+import { isTicketSalesEnabled } from './eventPricing.js'
+
+/** Compat pre-migración: mismo slug que `eventNavigation.PITBULL_CLASSIC_SLUG`. */
+const LEGACY_EDITORIAL_SLUG = 'pitbull-classic-2026'
 
 export const EVENT_PUBLIC_SURFACE_MODULES = [
   { key: 'calendar', scope: 'all' },
   { key: 'weighIns', scope: 'all' },
+  { key: 'schedule', scope: 'all' },
+  { key: 'recentRegistrants', scope: 'all' },
   { key: 'livestream', scope: 'all' },
+  { key: 'faq', scope: 'all' },
   { key: 'experience', scope: 'custom' },
   { key: 'categories', scope: 'custom' },
   { key: 'location', scope: 'custom' },
+  { key: 'tickets', scope: 'custom' },
+  { key: 'countdown', scope: 'custom' },
 ]
 
 export const DEFAULT_EVENT_PUBLIC_SURFACE = Object.fromEntries(
@@ -21,7 +33,14 @@ export const DEFAULT_EVENT_PUBLIC_SURFACE = Object.fromEntries(
 )
 
 export function eventHasCustomPublicPage(event) {
-  return isPitbullClassicEvent(event)
+  const templateId = String(event?.landing?.templateId ?? '')
+    .trim()
+    .toLowerCase()
+  if (templateId === 'editorial' || templateId === 'submission' || templateId === 'builder') {
+    return true
+  }
+  if (templateId === 'meet') return false
+  return event?.slug === LEGACY_EDITORIAL_SLUG
 }
 
 export function normalizeEventPublicSurface(raw) {
@@ -50,6 +69,14 @@ export function eventShowsPublicWeighIns(event) {
   return eventPublicSurfaceFromEvent(event).weighIns
 }
 
+export function eventShowsPublicSchedule(event) {
+  return eventPublicSurfaceFromEvent(event).schedule
+}
+
+export function eventShowsPublicRecentRegistrants(event) {
+  return eventPublicSurfaceFromEvent(event).recentRegistrants
+}
+
 export function eventShowsPublicLivestream(event) {
   return eventPublicSurfaceFromEvent(event).livestream
 }
@@ -64,6 +91,21 @@ export function eventShowsPublicCategories(event) {
 
 export function eventShowsPublicLocation(event) {
   return eventPublicSurfaceFromEvent(event).location
+}
+
+export function eventShowsPublicFaq(event) {
+  return eventPublicSurfaceFromEvent(event).faq
+}
+
+export function eventShowsPublicTickets(event) {
+  // La venta prendida manda sobre el bloque editorial: si el staff habilitó
+  // entradas, la ficha tiene que mostrar la compra aunque el módulo esté oculto.
+  if (isTicketSalesEnabled(event)) return true
+  return eventPublicSurfaceFromEvent(event).tickets
+}
+
+export function eventShowsPublicCountdown(event) {
+  return eventPublicSurfaceFromEvent(event).countdown
 }
 
 /** Los textos del hero y del cupo público que cambian por evento. Vacío = cae al default. */
@@ -95,4 +137,16 @@ export function normalizeEventPublicCopy(source) {
 /** Título con el que se presenta el evento en público. */
 export function eventPublicTitle(event) {
   return normalizeEventPublicCopy(event?.publicCopy).publicTitle || (event?.title ?? '')
+}
+
+/**
+ * Qué ve el público de un evento, combinando los dos interruptores:
+ * `published` (si existe en el sitio) y `landing.publicVisible` (página
+ * completa o el cartel de "Plataforma en construcción").
+ *
+ * @returns {'hidden' | 'construction' | 'live'}
+ */
+export function eventSiteState(event) {
+  if (event?.published !== true) return 'hidden'
+  return event?.landing?.publicVisible === false ? 'construction' : 'live'
 }

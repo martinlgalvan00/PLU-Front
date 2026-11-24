@@ -23,9 +23,17 @@ import {
   Bell,
 } from 'lucide-react'
 import { PUBLIC_NAVIGATION } from '../../lib/constants.js'
-import { getFeaturedEventDestination } from '../../lib/eventNavigation.js'
-import { sessionDisplayName, sessionInitial, sessionPhotoUrl } from '../../lib/format.js'
-import { canViewAdmin, resolveSessionIdentity } from '../../lib/roles.js'
+import {
+  getCompetitionNavEventKey,
+  getFeaturedEventDestination,
+} from '../../lib/eventNavigation.js'
+import {
+  formatDayMonth,
+  sessionDisplayName,
+  sessionInitial,
+  sessionPhotoUrl,
+} from '../../lib/format.js'
+import { canViewAdmin, hasAccountSession, resolveSessionIdentity } from '../../lib/roles.js'
 import { hasCurrentMembership } from '../../services/membershipService.js'
 import { useHeaderScroll } from '../../hooks/useMotion.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -76,10 +84,19 @@ const NOTICE_FIELD_KEYS = {
   phone: 'account.personalData.phone',
   city: 'account.personalData.city',
   province: 'account.personalData.province',
+  streetAddress: 'account.personalData.streetAddress',
+  postalCode: 'account.personalData.postalCode',
+  email: 'account.personalData.email',
   gym: 'account.personalData.gym',
+  sex: 'account.personalData.sex',
   division: 'account.personalData.division',
   category: 'account.personalData.category',
   estimatedWeight: 'account.personalData.estimatedWeight',
+  fullName: 'account.personalData.fullName',
+  birthDate: 'account.personalData.birthDate',
+  country: 'pages.register.country',
+  emergencyContactName: 'account.personalData.emergencyName',
+  emergencyContactPhone: 'account.personalData.emergencyPhone',
 }
 
 function noticeFieldLabels(notice, t) {
@@ -123,20 +140,58 @@ const DRAWER_SECONDARY = [
   { key: 'contact', labelKey: 'nav.contact' },
 ]
 
-function mapNavGroupItems(
-  group,
-  { activeView, latestEventActive, latestEventHint, latestEventTitle, t },
-) {
+function mapNavGroupItems(group, { activeView, t }) {
   return {
     label: t(group.labelKey),
     items: group.items.map((item) => ({
       ...item,
       icon: NAV_ICON[item.icon],
-      label: item.key === 'pitbull' ? latestEventTitle : t(item.labelKey),
-      hint: item.key === 'pitbull' ? latestEventHint : t(item.hintKey),
-      active: item.key === 'pitbull' ? latestEventActive : activeView === item.key,
+      label: t(item.labelKey),
+      hint: t(item.hintKey),
+      active: activeView === item.key,
     })),
   }
+}
+
+function navEventHint(event, locale) {
+  const iso = event?.dateISO ?? String(event?.startsAt ?? '').slice(0, 10)
+  if (iso) return formatDayMonth(iso, locale)
+  return event?.date ?? ''
+}
+
+function resolveCompetitionNavEvents(navEvents, latestEvent) {
+  if (Array.isArray(navEvents) && navEvents.length > 0) return navEvents
+  return latestEvent?.slug ? [latestEvent] : []
+}
+
+function buildCompetitionNavItems(navEvents, { activeView, activeEventSlug, locale, t }) {
+  const calendar = {
+    key: 'events',
+    icon: NAV_ICON.calendar,
+    label: t('nav.calendarOfficial'),
+    hint: t('nav.calendarHint'),
+    active: activeView === 'events' && !activeEventSlug,
+    destination: { view: 'events', options: {} },
+  }
+
+  const eventItems = navEvents.map((event, index) => {
+    const destination = getFeaturedEventDestination(event)
+    const slug = destination.options?.eventSlug
+    return {
+      key: getCompetitionNavEventKey(event) ?? `event:${index}`,
+      icon: NAV_ICON.trophy,
+      featured: index === 0,
+      label: event.title || t('nav.pitbull'),
+      hint:
+        index === 0
+          ? t('nav.eventPrimaryHint', { date: navEventHint(event, locale) })
+          : t('nav.eventNextHint', { date: navEventHint(event, locale) }),
+      active: activeView === destination.view && Boolean(slug) && activeEventSlug === slug,
+      destination,
+    }
+  })
+
+  return [calendar, ...eventItems]
 }
 
 function SharedActiveIndicator() {
@@ -150,7 +205,7 @@ function SharedActiveIndicator() {
       transition={
         reducedMotion
           ? { duration: 0.01 }
-          : { type: 'spring', stiffness: 280, damping: 34, mass: 0.9 }
+          : { duration: MOTION_DURATION.base, ease: MOTION_EASE.out }
       }
     />
   )
@@ -180,7 +235,7 @@ function NavHoverPill({ show }) {
           transition={
             reducedMotion
               ? { duration: 0.01 }
-              : { type: 'spring', stiffness: 300, damping: 32, mass: 0.75 }
+              : { duration: MOTION_DURATION.fast, ease: MOTION_EASE.out }
           }
         />
       ) : null}
@@ -188,15 +243,7 @@ function NavHoverPill({ show }) {
   )
 }
 
-function NavLink({
-  active,
-  hovered,
-  children,
-  icon: Icon,
-  onClick,
-  onHover,
-  tone = 'default',
-}) {
+function NavLink({ active, hovered, children, icon: Icon, onClick, onHover, tone = 'default' }) {
   return (
     <button
       type="button"
@@ -218,19 +265,20 @@ function NavLink({
 
 function NavDropdownItem({
   active = false,
+  className = '',
   description,
   icon: Icon,
   label,
   onClick,
   tone = 'default',
 }) {
-  const className = `plu-nav-menu__item plu-nav-menu__item--${tone}${active ? ' is-active' : ''}`
+  const itemClassName = `plu-nav-menu__item plu-nav-menu__item--${tone}${active ? ' is-active' : ''}${className ? ` ${className}` : ''}`
 
   return (
     <button
       type="button"
       role="menuitem"
-      className={className}
+      className={itemClassName}
       aria-current={active ? 'page' : undefined}
       onClick={onClick}
     >
@@ -245,6 +293,32 @@ function NavDropdownItem({
       </span>
       <ArrowRight className="plu-nav-menu__item-arrow" size={14} aria-hidden />
     </button>
+  )
+}
+
+function CompetitionEventList({ items, onSelect, t }) {
+  if (items.length === 0) return null
+
+  return (
+    <section className="plu-competition-menu" aria-label={t('nav.competitionEvents')}>
+      <header className="plu-competition-menu__head">
+        <p>{t('nav.competitionEvents')}</p>
+      </header>
+      <div className="plu-competition-menu__track">
+        {items.map((navItem) => (
+          <NavDropdownItem
+            key={navItem.key}
+            active={navItem.active}
+            className="plu-competition-menu__slide"
+            description={navItem.hint}
+            icon={navItem.icon}
+            label={navItem.label}
+            tone={navItem.featured ? 'featured' : 'default'}
+            onClick={() => onSelect(navItem)}
+          />
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -318,8 +392,8 @@ function NavDropdown({
       opacity: 1,
       y: 0,
       transition: {
-        duration: reducedMotion ? 0.01 : MOTION_DURATION.fast,
-        ease: MOTION_EASE.out,
+        duration: reducedMotion ? 0.01 : MOTION_DURATION.base,
+        ease: MOTION_EASE.cinematic,
       },
     },
     exit: {
@@ -397,7 +471,7 @@ function DrawerRowIndicator() {
       transition={
         reducedMotion
           ? { duration: 0.01 }
-          : { type: 'spring', stiffness: 300, damping: 32, mass: 0.9 }
+          : { duration: MOTION_DURATION.base, ease: MOTION_EASE.out }
       }
     />
   )
@@ -459,6 +533,7 @@ export default function NavbarPublic({
   activeEventSlug = null,
   activeView,
   latestEvent,
+  navEvents = [],
   memberships = [],
   onLogout,
   onNavigate,
@@ -484,13 +559,15 @@ export default function NavbarPublic({
   const [profileMenuPos, setProfileMenuPos] = useState(null)
   const restoreDrawerFocusRef = useRef(true)
   const suppressScrollRestoreRef = useRef(false)
-  /* Morph compositor (~140px, cuantizado 24 pasos). Compact layout solo al
-     cruzar scrolled — evita thrash de height/font en cada frame (PC/desktop). */
+  /* Morph compositor (~140px, cuantizado 24 pasos). La clase compacta
+     coincide con el final del fade: la histeresis cabe en el tramo en el
+     que el wordmark ya está en opacidad 0, así el ancho abre sin un segundo
+     salto. */
   const { scrolled } = useHeaderScroll(shellRef, {
     autoHide: false,
     range: 140,
-    threshold: 120,
-    hysteresis: 40,
+    threshold: 140,
+    hysteresis: 8,
     steps: 24,
   })
   const { reducedMotion } = useMotionConfig()
@@ -503,43 +580,31 @@ export default function NavbarPublic({
     sessionIdentity.mode === 'admin'
       ? (sessionIdentity.roleLabel ?? t('nav.roleAdmin'))
       : t('nav.roleAthlete')
-  const sessionFullName = session ? sessionDisplayName(session) : ''
-  const sessionInitialLetter = session ? sessionInitial(session) : ''
-  const sessionPhoto = session ? sessionPhotoUrl(session) : ''
+  const hasAccount = hasAccountSession(session)
+  const sessionFullName = hasAccount ? sessionDisplayName(session) : ''
+  const sessionInitialLetter = hasAccount ? sessionInitial(session) : ''
+  const sessionPhoto = hasAccount ? sessionPhotoUrl(session) : ''
   const hasActiveMembership =
     session?.role === 'athlete_plu' && hasCurrentMembership(memberships, session.athleteId)
-  const showNoticeBell = Boolean(session)
+  const checkoutFocus = activeView === 'competition' || activeView === 'register'
+  const showNoticeBell = hasAccount
   const competitionActive = Boolean(COMPETITION_NAVIGATION?.views?.includes(activeView))
   const moreActive = Boolean(MORE_NAVIGATION?.views?.includes(activeView))
-
-  const latestEventTitle = latestEvent?.title ?? t('nav.pitbull')
-  const latestEventDestination = getFeaturedEventDestination(latestEvent)
-  const latestEventView = latestEventDestination.view
-  const latestEventOptions = latestEventDestination.options
-  const latestEventActive =
-    activeView === latestEventView &&
-    (latestEventView !== 'events' ||
-      !latestEventOptions?.eventSlug ||
-      activeEventSlug === latestEventOptions.eventSlug)
-  const latestEventHint = latestEvent?.date ?? t('nav.pitbullHint')
-
-  const navGroupContext = {
+  const competitionEvents = resolveCompetitionNavEvents(navEvents, latestEvent)
+  const competitionItems = buildCompetitionNavItems(competitionEvents, {
     activeView,
-    latestEventActive,
-    latestEventHint,
-    latestEventTitle,
+    activeEventSlug,
+    locale,
     t,
-  }
-  const competitionGroups = (COMPETITION_NAVIGATION?.groups ?? []).map((group) =>
-    mapNavGroupItems(group, navGroupContext),
-  )
+  })
+
   const moreGroups = (MORE_NAVIGATION?.groups ?? []).map((group) =>
-    mapNavGroupItems(group, navGroupContext),
+    mapNavGroupItems(group, { activeView, t }),
   )
 
   function navigateNavItem(item) {
-    if (item.key === 'pitbull') {
-      go(latestEventView, latestEventOptions)
+    if (item.destination) {
+      go(item.destination.view, item.destination.options)
       return
     }
     go(item.key)
@@ -711,11 +776,11 @@ export default function NavbarPublic({
     function isInMenuUi(target) {
       return Boolean(
         profileTriggerRef.current?.contains(target) ||
-          mobileProfileTriggerRef.current?.contains(target) ||
-          profileMenuRef.current?.contains(target) ||
-          noticeTriggerRef.current?.contains(target) ||
-          mobileNoticeTriggerRef.current?.contains(target) ||
-          noticeMenuRef.current?.contains(target),
+        mobileProfileTriggerRef.current?.contains(target) ||
+        profileMenuRef.current?.contains(target) ||
+        noticeTriggerRef.current?.contains(target) ||
+        mobileNoticeTriggerRef.current?.contains(target) ||
+        noticeMenuRef.current?.contains(target),
       )
     }
     function handlePointerDown(event) {
@@ -733,7 +798,12 @@ export default function NavbarPublic({
   }, [dropdown])
 
   useEffect(() => {
-    if (dropdown !== 'notices' || !profileNotice?.id || profileNotice.readAt || !onReadProfileNotice) {
+    if (
+      dropdown !== 'notices' ||
+      !profileNotice?.id ||
+      profileNotice.readAt ||
+      !onReadProfileNotice
+    ) {
       return
     }
     void onReadProfileNotice(profileNotice.id)
@@ -801,9 +871,9 @@ export default function NavbarPublic({
                       onToggle={() =>
                         setDropdown((current) => (current === 'competition' ? null : 'competition'))
                       }
-                      variant="compact"
+                      variant="competition"
                     >
-                      {competitionGroups[0]?.items.map((navItem) => (
+                      {competitionItems.slice(0, 1).map((navItem) => (
                         <NavDropdownItem
                           key={navItem.key}
                           active={navItem.active}
@@ -814,6 +884,11 @@ export default function NavbarPublic({
                           onClick={() => navigateNavItem(navItem)}
                         />
                       ))}
+                      <CompetitionEventList
+                        items={competitionItems.slice(1)}
+                        onSelect={navigateNavItem}
+                        t={t}
+                      />
                     </NavDropdown>
                   )
                 }
@@ -842,7 +917,11 @@ export default function NavbarPublic({
                         </div>
                         <button type="button" role="menuitem" onClick={() => go('resources')}>
                           {t('nav.viewResources')}
-                          <ArrowRight className="plu-resources-menu__head-arrow" size={14} aria-hidden />
+                          <ArrowRight
+                            className="plu-resources-menu__head-arrow"
+                            size={14}
+                            aria-hidden
+                          />
                         </button>
                       </div>
                       <div className="plu-resources-menu__groups" role="presentation">
@@ -874,9 +953,7 @@ export default function NavbarPublic({
                 return (
                   <NavLink
                     key={item.key}
-                    active={
-                      item.views ? item.views.includes(activeView) : activeView === item.key
-                    }
+                    active={item.views ? item.views.includes(activeView) : activeView === item.key}
                     hovered={hoveredNav === item.key}
                     onHover={() => setHoveredNav(item.key)}
                     tone={item.key === 'members' ? 'affiliate' : 'default'}
@@ -911,10 +988,12 @@ export default function NavbarPublic({
                 onClick={toggleNoticeMenu}
               >
                 <Bell size={16} strokeWidth={1.75} aria-hidden />
-                {profileNoticeUnread ? <span className="plu-global-nav__notice-dot" aria-hidden /> : null}
+                {profileNoticeUnread ? (
+                  <span className="plu-global-nav__notice-dot" aria-hidden />
+                ) : null}
               </button>
             ) : null}
-            {session ? (
+            {hasAccount ? (
               <div className="plu-global-nav__account">
                 <button
                   type="button"
@@ -977,7 +1056,7 @@ export default function NavbarPublic({
                   ) : null}
                 </button>
               ) : null}
-              {session ? (
+              {hasAccount ? (
                 <button
                   type="button"
                   id="plu-profile-menu-trigger-mobile"
@@ -1010,37 +1089,43 @@ export default function NavbarPublic({
                   {t('nav.login')}
                 </button>
               )}
-              <span className="plu-global-nav__mobile-divider" aria-hidden />
-              <button
-                type="button"
-                className={`plu-global-nav__mobile-affiliate${
-                  hasActiveMembership ? ' plu-global-nav__mobile-affiliate--member' : ''
-                }${
-                  hasActiveMembership
-                    ? activeView === 'profile'
-                      ? ' is-active'
-                      : ''
-                    : activeView === 'members'
-                      ? ' is-active'
-                      : ''
-                }`}
-                aria-current={
-                  hasActiveMembership
-                    ? activeView === 'profile'
-                      ? 'page'
-                      : undefined
-                    : activeView === 'members'
-                      ? 'page'
-                      : undefined
-                }
-                aria-label={hasActiveMembership ? t('nav.affiliatedAria') : t('nav.affiliate')}
-                title={hasActiveMembership ? t('nav.affiliatedShort') : t('nav.affiliate')}
-                onClick={() => go(hasActiveMembership ? 'profile' : 'members')}
-              >
-                <span className="plu-global-nav__mobile-affiliate-label">
-                  {hasActiveMembership ? t('nav.affiliatedShort') : t('nav.affiliateShort')}
-                </span>
-              </button>
+              {/* En el checkout (alta o inscripción) "Afiliar" compite con el pago
+                  que la persona vino a hacer; el combo ya se ofrece adentro. */}
+              {checkoutFocus ? null : (
+                <>
+                  <span className="plu-global-nav__mobile-divider" aria-hidden />
+                  <button
+                    type="button"
+                    className={`plu-global-nav__mobile-affiliate${
+                      hasActiveMembership ? ' plu-global-nav__mobile-affiliate--member' : ''
+                    }${
+                      hasActiveMembership
+                        ? activeView === 'profile'
+                          ? ' is-active'
+                          : ''
+                        : activeView === 'members'
+                          ? ' is-active'
+                          : ''
+                    }`}
+                    aria-current={
+                      hasActiveMembership
+                        ? activeView === 'profile'
+                          ? 'page'
+                          : undefined
+                        : activeView === 'members'
+                          ? 'page'
+                          : undefined
+                    }
+                    aria-label={hasActiveMembership ? t('nav.affiliatedAria') : t('nav.affiliate')}
+                    title={hasActiveMembership ? t('nav.affiliatedShort') : t('nav.affiliate')}
+                    onClick={() => go(hasActiveMembership ? 'profile' : 'members')}
+                  >
+                    <span className="plu-global-nav__mobile-affiliate-label">
+                      {hasActiveMembership ? t('nav.affiliatedShort') : t('nav.affiliateShort')}
+                    </span>
+                  </button>
+                </>
+              )}
             </div>
             <button
               type="button"
@@ -1271,9 +1356,9 @@ export default function NavbarPublic({
                       <BrandLogo
                         variant="argentina"
                         imgClassName="plu-drawer__emblem"
-                        height={38}
+                        height={44}
                       />
-                      <BrandLogo variant="letterhead" imgClassName="plu-drawer__logo" height={18} />
+                      <BrandLogo variant="letterhead" imgClassName="plu-drawer__logo" height={20} />
                     </button>
                     <button
                       type="button"
@@ -1316,43 +1401,53 @@ export default function NavbarPublic({
                   <LayoutGroup id={`plu-drawer-nav-${locale}`}>
                     <nav className="plu-drawer__nav" aria-label={t('nav.mobileMenu')}>
                       <div className="plu-drawer__nav-primary">
-                        <DrawerRow
-                          active={latestEventActive}
-                          delay={MOTION_STAGGER.stepFast}
-                          description={latestEvent?.date ?? t('nav.pitbullHint')}
-                          onClick={() => go(latestEventView, latestEventOptions)}
-                        >
-                          {latestEventTitle}
-                        </DrawerRow>
-                        <DrawerRow
-                          active={['shop', 'tickets'].includes(activeView)}
-                          delay={MOTION_STAGGER.stepFast * 2}
-                          description={t('nav.shopHint')}
-                          onClick={() => go('shop')}
-                        >
-                          {t('nav.shop')}
-                        </DrawerRow>
-                        <DrawerRow
-                          active={activeView === 'events'}
-                          delay={MOTION_STAGGER.stepFast * 3}
-                          onClick={() => go('events')}
-                        >
-                          {t('nav.calendarOfficial')}
-                        </DrawerRow>
-                        <DrawerRow
-                          active={activeView === 'results'}
-                          delay={MOTION_STAGGER.stepFast * 4}
-                          onClick={() => go('results')}
-                        >
-                          {t('nav.results')}
-                        </DrawerRow>
-                        <DrawerRow
-                          active={activeView === 'records'}
-                          delay={MOTION_STAGGER.stepFast * 5}
-                          onClick={() => go('records')}
-                        >
-                          {t('nav.records')}
-                        </DrawerRow>
+                        <div className="plu-drawer__program">
+                          {competitionItems
+                            .filter((item) => item.key !== 'events')
+                            .map((item, index) => (
+                              <DrawerRow
+                                key={item.key}
+                                feature
+                                active={item.active}
+                                delay={MOTION_STAGGER.stepFast * (index + 1)}
+                                description={item.hint}
+                                onClick={() => navigateNavItem(item)}
+                              >
+                                {item.label}
+                              </DrawerRow>
+                            ))}
+                        </div>
+                        <div className="plu-drawer__index">
+                          <DrawerRow
+                            active={activeView === 'shop'}
+                            delay={MOTION_STAGGER.stepFast * 3}
+                            description={t('nav.shopHint')}
+                            onClick={() => go('shop')}
+                          >
+                            {t('nav.shop')}
+                          </DrawerRow>
+                          <DrawerRow
+                            active={activeView === 'events' && !activeEventSlug}
+                            delay={MOTION_STAGGER.stepFast * 4}
+                            onClick={() => go('events')}
+                          >
+                            {t('nav.calendarOfficial')}
+                          </DrawerRow>
+                          <DrawerRow
+                            active={activeView === 'results'}
+                            delay={MOTION_STAGGER.stepFast * 5}
+                            onClick={() => go('results')}
+                          >
+                            {t('nav.results')}
+                          </DrawerRow>
+                          <DrawerRow
+                            active={activeView === 'records'}
+                            delay={MOTION_STAGGER.stepFast * 6}
+                            onClick={() => go('records')}
+                          >
+                            {t('nav.records')}
+                          </DrawerRow>
+                        </div>
                       </div>
 
                       <div
@@ -1389,7 +1484,7 @@ export default function NavbarPublic({
                     <LanguageToggle compact />
                   </div>
 
-                  {session ? (
+                  {hasAccount ? (
                     <div className="plu-drawer__footer-account">
                       <button
                         type="button"
@@ -1398,13 +1493,7 @@ export default function NavbarPublic({
                           sessionIdentity.staffAccess ? ` · ${t('nav.roleStaffAccess')}` : ''
                         }`}
                         onClick={() =>
-                          go(
-                            athleteWithStaffBridge
-                              ? 'admin'
-                              : adminSession
-                                ? 'admin'
-                                : 'profile',
-                          )
+                          go(athleteWithStaffBridge ? 'admin' : adminSession ? 'admin' : 'profile')
                         }
                       >
                         <span className="plu-drawer__account-avatar" aria-hidden>

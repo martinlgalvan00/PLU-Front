@@ -1,6 +1,7 @@
 import { PRICING } from './constants.js'
 
 import { getEnabledTicketAddons, normalizeTicketAddons } from './ticketAddons.js'
+import { isStoredEventModuleOn } from '../../shared/eventModules.js'
 import { summarizeTicketCredentials } from './ticketCredentials.js'
 
 /** Precios por defecto cuando un evento no tiene overrides en admin. */
@@ -192,7 +193,14 @@ export function resolveTicketTypeSaleWindow(type, now = new Date()) {
 /** Formato esperado por ticketService y TicketPurchaseSection. */
 export function ticketPricingFromEvent(event, now = new Date()) {
   const pricing = resolveEventPricing(event)
-  const catalog = getEnabledTicketAddons(pricing.ticketAddons)
+  const enabledAddons = getEnabledTicketAddons(pricing.ticketAddons)
+  // Módulo «Extras de entradas» apagado: no se venden extras aparte. Los que un
+  // tipo de entrada trae incluidos siguen (son parte de esa entrada), así que
+  // el catálogo se queda solo con esos. La ruta de órdenes rechaza el resto.
+  const includedIds = new Set((event?.ticketTypes ?? []).flatMap((type) => type.includedAddonIds ?? []))
+  const catalog = isStoredEventModuleOn(event, 'ticketAddons')
+    ? enabledAddons
+    : enabledAddons.filter((addon) => includedIds.has(addon.id))
   const eventDays = [...(event?.eventDays ?? [])].sort((a, b) => a.dayIndex - b.dayIndex)
   const ticketTypes = (event?.ticketTypes ?? [])
     .filter((type) => type.active !== false)
@@ -285,8 +293,12 @@ export function cheapestTicketTypePrice(pricing) {
   return prices.length ? Math.min(...prices) : null
 }
 
-/** Estados del evento en los que la base rechaza cualquier compra de entradas (PLU03). */
-export const TICKET_SALES_CLOSED_STATUSES = Object.freeze(['cerrado', 'finalizado'])
+/**
+ * Estados terminales en los que la base rechaza cualquier compra de entradas
+ * (PLU03). `cerrado` cierra la inscripción de atletas, no la venta al público:
+ * esta última tiene su propio interruptor y ventana.
+ */
+export const TICKET_SALES_CLOSED_STATUSES = Object.freeze(['finalizado'])
 
 /**
  * ¿El estado del evento cierra la venta de entradas? Mismo corte que las RPC de
@@ -300,12 +312,24 @@ export function eventStatusClosesTicketSales(event) {
 
 /**
  * Si la venta de entradas del evento está habilitada: interruptor del evento y
- * estado que la permite (cerrado/finalizado no venden).
+ * estado que la permite. La inscripción cerrada no modifica esta decisión.
  * No depende de que el catálogo (días/tipos) ya tenga precio publicado:
  * la navegación a checkout se permite; el formulario decide si hay qué vender.
  */
 export function isTicketSalesEnabled(event) {
   return resolveEventPricing(event).ticketsEnabled === true && !eventStatusClosesTicketSales(event)
+}
+
+/**
+ * El checkout en vivo gana al catálogo cuando ya respondió. `null` o
+ * `undefined` (todavía no llegó, o el pedido falló) deja la decisión en el
+ * evento que ya tiene la pantalla: cerrar por falta de dato tumbaría la venta
+ * por un problema de red. Un evento finalizado sigue cerrado aunque el vivo
+ * diga que el interruptor está prendido.
+ */
+export function eventAllowsPublicTickets(event, liveEventTicketsEnabled) {
+  if (liveEventTicketsEnabled == null) return isTicketSalesEnabled(event)
+  return liveEventTicketsEnabled === true && !eventStatusClosesTicketSales(event)
 }
 
 export function normalizeEventPricingInput(pricing = {}) {

@@ -1,4 +1,5 @@
 import { apiGet, apiPost, apiRequest } from '../lib/api.js'
+import { normalizeAccessDays } from '../lib/buyerTicketDays.js'
 
 /**
  * ticketApi.js — PLU ARG
@@ -49,13 +50,21 @@ function toCamelTicket(row, { event, checkIn, order } = {}) {
   return {
     id: row.id,
     ticketCode: row.ticket_code,
-    // 6 dígitos para dictar en la puerta si el QR no se lee.
-    doorCode: row.door_code ?? row.doorCode ?? null,
-    qrToken: row.qr_token,
+    qrToken: row.qr_token ?? null,
+    gateCode: row.gate_code ?? row.gateCode ?? null,
+    credentialState: row.credential_state ?? row.credentialState ?? null,
+    validityMode: row.qr_validity_mode ?? row.validityMode ?? null,
+    accessActivatedAt: row.access_activated_at ?? row.accessActivatedAt ?? null,
+    passSealed: row.pass_sealed === true || row.passSealed === true,
+    revealAt: row.reveal_at ?? row.revealAt ?? null,
+    // Vinculada a la cuenta sólo por DNI (que nadie verifica): se ve, pero el
+    // QR y el código de puerta no viajan. En la puerta se la busca por DNI.
+    qrLocked: row.qr_locked === true || row.qrLocked === true,
     orderId: row.order_id,
     eventId: row.event_id,
     attendeeName: row.attendee_name,
     attendeeDni: row.attendee_dni,
+    accessDays: normalizeAccessDays(row.access_days ?? row.accessDays),
     ticketTypeId: row.ticket_type_id,
     ticketTypeName: row.ticketTypeName ?? row.ticket_type_name ?? null,
     ticketTypeDescription: row.ticketTypeDescription ?? row.ticket_type_description ?? null,
@@ -105,6 +114,7 @@ function toCamelOrder(row) {
     manualPaymentChannel: row.manual_payment_channel ?? row.manualPaymentChannel ?? null,
     status: row.status,
     reference: row.reference,
+    openKey: row.openKey ?? row.open_key ?? null,
     rejectedBy: row.rejected_by ?? row.rejectedBy ?? null,
     rejectionReason: row.rejection_reason ?? row.rejectionReason ?? null,
     rejectedAt: row.rejected_at ?? row.rejectedAt ?? null,
@@ -174,8 +184,12 @@ export async function createManualTicketOrder({
   }
 }
 
-export async function approveTicketOrder(orderId) {
-  const result = await apiPost(`/api/tickets/orders/${orderId}/approve`, {})
+export async function approveTicketOrder(orderId, { overrideReason } = {}) {
+  const trimmed =
+    typeof overrideReason === 'string' ? overrideReason.trim() : ''
+  const result = await apiPost(`/api/tickets/orders/${orderId}/approve`, {
+    ...(trimmed ? { overrideReason: trimmed } : {}),
+  })
   return {
     order: toCamelOrder(result.order),
     tickets: result.tickets.map((ticket) => toCamelTicket(ticket)),
@@ -249,24 +263,30 @@ export async function cancelGuestTicket(eventSlug, orderId, reason) {
 }
 
 /**
- * "Mis entradas" del perfil: entradas acreditadas de la cuenta logueada, ya
- * en la forma de `mapApiTicket` para reusar el render del QR.
+ * Devuelve a la cola una orden manual que el vencimiento canceló con el
+ * comprobante todavía adjunto. No acredita: después se valida como cualquier
+ * transferencia pendiente.
  */
-export async function fetchMyTickets() {
-  const { tickets } = await apiGet('/api/tickets/mine')
-  return (tickets ?? []).map((row) => {
-    const ticket = toCamelTicket(row, { event: row.event, checkIn: row.check_in })
-    return {
-      ...mapApiTicket(ticket),
-      orderReference: row.order_reference ?? null,
-      orderChannel: row.order_channel ?? null,
-      courtesyLabel: row.courtesy_label ?? null,
-      eventEndsAt: row.event?.ends_at ?? null,
-      // Vinculada sólo por DNI (no verificado): se ve, pero el QR no viaja.
-      qrLocked: Boolean(row.qr_locked),
-      buyerEmailMasked: row.buyer_email_masked ?? null,
-    }
-  })
+export async function reopenTicketOrder(orderId, reason) {
+  const result = await apiPost(`/api/tickets/orders/${orderId}/reopen`, { reason })
+  return {
+    order: toCamelOrder(result.order),
+    tickets: (result.tickets ?? []).map((ticket) => toCamelTicket(ticket)),
+  }
+}
+
+/**
+ * Acredita de una la orden que el vencimiento canceló con el comprobante
+ * cargado. `mail` dice si el comprador se enteró: `sent`, `suppressed` o
+ * `failed`. La orden queda paga igual.
+ */
+export async function settleCancelledTicketOrder(orderId, reason) {
+  const result = await apiPost(`/api/tickets/orders/${orderId}/settle`, { reason })
+  return {
+    order: toCamelOrder(result.order),
+    tickets: (result.tickets ?? []).map((ticket) => toCamelTicket(ticket)),
+    mail: result.mail ?? 'skipped',
+  }
 }
 
 export async function registerTicketPaymentProof(orderId, accessToken, proofPath) {
@@ -277,7 +297,7 @@ export async function registerTicketPaymentProof(orderId, accessToken, proofPath
 // Misma forma de fila para la cola de pendientes y para el historial
 // completo -- lo único que cambia entre las dos pantallas es qué le pide cada
 // una al backend, no cómo se lee la respuesta.
-function mapTicketOrderRow(row) {
+export function mapTicketOrderRow(row) {
   const order = toCamelOrder(row.order ?? row)
   const event = row.event ?? {}
   return {
@@ -290,11 +310,11 @@ function mapTicketOrderRow(row) {
     manualPaymentChannel: order.manualPaymentChannel,
     paymentProofPath: order.paymentProofPath,
     paymentProofUploadedAt: order.paymentProofUploadedAt,
+    rejectedAt: order.rejectedAt ?? null,
     buyerName: order.buyerName,
     buyerEmail: order.buyerEmail,
     createdAt: order.createdAt,
     rejectionReason: order.rejectionReason,
-    rejectedAt: order.rejectedAt,
     cancellationReason: order.cancellationReason,
     cancelledAt: order.cancelledAt,
     cancelledFromStatus: order.cancelledFromStatus,
@@ -324,10 +344,13 @@ export async function listTicketOrders(filters = {}) {
     params.set('statuses', filters.statuses.join(','))
   }
   if (filters.channel) params.set('channel', filters.channel)
+  if (filters.eventSlug) params.set('eventSlug', filters.eventSlug)
   if (filters.query) params.set('query', filters.query)
   if (filters.sort) params.set('sort', filters.sort)
   if (filters.limit) params.set('limit', String(filters.limit))
   if (filters.withCounts) params.set('withCounts', 'true')
+  if (filters.includeHeldProof) params.set('includeHeldProof', 'true')
+  if (filters.excludeHeldProof) params.set('excludeHeldProof', 'true')
   const search = params.toString()
   const { orders, counts } = await apiGet(`/api/tickets/orders${search ? `?${search}` : ''}`)
   return { orders: (orders ?? []).map(mapTicketOrderRow), counts: counts ?? null }
@@ -338,6 +361,34 @@ export async function getTicketPaymentProofUrl(orderId) {
   // Misma URL estable que devuelve el API: el browser cachea el binario del
   // proxy y no hace falta un round-trip solo para obtener la firma de Storage.
   return `/api/tickets/orders/${orderId}/proof`
+}
+
+export async function resolveTicketGateCode(code) {
+  // El código va en el cuerpo para que no quede en la URL (logs, historial, proxy).
+  const result = await apiPost('/api/tickets/door-code', { code })
+  return result.qrToken
+}
+
+/**
+ * Puerta con sesión: token o código dictado en un solo viaje. Misma lectura
+ * que `verify`, sin acreditar el ingreso.
+ */
+export async function previewTicketScan(code) {
+  const { ticket: result } = await apiPost('/api/tickets/checkin/preview', { code })
+  return {
+    ticket: toCamelTicket(result.ticket, { event: result.event, checkIn: result.checkIn }),
+  }
+}
+
+export async function resendTicketOrder(orderId) {
+  return apiPost(`/api/tickets/orders/${encodeURIComponent(orderId)}/resend`, {})
+}
+
+export async function resendTicketOrderByBuyer(reference, email, { openKey } = {}) {
+  const body = { reference }
+  if (openKey) body.k = openKey
+  else body.email = email
+  return apiPost('/api/tickets/orders/resend', body)
 }
 
 export async function verifyTicketByQrToken(qrToken) {
@@ -363,9 +414,16 @@ export async function fetchTicketAvailability(eventSlug) {
     // ofrecer Wise/transferencia aunque el panel los tenga abiertos.
     checkout: {
       ticketEnabled: checkout?.ticketEnabled !== false,
+      // El interruptor del evento no se inventa: si el API no lo mandó, queda
+      // undefined y la pantalla usa el catálogo. `false` cierra aunque el
+      // objeto en memoria siga diciendo que está habilitado.
+      eventTicketsEnabled: checkout?.eventTicketsEnabled,
       ticketManualEnabled: checkout?.ticketManualEnabled !== false,
       channels: checkout?.channels,
       bankTransfer: checkout?.bankTransfer ?? null,
+      // Dónde se paga el efectivo; null con un API viejo: la pantalla usa la
+      // sede del evento.
+      cashPayment: checkout?.cashPayment ?? null,
     },
   }
 }
@@ -392,8 +450,11 @@ export async function setTicketAccessOverride(ticketId, { enabled, validFrom = n
   return { ticket: toCamelTicket(result.ticket) }
 }
 
-export async function checkInTicket(qrToken, gate) {
-  const result = await apiPost(`/api/tickets/checkin/${qrToken}`, { gate })
+export async function checkInTicket(qrToken, gate, { force, reason } = {}) {
+  const result = await apiPost(`/api/tickets/checkin/${qrToken}`, {
+    gate,
+    ...(force ? { force, reason } : {}),
+  })
   return { ticket: toCamelTicket(result.ticket), checkIn: toCamelCheckIn(result.checkIn) }
 }
 
@@ -422,8 +483,24 @@ export async function getEventScanReport(eventSlug, { from, until, limit } = {})
  * `apiGet` tira un `ApiError` con `status: 404` -- el caller decide el
  * mensaje, no esta capa.
  */
-export async function lookupTicketOrder(reference, email) {
-  const params = new URLSearchParams({ reference, email })
+/**
+ * La pestaña que acaba de pagar pide el QR acreditado con el token de la
+ * compra. Sin acreditar, `tickets` vuelve vacío.
+ */
+export async function fetchTicketOrderPass(orderId, accessToken) {
+  const result = await apiRequest(`/api/tickets/orders/${encodeURIComponent(orderId)}/pass`, {
+    headers: { 'X-Order-Access-Token': accessToken },
+  })
+  return {
+    order: result.order,
+    tickets: (result.tickets ?? []).map((ticket) => toCamelTicket(ticket)),
+  }
+}
+
+export async function lookupTicketOrder(reference, email, { openKey } = {}) {
+  const params = new URLSearchParams({ reference })
+  if (openKey) params.set('k', openKey)
+  else params.set('email', email)
   const result = await apiGet(`/api/tickets/orders/lookup?${params.toString()}`)
   return {
     order: result.order,
@@ -437,13 +514,28 @@ export async function lookupTicketOrder(reference, email) {
  * document, label, status }`). `code` es el token que hubiera traído el QR; la
  * validación real sigue por el flujo de escaneo.
  */
-export async function lookupCheckinCredentials(eventSlug, { ticketCode, dni, doorCode } = {}) {
+export async function lookupCheckinCredentials(eventSlug, { ticketCode, dni } = {}) {
   const body = { eventSlug }
-  if (doorCode) body.doorCode = doorCode
   if (ticketCode) body.ticketCode = ticketCode
   if (dni) body.dni = dni
   const { matches } = await apiPost('/api/tickets/checkin/lookup', body)
   return Array.isArray(matches) ? matches : []
+}
+
+export async function listMyTickets() {
+  const result = await apiGet('/api/tickets/mine')
+  return {
+    orders: (result.orders ?? []).map((item) => ({
+      role: item.role,
+      order: item.order,
+      tickets: (item.tickets ?? []).map((ticket) => toCamelTicket(ticket)),
+    })),
+    attendeeTickets: (result.attendeeTickets ?? []).map((item) => ({
+      role: item.role,
+      order: item.order,
+      ticket: toCamelTicket(item.ticket),
+    })),
+  }
 }
 
 export async function redeemTicketAddon(qrToken, addonId) {
@@ -465,10 +557,17 @@ export function mapApiTicket(apiTicket, purchaseEvent) {
     id: apiTicket.id,
     orderId: apiTicket.orderId,
     ticketCode: apiTicket.ticketCode,
-    doorCode: apiTicket.doorCode ?? null,
-    qrToken: apiTicket.qrToken,
+    qrToken: apiTicket.qrToken ?? null,
+    gateCode: apiTicket.gateCode ?? null,
+    credentialState: apiTicket.credentialState ?? null,
+    validityMode: apiTicket.validityMode ?? null,
+    accessActivatedAt: apiTicket.accessActivatedAt ?? null,
+    passSealed: apiTicket.passSealed === true,
+    revealAt: apiTicket.revealAt ?? null,
+    qrLocked: apiTicket.qrLocked === true,
     attendeeName: apiTicket.attendeeName,
     attendeeDni: apiTicket.attendeeDni,
+    accessDays: Array.isArray(apiTicket.accessDays) ? apiTicket.accessDays : [],
     ticketTypeId: apiTicket.ticketTypeId,
     ticketTypeName: apiTicket.ticketTypeName,
     ticketTypeDescription: apiTicket.ticketTypeDescription ?? null,

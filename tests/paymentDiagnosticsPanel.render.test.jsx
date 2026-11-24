@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
-import es from '../src/i18n/locales/es.js'
+import es from '../src/i18n/locales/esFull.js'
 import { translate } from '../src/i18n/translate.js'
 import PaymentDiagnosticsPanel from '../src/components/admin/PaymentDiagnosticsPanel.jsx'
 

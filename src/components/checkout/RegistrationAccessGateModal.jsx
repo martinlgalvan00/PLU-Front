@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { KeyRound, Loader2, LockKeyhole, X } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { verifyRegistrationAccessCode } from '../../services/registrationAccessService.js'
-import { usePaymentModal } from './usePaymentModal.js'
+import PublicDialogFrame from '../ui/PublicDialogFrame.jsx'
 import '../../styles/components/registration-access-code.css'
 
 /**
@@ -20,13 +20,13 @@ import '../../styles/components/registration-access-code.css'
  * ningún pago.
  */
 export default function RegistrationAccessGateModal({
+  open = true,
   scopes = [],
   eventSlug = null,
   onUnlock,
   onCancel,
 }) {
   const { t } = useI18n()
-  const panelRef = usePaymentModal(onCancel)
   const [codes, setCodes] = useState({ membership: '', registration: '' })
   const [error, setError] = useState('')
   const [checking, setChecking] = useState(false)
@@ -78,16 +78,14 @@ export default function RegistrationAccessGateModal({
   }
 
   return (
-    <div className="registration-access-gate__overlay" role="presentation" onMouseDown={onCancel}>
-      <section
-        ref={panelRef}
-        aria-describedby="registration-access-gate-lead"
-        aria-labelledby="registration-access-gate-title"
-        aria-modal="true"
-        className="registration-access-gate"
-        onMouseDown={(event) => event.stopPropagation()}
-        role="dialog"
-      >
+    <PublicDialogFrame
+      open={open}
+      onClose={onCancel}
+      overlayClassName="registration-access-gate__overlay"
+      panelClassName="registration-access-gate"
+      labelledBy="registration-access-gate-title"
+      describedBy="registration-access-gate-lead"
+    >
         <header className="registration-access-gate__header">
           <span className="registration-access-gate__badge">
             <LockKeyhole size={15} strokeWidth={1.75} aria-hidden />
@@ -183,7 +181,6 @@ export default function RegistrationAccessGateModal({
         </form>
 
         <p className="registration-access-gate__footnote">{t('pages.register.accessGate.help')}</p>
-      </section>
-    </div>
+    </PublicDialogFrame>
   )
 }

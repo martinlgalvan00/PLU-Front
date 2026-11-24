@@ -32,6 +32,7 @@ URLs concretas de webhook DEV/PROD y variables por entorno: ver
 - `embeddedPaymentWorkflow.js` — monto server-side e intentos idempotentes
 - `subscriptionWorkflow.js` — planes y abonos recurrentes
 - Transferencia manual como canal separado con aprobación operativa
+- Readiness por evento: sin `mercado_pago_profile_id` cobra la cuenta global PLU; el panel avisa al publicar y lista el destino MP (cuenta general / perfil / reconectar). Detalle en [`PAYMENTS_OPERATIONS.md`](./PAYMENTS_OPERATIONS.md#perfil-de-cobro-por-evento-fase-a--b1).
 
 ## Modo mock local (sin pagar)
 

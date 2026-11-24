@@ -1,6 +1,7 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
+import MotionProvider from '../src/motion/MotionProvider.tsx'
 
 vi.mock('../src/config/env.js', () => ({
   env: {
@@ -48,6 +49,31 @@ describe('modal de transferencia', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^cerrar$/i }))
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('no corta el diálogo en el mismo frame al cerrar', async () => {
+    const view = render(
+      <MotionProvider>
+        <I18nProvider>
+          <TransferPayModal amount={75000} onClose={() => {}} />
+        </I18nProvider>
+      </MotionProvider>,
+    )
+
+    expect(screen.getByRole('dialog', { name: /^transferencia$/i })).toBeTruthy()
+
+    view.rerender(
+      <MotionProvider>
+        <I18nProvider>
+          <TransferPayModal open={false} amount={75000} onClose={() => {}} />
+        </I18nProvider>
+      </MotionProvider>,
+    )
+
+    expect(screen.getByRole('dialog', { name: /^transferencia$/i })).toBeTruthy()
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /^transferencia$/i })).toBeNull()
+    })
   })
 
   it('porta el overlay a document.body para escapar el stacking del main', () => {

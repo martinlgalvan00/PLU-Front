@@ -213,13 +213,16 @@ describe('AdminTicketTypesEditor', () => {
     expect(screen.getByRole('alert').textContent).toBe('Supera el precio de lista.')
   })
 
-  it('hereda los medios del evento y sólo muestra el picker al restringir', () => {
+  it('hereda los medios del evento y sólo muestra el picker al elegirlos', () => {
     render(<CatalogHarness />)
 
-    expect(screen.getByText(/se cobra con los medios del evento/i)).toBeTruthy()
+    expect(screen.getByText('Mercado Pago')).toBeTruthy()
+    expect(screen.getByText('Transferencia')).toBeTruthy()
+    expect(screen.getByText('Efectivo')).toBeTruthy()
+    expect(screen.getByText('Wise')).toBeTruthy()
     expect(screen.queryByRole('checkbox', { name: /mercado pago/i })).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: /restringir esta/i }))
+    fireEvent.click(screen.getByRole('button', { name: /elegir medios de esta entrada/i }))
 
     expect(screen.getByRole('checkbox', { name: /mercado pago/i })).toBeTruthy()
     expect(screen.getByText(/sólo esta entrada/i)).toBeTruthy()
@@ -227,6 +230,6 @@ describe('AdminTicketTypesEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: /usar los del evento/i }))
 
     expect(screen.queryByRole('checkbox', { name: /mercado pago/i })).toBeNull()
-    expect(screen.getByText(/se cobra con los medios del evento/i)).toBeTruthy()
+    expect(screen.getByText('Mercado Pago')).toBeTruthy()
   })
 })

@@ -54,6 +54,12 @@ export function isStaffSession(subject) {
   return Boolean(subject.id)
 }
 
+/** Cuenta que el header puede mostrar. Un objeto vacío no cuenta. */
+export function hasAccountSession(session) {
+  if (!session || typeof session !== 'object') return false
+  return Boolean(session.role || session.id)
+}
+
 export function canEditOperationalData(subject) {
   return hasAnyPermission(subject, [
     'admin.athletes.write',
@@ -64,10 +70,6 @@ export function canEditOperationalData(subject) {
     'admin.shop.write',
     'admin.results.write',
   ])
-}
-
-export function canEdit(subject) {
-  return canEditOperationalData(subject)
 }
 
 export function canManageUsers(subject) {
@@ -108,6 +110,14 @@ export function canDeleteEvents(subject) {
   return hasPermission(subject, 'admin.events.delete')
 }
 
+/**
+ * Equipo de puerta de un evento (cuentas de seguridad). Lo arma quien administra usuarios
+ * y el organizador sobre SUS eventos: el servidor limita cada ruta a los eventos asignados.
+ */
+export function canManageEventTeam(subject) {
+  return hasAnyPermission(subject, ['admin.users.write', 'admin.event_team.write'])
+}
+
 export function canManageRoles(subject) {
   return hasPermission(subject, 'admin.roles.write')
 }
@@ -129,12 +139,30 @@ export function canApproveManualPayments(subject) {
   return hasPermission(subject, 'admin.payments.approve')
 }
 
-export function canApprovePayments(subject) {
-  return canApproveManualPayments(subject)
-}
-
 export function canCheckIn(subject) {
   return hasPermission(subject, 'admin.checkin.execute')
+}
+
+/** Aprobar o rechazar una orden de entradas. No abre el resto de Finanzas. */
+export function canEnableTicketOrders(subject) {
+  return hasAnyPermission(subject, ['admin.tickets.enable', 'admin.payments.approve'])
+}
+
+/** Forzar este ingreso de una entrada ya paga, fuera de vigencia o de zona. */
+export function canOverrideCheckIn(subject) {
+  return hasPermission(subject, 'admin.checkin.override')
+}
+
+/**
+ * Vigencia individual que queda en la credencial. El puesto de puerta no:
+ * hace falta editar el evento o coordinar el equipo de ese evento.
+ */
+export function canSetTicketAccessWindow(subject) {
+  return (
+    hasPermission(subject, 'admin.events.write') ||
+    (hasPermission(subject, 'admin.checkin.override') &&
+      hasPermission(subject, 'admin.event_team.write'))
+  )
 }
 
 export function canApproveStaffApplications(subject) {
@@ -146,8 +174,10 @@ export function canApproveStaffApplications(subject) {
 // Usuarios...) le queda al pedo y encima expone datos que no necesita ver.
 export function isCheckinOnly(subject) {
   const allowedSections = getAllowedAdminSections(subject)
+  // Tiene que tener `checkin`: el organizador (solo `events`) no es un puesto de escaneo
+  // y no debe caer en la pantalla de puerta.
   return (
-    allowedSections.length > 0 &&
+    allowedSections.includes('checkin') &&
     allowedSections.every((section) => ['events', 'checkin'].includes(section))
   )
 }

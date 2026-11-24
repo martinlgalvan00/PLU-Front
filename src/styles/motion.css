@@ -474,12 +474,34 @@
     border-color var(--motion-fast) var(--ease-standard),
     box-shadow var(--motion-fast) var(--ease-standard),
     transform var(--motion-fast) var(--ease-emphasized),
-    background-color var(--motion-fast) var(--ease-standard);
+    background-color var(--motion-fast) var(--ease-standard),
+    scale var(--motion-fast) var(--ease-out);
 }
 
 .event-card:active,
 .membership-card:active {
   transform: translateY(0);
+}
+
+/* ── Press táctil de las fichas que abren un evento ──
+   En touch no hay hover: el `:active` de arriba solo deshacía un lift que
+   nunca ocurrió, y con el highlight nativo apagado tocar una ficha no daba
+   ninguna respuesta hasta que cambiaba la pantalla. La pieza cede apenas
+   bajo el dedo. Con `scale` (propiedad individual) y no `transform`, para
+   componer con el lift del hover y con lo que Motion escriba inline. */
+.event-card[role='button'],
+.home-season-actions__lane,
+.hero-meta--action {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hero-meta--action {
+  transition: scale var(--motion-fast) var(--ease-out);
+}
+
+.event-card[role='button']:active,
+.hero-meta--action:active {
+  scale: 0.985;
 }
 
 /* ── Admin rows (mínimo) ────────────────────── */
@@ -505,6 +527,13 @@
   .event-card:hover,
   .membership-card:hover {
     transform: none;
+  }
+
+  /* Sin escala: la respuesta al toque pasa a ser un leve atenuado. */
+  .event-card[role='button']:active,
+  .hero-meta--action:active {
+    opacity: 0.86;
+    scale: none;
   }
 
   .btn:hover:not(:disabled) svg:last-child,

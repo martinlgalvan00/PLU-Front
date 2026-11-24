@@ -2,11 +2,10 @@ import { useState } from 'react'
 import { CalendarClock, Eye, EyeOff, LockKeyhole, Unlock } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
-
-/** Estados en los que la inscripción está abierta (o a punto de llenarse). */
-const OPEN_STATUSES = new Set(['inscripcion_abierta', 'cupos_limitados'])
-/** Estados desde los que tiene sentido abrir: el resto los pone la base o el calendario. */
-const OPENABLE_STATUSES = new Set(['proximamente', 'cerrado'])
+import { resolveEventPublishConfirmChecks } from '../../lib/eventPublishChecks.js'
+import usePlatformPaymentChannels from '../../hooks/usePlatformPaymentChannels.js'
+import useEventRegistrationSale from '../../hooks/useEventRegistrationSale.js'
+import { registrationSalePatch } from '../../../shared/registrationSaleState.js'
 
 /**
  * AdminEventQuickActions — PLU ARG
@@ -29,16 +28,23 @@ export default function AdminEventQuickActions({
   onSetEventState,
   onEditDate,
   hasUnsavedState = () => false,
+  // En el Resumen el control de venta ya ofrece abrir / cerrar: no se repite.
+  showRegistrationToggle = true,
 }) {
   const { t } = useI18n()
   const [busy, setBusy] = useState(false)
+  const platformChannels = usePlatformPaymentChannels()
+  const sale = useEventRegistrationSale(event)
 
   if (!canEdit || !event || !onSetEventState) return null
 
   const status = event.status ?? 'proximamente'
   const published = event.published === true
-  const registrationsOpen = OPEN_STATUSES.has(status)
-  const canToggleRegistrations = registrationsOpen || OPENABLE_STATUSES.has(status)
+  // Misma lectura que el control de venta: "abierta" incluye programada y
+  // bloqueada (se cierran igual); agotada y finalizada no se tocan desde acá.
+  const registrationsOpen = ['on_sale', 'blocked', 'scheduled'].includes(sale.state)
+  const canToggleRegistrations =
+    showRegistrationToggle && (registrationsOpen || sale.state === 'closed')
 
   async function apply(payload, previous, successText) {
     if (busy) return
@@ -70,17 +76,35 @@ export default function AdminEventQuickActions({
 
   function toggleRegistrations() {
     if (registrationsOpen) {
-      void apply({ status: 'cerrado' }, { status }, t('admin.eventQuick.registrationsClosed'))
+      void apply(registrationSalePatch('closed'), { status }, t('admin.eventQuick.registrationsClosed'))
       return
     }
-    void apply(
-      { status: 'inscripcion_abierta', published: true },
-      { status, published },
-      t('admin.eventQuick.registrationsOpened'),
+    if (!published && !confirmPublish()) return
+    // Abrir ya: también borra una apertura pendiente o un cierre vencido, si
+    // no la inscripción quedaría "abierta" sin poder usarse.
+    const patch = { ...registrationSalePatch('open', { event }), published: true }
+    const previous = { status, published }
+    if ('registrationOpensAt' in patch) previous.registrationOpensAt = event.registrationOpensAt ?? null
+    if ('registrationClosesAt' in patch) previous.registrationClosesAt = event.registrationClosesAt ?? null
+    void apply(patch, previous, t('admin.eventQuick.registrationsOpened'))
+  }
+
+  /**
+   * Publicar es lo que ve el público. Si el evento quedaría sin un medio de
+   * cobro posible se avisa antes, con el motivo; es un aviso y no un bloqueo
+   * porque hay eventos que se anuncian antes de abrir ventas.
+   */
+  function confirmPublish() {
+    const checks = resolveEventPublishConfirmChecks(event, platformChannels.platform)
+    if (checks.length === 0) return true
+    const lines = checks.map((code) => `• ${t(`admin.eventEditor.publishChecks.codes.${code}`)}`)
+    return window.confirm(
+      `${t('admin.eventEditor.publishChecks.intro')}\n\n${lines.join('\n')}\n\n${t('admin.eventEditor.publishChecks.confirmOutro')}`,
     )
   }
 
   function togglePublished() {
+    if (!published && !confirmPublish()) return
     void apply(
       { published: !published },
       { published },

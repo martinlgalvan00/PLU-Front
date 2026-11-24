@@ -78,7 +78,8 @@ export function getEventCoordinates(event) {
 
 export function getEventAddress(event = {}) {
   const venue = typeof event.venue === 'object' && event.venue ? event.venue : {}
-  const explicit = event.address ?? venue.address
+  // `venueAddress`: la dirección que carga el panel por evento (20270102110000).
+  const explicit = event.address ?? venue.address ?? event.venueAddress
   const currentVenueName = getVenueName(event).trim().toLocaleLowerCase()
   const addressVenue = String(event.addressVenue ?? '')
     .trim()
@@ -204,4 +205,29 @@ export function buildOpenStreetMapEmbedUrl(event, { delta = 0.014 } = {}) {
     .map((value) => value.toFixed(6))
     .join('%2C')
   return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat.toFixed(6)}%2C${lng.toFixed(6)}`
+}
+
+/**
+ * Links de "Cómo llegar" para un lugar sin coordenadas: busca por dirección.
+ * Sirve para la sede de cualquier evento y para el lugar del efectivo, que no
+ * guardan lat/lng. Sin dirección ni nombre devuelve `null` (no hay a dónde
+ * mandar a nadie).
+ *
+ * @param {{ name?: string, address?: string, city?: string }} place
+ * @returns {{ googleMaps: string, waze: string, query: string } | null}
+ */
+export function buildPlaceLinks({ name = '', address = '', city = '' } = {}) {
+  const parts = [address, city].map((value) => String(value ?? '').trim()).filter(Boolean)
+  // Con dirección, el nombre sobra (y confunde a Waze); sin ella, se busca el nombre.
+  const query = (parts.length && String(address ?? '').trim()
+    ? parts
+    : [name, ...parts].map((value) => String(value ?? '').trim()).filter(Boolean)
+  ).join(', ')
+  if (!query) return null
+  const encoded = encodeURIComponent(query)
+  return {
+    query,
+    googleMaps: `https://www.google.com/maps/search/?api=1&query=${encoded}`,
+    waze: `https://waze.com/ul?q=${encoded}&navigate=yes&utm_source=plu_argentina`,
+  }
 }

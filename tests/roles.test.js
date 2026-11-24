@@ -6,12 +6,17 @@ import {
   canDeleteRegistrations,
   canDeleteUsers,
   canEditOperationalData,
+  canEnableTicketOrders,
   canExport,
+  canOverrideCheckIn,
   canExportPluUsa,
+  canManageEventTeam,
   canManageRoles,
   canManageUsers,
+  canSetTicketAccessWindow,
   canViewAdmin,
   getRoleLabel,
+  isCheckinOnly,
   isKnownRole,
   isStaffSession,
   resolveSessionIdentity,
@@ -21,8 +26,10 @@ import {
   canManageRoleLifecycle,
   canManageRolePermissions,
   getAllowedAdminSections,
+  getDefaultPermissionsForRole,
   getRoleHierarchyLevel,
   hasEventScopeAccess,
+  isEventScopedSession,
   hasPermission,
   ROLE_HIERARCHY,
 } from '../src/lib/permissions.js'
@@ -185,5 +192,108 @@ describe('roles', () => {
     expect(hasPermission(plu, 'admin.events.write')).toBe(false)
     expect(canEditOperationalData(plu)).toBe(false)
     expect(getAllowedAdminSections(plu)).toEqual(['events', 'results'])
+  })
+
+  describe('organizador (rol por evento)', () => {
+    const organizer = {
+      roleKey: 'organizador_evento',
+      eventScoped: true,
+      eventAccess: [],
+      permissions: [
+        'admin.events.read',
+        'admin.events.write',
+        'admin.registrations.read',
+        'admin.payments.read',
+        'admin.payments.approve',
+        'admin.event_team.write',
+      ],
+    }
+
+    it('solo ve la sección Eventos, aunque sus permisos abrirían Personas, Pagos y Finanzas', () => {
+      expect(getAllowedAdminSections(organizer)).toEqual(['events'])
+      expect(canViewAdmin(organizer)).toBe(true)
+    })
+
+    it('lo reconoce por el flag de la sesión o, de respaldo, por la clave del rol', () => {
+      expect(isEventScopedSession({ eventScoped: true })).toBe(true)
+      expect(isEventScopedSession({ roleKey: 'organizador_evento' })).toBe(true)
+      expect(isEventScopedSession({ roleKey: 'plu_arg' })).toBe(false)
+      expect(isEventScopedSession(null)).toBe(false)
+    })
+
+    it('no cae en la pantalla de puerta, que es de Seguridad', () => {
+      expect(isCheckinOnly(organizer)).toBe(false)
+      expect(
+        isCheckinOnly({
+          roleKey: 'seguridad_plu_arg',
+          permissions: ['admin.events.read', 'admin.checkin.execute'],
+        }),
+      ).toBe(true)
+    })
+
+    it('el coordinador de puerta no cae en el escáner ni cobra', () => {
+      const coordinator = {
+        roleKey: 'coordinador_seguridad',
+        eventScoped: true,
+        permissions: getDefaultPermissionsForRole('coordinador_seguridad'),
+      }
+      expect(coordinator.permissions).toEqual([
+        'admin.events.read',
+        'admin.checkin.execute',
+        'admin.event_team.write',
+        'admin.tickets.enable',
+        'admin.checkin.override',
+      ])
+      expect(getAllowedAdminSections(coordinator)).toEqual(['events'])
+      expect(isCheckinOnly(coordinator)).toBe(false)
+      expect(
+        canAccessSecurityEvent(
+          {
+            ...coordinator,
+            eventAccess: [{ eventId: 'evt-pitbull', eventSlug: 'pitbull-classic-2026' }],
+          },
+          'pitbull-classic-2026',
+        ),
+      ).toBe(true)
+      expect(
+        canAccessSecurityEvent(
+          {
+            ...coordinator,
+            eventAccess: [{ eventId: 'evt-pitbull', eventSlug: 'pitbull-classic-2026' }],
+          },
+          'otro-evento',
+        ),
+      ).toBe(false)
+      expect(canAccessSecurityEvent(coordinator, 'pitbull-classic-2026')).toBe(false)
+      expect(canManageEventTeam(coordinator)).toBe(true)
+      expect(canManageUsers(coordinator)).toBe(false)
+      expect(canApproveManualPayments(coordinator)).toBe(false)
+      expect(canEnableTicketOrders(coordinator)).toBe(true)
+      expect(canOverrideCheckIn(coordinator)).toBe(true)
+      expect(canSetTicketAccessWindow(coordinator)).toBe(true)
+      expect(
+        canSetTicketAccessWindow({
+          permissions: ['admin.checkin.override'],
+        }),
+      ).toBe(false)
+      expect(hasPermission(coordinator, 'admin.events.write')).toBe(false)
+      expect(
+        isCheckinOnly({
+          roleKey: 'seguridad_plu_arg',
+          permissions: getDefaultPermissionsForRole('seguridad_plu_arg'),
+        }),
+      ).toBe(true)
+      expect(
+        canManageEventTeam({
+          roleKey: 'seguridad_plu_arg',
+          permissions: getDefaultPermissionsForRole('seguridad_plu_arg'),
+        }),
+      ).toBe(false)
+    })
+
+    it('el Super Admin y los demás roles no cambian', () => {
+      expect(getAllowedAdminSections({ roleKey: 'admin_maximal' })).toContain('payments')
+      expect(getAllowedAdminSections({ roleKey: 'admin_maximal' })).toContain('users')
+    })
   })
 })

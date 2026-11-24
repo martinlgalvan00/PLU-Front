@@ -112,9 +112,17 @@ export default function AdminTicketTypeChannels({
         </>
       ) : (
         <div className="admin-ticket-channels__inherit">
-          <p className="admin-ticket-channels__summary">
-            {t('admin.eventEditor.supabase.ticketTypeChannelsInheritSummary')}
-          </p>
+          {eventOpen.size > 0 ? (
+            <ul className="admin-ticket-channels__accepted">
+              {[...eventOpen].map((channel) => (
+                <li key={channel}>{t(`admin.eventEditor.paymentChannelShort.${channel}`)}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="admin-ticket-channels__summary">
+              {t('admin.eventEditor.supabase.ticketTypeChannelsNone')}
+            </p>
+          )}
           {canEdit ? (
             <button
               className="admin-ticket-channels__action"

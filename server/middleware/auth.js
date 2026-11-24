@@ -1,5 +1,6 @@
 import { HttpError } from '../lib/errors.js'
 import { hasAnyPermission, hasPermission } from '../../src/lib/permissions.js'
+import { eventScopeOf } from '../lib/eventScope.js'
 import { extendSessionIfActive, readSessionFromRequest } from '../services/sessionService.js'
 
 /**
@@ -8,8 +9,17 @@ import { extendSessionIfActive, readSessionFromRequest } from '../services/sessi
  * `allowPasswordChangePending` sólo lo activan las rutas que el usuario tiene
  * que poder alcanzar justamente para salir del estado (cambiar la contraseña
  * y cerrar sesión).
+ *
+ * `allowEventScoped` es el candado por defecto del rol "por evento" (organizador):
+ * sin esta opción esa cuenta recibe 403 en la ruta, sea cual sea su permiso. Solo
+ * las rutas que filtran por evento (ver `server/lib/eventScope.js`) o que son de
+ * la propia cuenta (cambiar contraseña) la activan.
  */
-export function requireAuth({ prisma, allowPasswordChangePending = false }) {
+export function requireAuth({
+  prisma,
+  allowPasswordChangePending = false,
+  allowEventScoped = false,
+}) {
   return async (req, res, next) => {
     try {
       const result = await readSessionFromRequest({ prisma, req })
@@ -31,7 +41,19 @@ export function requireAuth({ prisma, allowPasswordChangePending = false }) {
         return
       }
 
+      // Corta ANTES de mirar permisos: un organizador con `admin.events.write` no
+      // puede por eso tocar una ruta global que nadie revisó para su alcance.
+      if (result.user.eventScoped && !allowEventScoped) {
+        next(
+          new HttpError(403, 'Esta cuenta solo gestiona los eventos que se le asignaron.', {
+            code: 'event_scope_denied',
+          }),
+        )
+        return
+      }
+
       req.auth = result
+      req.eventScope = eventScopeOf(req)
       // Ventana deslizante: mientras el staff siga operando, la sesión no
       // vence a las 8 h del login. Best-effort y con tope absoluto (ver
       // `extendSessionIfActive`): un fallo acá no puede tumbar el request.
@@ -69,15 +91,25 @@ export function requirePermission(requiredPermissions, deps, options = {}) {
     ? requiredPermissions
     : [requiredPermissions]
   const mode = options.mode === 'any' ? 'any' : 'all'
-  const auth = requireAuth(deps)
+  // `scopedPermissions`: permisos que se exigen a una cuenta POR EVENTO en lugar de
+  // `requiredPermissions`. Hay rutas que hoy piden un permiso global que no se puede
+  // delegar (p. ej. `admin.users.write`, reservado a Super Admin) o que no tiene
+  // sentido para el organizador (`admin.checkin.execute`); aflojar el guard para todos
+  // sería una regresión, así que solo cambia lo que exige a la cuenta por evento.
+  const scopedPermissions = Array.isArray(options.scopedPermissions)
+    ? options.scopedPermissions
+    : null
+  // `eventScoped: true` = la ruta filtra por los eventos asignados a la cuenta.
+  const auth = requireAuth({ ...deps, allowEventScoped: options.eventScoped === true })
 
   return [
     auth,
     (req, _res, next) => {
+      const required = req.eventScope && scopedPermissions ? scopedPermissions : permissions
       const allowed =
         mode === 'any'
-          ? hasAnyPermission(req.auth.user, permissions)
-          : permissions.every((permissionKey) => hasPermission(req.auth.user, permissionKey))
+          ? hasAnyPermission(req.auth.user, required)
+          : required.every((permissionKey) => hasPermission(req.auth.user, permissionKey))
 
       if (!allowed) {
         next(new HttpError(403, 'No tenés permisos para esta acción.'))

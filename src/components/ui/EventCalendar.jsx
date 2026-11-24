@@ -11,6 +11,19 @@ const MAX_EVENT_SPAN_DAYS = 45
 const MIN_WEEKS = 5
 /** Chips visibles por día antes de agrupar el resto en "+N". */
 const MAX_CHIPS_PER_DAY = 2
+/** Estados de la leyenda cuando no hay eventos que la definan. */
+const DEFAULT_LEGEND = ['proximamente', 'inscripcion_abierta', 'cupos_limitados']
+
+/**
+ * Tono de la ficha en la grilla. El rojo queda para errores: un evento con la
+ * inscripción cerrada (que puede seguir vendiendo entradas) o con el cupo lleno
+ * no es un peligro. Antes "Cerrado" pintaba el meet de rojo en el calendario.
+ */
+function chipTone(status) {
+  if (status === 'cerrado' || status === 'finalizado') return 'neutral'
+  if (status === 'agotado') return 'warning'
+  return EVENT_STATUS[status]?.tone ?? 'neutral'
+}
 
 function intlLocale(locale) {
   return locale === 'en' ? 'en-US' : 'es-AR'
@@ -96,6 +109,19 @@ function monthFromISO(value, fallback) {
   return { year: date.getFullYear(), month: date.getMonth() }
 }
 
+/**
+ * El título va en el día de inicio, al empezar la semana o al entrar el mes.
+ * El resto del tramo es solo la barra, para que no se repita en cada celda.
+ */
+function showChipLabel(cell, entry) {
+  if (!entry.isSpan || entry.isStart || cell.isWeekStart) return true
+  const previous = dayKeyToDate(addDaysToKey(cell.key, -1))
+  return (
+    previous.getMonth() !== cell.date.getMonth() ||
+    previous.getFullYear() !== cell.date.getFullYear()
+  )
+}
+
 export default function EventCalendar({
   events = [],
   onEventSelect,
@@ -120,11 +146,16 @@ export default function EventCalendar({
       const dayKeys = getEventDayKeys(event)
       dayKeys.forEach((key, index) => {
         const list = map.get(key) ?? []
+        const date = dayKeyToDate(key)
+        const mondayIndex = (date.getDay() + 6) % 7
+        const daysLeftInWeek = 7 - mondayIndex
+        const daysLeftInEvent = dayKeys.length - index
         list.push({
           event,
           isStart: index === 0,
           isEnd: index === dayKeys.length - 1,
           isSpan: dayKeys.length > 1,
+          labelCols: Math.max(1, Math.min(daysLeftInWeek, daysLeftInEvent)),
         })
         map.set(key, list)
       })
@@ -133,6 +164,14 @@ export default function EventCalendar({
   }, [events])
 
   const cells = useMemo(() => buildMonthCells(cursor.year, cursor.month), [cursor])
+  // La leyenda explica los colores que de verdad aparecen: los estados de los
+  // eventos del calendario, en el orden de EVENT_STATUS. Sin eventos, los tres
+  // de siempre.
+  const legendStatuses = useMemo(() => {
+    const present = new Set(events.map((event) => event?.status).filter(Boolean))
+    const ordered = Object.keys(EVENT_STATUS).filter((key) => present.has(key))
+    return ordered.length ? ordered : DEFAULT_LEGEND
+  }, [events])
   const todayKey = toDayKey(today)
   const isTodayVisible = cursor.year === todayMonth.year && cursor.month === todayMonth.month
 
@@ -235,22 +274,28 @@ export default function EventCalendar({
               >
                 {dayNumber}
                 <span className="event-calendar__chips">
-                  {visible.map(({ event, isSpan, isStart, isEnd }) => {
-                    const tone = EVENT_STATUS[event.status]?.tone ?? 'neutral'
+                  {visible.map((entry) => {
+                    const { event, isSpan, isStart, isEnd, labelCols } = entry
+                    const tone = chipTone(event.status)
+                    const labeled = showChipLabel(cell, entry)
+                    const runsAcross = labeled && labelCols > 1
                     return (
                       <span
                         key={event.slug}
                         className={[
                           'event-calendar__chip',
                           `event-calendar__chip--${tone}`,
+                          labeled ? 'event-calendar__chip--labeled' : '',
+                          runsAcross ? 'event-calendar__chip--label-run' : '',
                           isSpan ? 'event-calendar__chip--span' : '',
                           isSpan && isStart ? 'event-calendar__chip--span-start' : '',
                           isSpan && isEnd ? 'event-calendar__chip--span-end' : '',
                         ]
                           .filter(Boolean)
                           .join(' ')}
+                        style={runsAcross ? { '--label-cols': labelCols } : undefined}
                       >
-                        {!isSpan || isStart || cell.date.getDay() === 1 ? (
+                        {labeled ? (
                           <span className="event-calendar__chip-label">{event.title}</span>
                         ) : null}
                       </span>
@@ -268,14 +313,12 @@ export default function EventCalendar({
 
       <footer className="event-calendar__footer">
         <div className="event-calendar__legend event-calendar__legend--compact">
-          {Object.entries(EVENT_STATUS)
-            .slice(0, 3)
-            .map(([key, meta]) => (
-              <span key={key} className="event-calendar__legend-item">
-                <span className={`event-calendar__dot event-calendar__dot--${meta.tone}`} />
-                {getStatusMeta(key, t).label}
-              </span>
-            ))}
+          {legendStatuses.map((key) => (
+            <span key={key} className="event-calendar__legend-item">
+              <span className={`event-calendar__dot event-calendar__dot--${chipTone(key)}`} />
+              {getStatusMeta(key, t).label}
+            </span>
+          ))}
         </div>
       </footer>
     </div>

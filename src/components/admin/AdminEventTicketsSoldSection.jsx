@@ -1,21 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { QrCode, Ticket } from 'lucide-react'
+import { Mail, QrCode, Ticket } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from './AdminDataTable.jsx'
 import AdminEmptyState from './AdminEmptyState.jsx'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import AdminFilterSearch from './AdminFilterSearch.jsx'
 import AdminIconButton from './AdminIconButton.jsx'
 import AdminTicketQrPanel from './AdminTicketQrPanel.jsx'
+import DoorTicketDecision from './DoorTicketDecision.jsx'
 import TicketAccessOverrideDialog from './TicketAccessOverrideDialog.jsx'
 import ErrorState from '../ui/ErrorState.jsx'
 import ExportButton from '../ui/ExportButton.jsx'
 import TableSkeleton from '../ui/TableSkeleton.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { money } from '../../lib/format.js'
 import { ticketTypeNameParts } from '../../lib/eventPricing.js'
 import { summarizeSoldTickets } from '../../lib/ticketAdmission.js'
 import { createCsv } from '../../services/exportService.js'
-import { listTicketsForEvent } from '../../services/ticketApi.js'
+import { runDoorAttempts } from '../../services/doorRetry.js'
+import { listTicketsForEvent, resendTicketOrder } from '../../services/ticketApi.js'
 import { useBroadcastTopic } from '../../hooks/useBroadcastTopic.js'
 // El bloque `admin-orders-block` (cabecera, buscador, filtros) vive en la hoja de
 // Cobros, que solo carga esa ruta: sin este import, "Vendidas" salía sin estilos.
@@ -67,9 +70,13 @@ function formatDate(value, locale) {
  * mismo patrón que `TicketSalesAnalyticsPanel`.
  */
 export default function AdminEventTicketsSoldSection({
+  canEnableTickets = false,
   canOverride = false,
+  canResendCredentials = true,
   event,
   fetchTickets = listTicketsForEvent,
+  onApproveTicketOrder,
+  onRejectTicketOrder,
   onSetTicketAccessOverride,
 }) {
   const { locale, t } = useI18n()
@@ -84,6 +91,10 @@ export default function AdminEventTicketsSoldSection({
   const [overrideOpen, setOverrideOpen] = useState(false)
   const [overrideBusy, setOverrideBusy] = useState(false)
   const [overrideError, setOverrideError] = useState('')
+  const [resendingOrderId, setResendingOrderId] = useState(null)
+  const [decisionRow, setDecisionRow] = useState(null)
+  const [decisionBusy, setDecisionBusy] = useState(false)
+  const [decisionError, setDecisionError] = useState('')
 
   // Después de la primera carga, las relecturas (avisos en vivo) son
   // silenciosas: sin skeleton en cada ingreso de la puerta, y un fallo
@@ -118,7 +129,9 @@ export default function AdminEventTicketsSoldSection({
 
   // Ventas, aprobaciones, cancelaciones e ingresos de este evento, al instante.
   useBroadcastTopic(
-    event?.slug ? `ticket-ops:${event.slug}` : null,
+    // Mismo tópico que el aviso de ingresos del equipo (20270106100000); los
+    // cambios de entradas se publican ahí desde 20271124110000.
+    event?.slug ? `event-checkin:${event.slug}` : null,
     ['tickets-changed', 'checkin-changed'],
     () => setReloadKey((key) => key + 1),
   )
@@ -181,10 +194,16 @@ export default function AdminEventTicketsSoldSection({
         channel: channelLabel(ticket.order, t) ?? '—',
         status: ticket.status,
         buyer: ticket.order?.buyerName || ticket.order?.buyerEmail || '—',
+        orderId: ticket.order?.id || ticket.orderId || null,
+        paymentProofPath: ticket.order?.paymentProofPath ?? ticket.paymentProofPath ?? null,
+        canResend:
+          canResendCredentials &&
+          ticket.status === 'pagada' &&
+          Boolean(ticket.order?.id || ticket.orderId),
         reference: ticket.order?.reference ?? '—',
         checkInAt: ticket.checkIn?.scannedAt ? formatDate(ticket.checkIn.scannedAt, locale) : null,
       })),
-    [facetedTickets, locale, t],
+    [canResendCredentials, facetedTickets, locale, t],
   )
 
   const rows = useMemo(() => {
@@ -217,6 +236,21 @@ export default function AdminEventTicketsSoldSection({
       [t('admin.eventTicketsSold.colCheckIn')]: row.checkInAt ?? '—',
     }))
     createCsv(`entradas-${event.slug}.csv`, body)
+  }
+
+  async function resendCredential(row) {
+    if (!row.orderId || resendingOrderId) return
+    setResendingOrderId(row.orderId)
+    try {
+      const result = await resendTicketOrder(row.orderId)
+      if (result?.status === 'already') notifySuccess(t('admin.eventTicketsSold.qr.already'))
+      else if (result?.status === 'sent') notifySuccess(t('admin.eventTicketsSold.qr.resent'))
+      else notifyError(t('admin.eventTicketsSold.qr.resendFailed'))
+    } catch (err) {
+      notifyError(err?.message || t('admin.eventTicketsSold.qr.resendFailed'))
+    } finally {
+      setResendingOrderId(null)
+    }
   }
 
   function closeQr() {
@@ -258,6 +292,29 @@ export default function AdminEventTicketsSoldSection({
     }
   }
 
+  async function decidePending(row, action, reason) {
+    if (!row?.orderId || decisionBusy) return
+    setDecisionBusy(true)
+    setDecisionError('')
+    try {
+      const result = await runDoorAttempts(() =>
+        action === 'reject'
+          ? onRejectTicketOrder?.(row.orderId, reason)
+          : onApproveTicketOrder?.(row.orderId, { overrideReason: reason }),
+      )
+      if (result?.error) throw new Error(result.error)
+      notifySuccess(
+        t(action === 'reject' ? 'admin.checkin.rejectedOk' : 'admin.checkin.enabledOk'),
+      )
+      setDecisionRow(null)
+      setReloadKey((current) => current + 1)
+    } catch (err) {
+      setDecisionError(err?.message || t('admin.checkin.decisionShort'))
+    } finally {
+      setDecisionBusy(false)
+    }
+  }
+
   const stats = [
     ['issued', summary.issued],
     ['paid', summary.paid],
@@ -293,6 +350,25 @@ export default function AdminEventTicketsSoldSection({
             </div>
           ))}
         </dl>
+      ) : null}
+
+      {decisionRow ? (
+        <DoorTicketDecision
+          busy={decisionBusy}
+          error={decisionError}
+          kind="enable"
+          proofOrderId={decisionRow.paymentProofPath ? decisionRow.orderId : null}
+          onCancel={() => {
+            setDecisionRow(null)
+            setDecisionError('')
+          }}
+          onConfirm={(reason) => decidePending(decisionRow, 'enable', reason)}
+          onReject={
+            onRejectTicketOrder
+              ? (reason) => decidePending(decisionRow, 'reject', reason)
+              : null
+          }
+        />
       ) : null}
 
       <div className="admin-orders-block__toolbar sold-tickets__toolbar">
@@ -418,14 +494,41 @@ export default function AdminEventTicketsSoldSection({
               key: 'actions',
               label: t('admin.eventTicketsSold.qr.column'),
               mobile: 'action',
-              width: 64,
+              width: 104,
               align: 'end',
               render: (row) => (
-                <AdminIconButton
-                  icon={QrCode}
-                  label={t('admin.eventTicketsSold.qr.open', { name: row.attendee })}
-                  onClick={() => setQrTicketId(row.id)}
-                />
+                <span className="sold-tickets__actions">
+                  {canEnableTickets && row.status === 'pendiente_pago' && row.orderId ? (
+                    <AdminIconButton
+                      icon={Ticket}
+                      label={t('admin.checkin.enableEntry')}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setDecisionError('')
+                        setDecisionRow(row)
+                      }}
+                    />
+                  ) : null}
+                  {row.canResend ? (
+                    <AdminIconButton
+                      disabled={resendingOrderId === row.orderId}
+                      icon={Mail}
+                      label={t('admin.eventTicketsSold.qr.resendRow', { buyer: row.buyer })}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        void resendCredential(row)
+                      }}
+                    />
+                  ) : null}
+                  <AdminIconButton
+                    icon={QrCode}
+                    label={t('admin.eventTicketsSold.qr.open', { name: row.attendee })}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setQrTicketId(row.id)
+                    }}
+                  />
+                </span>
               ),
             },
           ]}

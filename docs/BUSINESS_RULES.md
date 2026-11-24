@@ -9,6 +9,44 @@
 - **Pagos:** Mercado Pago confirma el evento; el sistema decide qué activar.
 - **Resultados:** LiftingCast durante el evento; el sistema normaliza y exporta.
 
+## Landings públicas de evento
+
+Las landings no son un CMS ni un page builder. El layout vive en código con dos
+plantillas (`meet` = ficha del calendario, `editorial` = landing larga tipo
+Pitbull) y el staff elige plantilla + completa slots acotados en
+`events.rules.landing`. También elige un `themeId` de acento
+(`plu-default` | `night-steel` | `ember` | `clean-light`) que remapea tokens de
+marca en el root de la landing — sin CSS libre ni colores fuera de la paleta.
+El hero se sincroniza con `publicCopy` para no romper fichas e inscripción
+existentes. FAQ (hasta 3 pares pregunta/respuesta) y SEO (`metaTitle` /
+`metaDescription`) son opcionales: vacíos no pisan el i18n del sitio.
+`rules.publicSurface` controla qué bloques se muestran (calendario, pesajes,
+transmisión, FAQ, experiencia, categorías, lugar, entradas, countdown). El
+guardado usa `staff_merge_event_landing` (merge JSON, no upsert del evento
+completo). Sin fila `landing`, el default es `meet` + `plu-default`; el slug
+histórico `pitbull-classic-2026` cae a `editorial` por compatibilidad.
+
+`landing.publicVisible` (switch "mostrar la página") y `landing.phase`
+(`coming_soon` = "en preparación", `published`) gobiernan la landing
+`submission`: con el switch apagado el evento no sale en catálogo, destacados ni
+navegación (el servidor filtra y el cliente lo repite sobre el evento mapeado,
+que trae `landing` y no `rules`). `phase` arranca en `coming_soon`.
+
+**Formulario de Google.** `rules.externalForm = { url, label }` (RPC
+`staff_merge_event_external_form`, que corre después del upsert igual que
+`publicSurface`). Solo `https` y dominios de Google Forms (`forms.gle`,
+`docs.google.com/forms`, `forms.google.com`): la URL termina en un link público y
+en un QR impreso. La misma regla vive en `src/lib/eventExternalForm.js` (API y
+panel) y en la RPC. El editor muestra el QR descargable; el sitio público (ficha
+`meet` y landing Submission) muestra botón + QR. Vacío quita el formulario.
+
+## Operación admin por evento
+
+Los filtros de inscripciones y ventas de entradas del panel usan el **slug**
+del evento como identidad estable (no el título). El workspace del meet incluye
+padrón de inscripciones, triage de pagos y KPIs operativos. Las cuentas
+`organizador_evento` operan solo sus meets con grant en `UserEventAccess`.
+
 ## Estados
 
 ### Atleta
@@ -19,6 +57,70 @@
 
 `pendiente_pago` → `activa` → `vencida` | `cancelada` | `reembolsada`
 
+### Documentos de afiliación
+
+Para **pagar afiliación** (alta o renovación) y para el **combo** afiliación+inscripción
+el atleta tiene que tener cargados en Storage: DNI frente y DNI dorso (foto o PDF
+liviano). Si el teléfono no informa el formato, alcanza con que el archivo se
+llame `.jpg`, `.png`, `.webp` o `.pdf`. Una carga que se corta muestra el error
+y deja reintentar ese mismo archivo; no deja el botón trabado. Si es menor de 18, también la autorización del tutor. El certificado
+médico se puede subir y no bloquea el pago. No hay cola de aprobación: alcanza
+con subirlos. Los archivos no van a Postgres; solo se guarda el path. El frontend
+nunca confirma pagos: el cobro sigue en Mercado Pago o validación manual.
+
+Antes de los documentos y del pago, la ficha tiene que tener nombre, documento,
+fecha de nacimiento, sexo, teléfono, país, provincia y ciudad. La afiliación es
+a partir de los 14 años. Categoría, peso, gimnasio y contacto de emergencia no
+bloquean este cobro. Si falta algo, la API responde 422
+`ATHLETE_MEMBERSHIP_DATA_INCOMPLETE` y Afiliación muestra el formulario. Se
+guarda con `PATCH /api/athletes/me/membership-file`, sin tocar la ficha
+competitiva. Al guardarla, si todavía falta un archivo obligatorio, Afiliación nombra
+ese archivo (el DNI, la autorización del tutor, o los dos) y baja hasta esa
+carga. Si el legajo ya está y el checkout está abierto, avisa que ya se puede
+pagar y baja hasta el cobro.
+
+El aviso de la cuenta muestra un solo próximo paso: el correo si falta
+confirmarlo, si no la ficha, y si la ficha ya está el archivo que falte. La marca del menú
+abre Afiliación, igual que el aviso del DNI y el del torneo, aunque la persona
+ya esté afiliada. Datos personales no repite el cargador. El aviso de un torneo
+que pide afiliación espera a que ese paso no esté tapando el cobro.
+
+En una inscripción el cargador sigue en el checkout, porque la persona ya está
+pagando. Si ese cobro fue rechazado con 422 `ATHLETE_DOCUMENTS_INCOMPLETE` y
+después la cuenta tiene el legajo completo, el botón de pagar se habilita solo.
+El rechazo solo mantiene el cargador mientras la sesión todavía no trajo la
+lista de archivos.
+
+Cuentas existentes al momento del feature quedan `documents_grandfathered`: pueden
+seguir inscribiéndose a eventos sin el pack, pero el próximo pago de afiliación
+sí lo exige. Las cuentas nuevas no pueden inscribirse ni pagar afiliación sin el
+legajo.
+
+Quien ya tiene afiliación vigente, programada o vencida puede completar o
+reemplazar ese legajo desde Afiliación sin volver a pagar. Si el legajo ya
+está completo, queda cerrado: la foto no se descarga hasta que elige verla o
+reemplazarla. En el checkout, la vista previa cambia de dirección al reemplazar
+y no vuelve a bajar el archivo mientras no cambie. Un archivo faltante
+no corta la afiliación que ya cubre hoy. El aviso distingue a quien todavía
+no está afiliado (“Falta el DNI para afiliarte”) de quien ya tiene cobertura
+(“Falta el DNI en tu legajo”: la afiliación sigue vigente). Si el frente y el
+dorso ya están y la persona es menor, el aviso dice que falta la autorización
+del tutor, no el DNI. Un PDF de más de 200 KB se rechaza en la pantalla y en
+la API, sea DNI o certificado.
+
+Al subir el último archivo obligatorio con el checkout abierto, Afiliación
+avisa “Ya podés pagar la afiliación.” y baja hasta el cobro. Si el checkout
+está cerrado, el DNI se pide igual y el pago queda anunciado como próximo.
+
+La constancia de afiliación se emite solo si la afiliación está vigente hoy,
+en el día de Argentina. Quien está vigente la pide debajo de la card: la card
+es para compartir y la constancia se imprime desde el navegador.
+`GET /api/athletes/me/membership-certificate` devuelve nombre, documento, número
+de socio, vigencia y la URL del QR que el atleta ya tiene. No crea otro token.
+Cada emisión queda en `domain_audit_logs` con la acción
+`membership_certificate.issued`. La consulta pública de ese QR no muestra el
+documento.
+
 ### Inscripción
 
 `borrador` → `pendiente_pago` → `pagada` → `confirmada` | `observada` | `cancelada`
@@ -26,6 +128,54 @@
 ### Pago
 
 `creado` → `pendiente` → `aprobado` | `rechazado` | `cancelado` | `reembolsado`
+
+## Divisiones y modalidades de una inscripción
+
+Una inscripción sigue siendo **una fila por atleta y evento** (check-in, grilla y
+cupo dependen de `unique (event_id, athlete_id)`); competir en dos divisiones no
+abre una segunda fila.
+
+- **División de edad + Open.** Todos pueden anotarse en Open; el resto depende de
+  la edad al día del evento (PLU §1.3). Se puede competir en las dos:
+  `division` es la que paga el **100%** (la de la franja de edad, u Open si es la
+  única) y `secondary_division` (siempre `Open`) paga el **50%**. Quien ya está en
+  Open por edad no tiene segunda división.
+- **Precio.** `priceRegistrationSelection` (`shared/registrationSelection.js`),
+  por categoría: base + 50% si suma Open + 50% por cada modalidad extra, todos
+  sobre la base (se suman, no se componen); en Submission se repite por cada
+  categoría. Aplica sobre cada precio —lista y manual— y la ruta lo manda como
+  `defaultPrice` / `manualPrice`; la base lo fija en la misma transacción que crea
+  la orden. Wise suma los recargos sobre su importe en USD. El combo suma los
+  recargos cotizados sobre la inscripción suelta. Un cupón porcentual se calcula
+  sobre el total con recargos; un cupón de **precio fijo** cobra su precio fijo
+  (no suma recargos).
+  Ejemplo con base $100.000: Junior + Full Power = $100.000; + Open = $150.000;
+  + Open + Banco = $200.000; Full Power + Banco + Sentadilla = $200.000.
+- **Modalidad** (`modalities`): `full_power` (marcada por defecto en el
+  checkout), `push_pull`, `squat`, `bench`, `deadlift` (especialistas), en
+  cualquier combinación. **La primera va incluida y cada una más suma el 50%**
+  (decisión de oct 2026; antes no tenía recargo). Solo se rechaza lo
+  redundante: Push-Pull ya incluye banco y peso muerto. Sin el campo, la API
+  responde 422 `MODALITY_REQUIRED`. «Categoría de competencia» es el
+  equipamiento (Raw, Single-Ply…); «Modalidad», lo que levanta.
+- **Qué ofrece cada evento.** `rules.offering = { categories?, divisions?, modalities? }`
+  (RPC `staff_merge_event_offering`, después del upsert; el panel lo edita en
+  Datos → «Qué se compite»). Ausente = ofrece todo, así los eventos existentes no
+  cambian y lo nuevo del catálogo se ofrece por defecto; solo se guardan las
+  listas que restringen algo. Open no se puede apagar. El formulario de
+  inscripción solo lista lo que el evento ofrece y la API rechaza lo demás
+  (`OFFERING_*_UNAVAILABLE`, 422). Si la división por edad del atleta no se
+  ofrece, queda solo Open.
+- **Máximo total.** Cada inscripción nueva declara un solo número, entre 10 y
+  2.000 kg: el máximo en competencia, o el máximo entrenando si es el primer
+  torneo (`is_first_meet`). Queda en la inscripción (para tandas y planilla) y
+  se copia al perfil sin borrar el otro total. Las inscripciones anteriores
+  quedan en null. La planilla puede corregir «Primer torneo» y «Máximo total».
+- **Dónde se valida.** La API es la autoridad (`DIVISION_AGE_MISMATCH`,
+  `MODALITY_*`, 422); el formulario solo previsualiza.
+- **Exportaciones.** El export admin agrega `segunda_division` y `modalidades`.
+  El export de lifters (LiftingCast) no cambió: no se sabe cómo espera
+  LiftingCast un atleta en dos divisiones.
 
 ## Precios
 
@@ -179,6 +329,15 @@ La regla de consumo también pertenece al tipo: puede ser **un ingreso total**
 en cualquiera de sus jornadas o **un ingreso por jornada asignada**. En ambos
 casos se conserva la misma credencial QR; no se emite un QR distinto por fecha.
 
+Ver el pase y entrar por la puerta son dos relojes. Cada evento define
+`ticket_reveal_lead_minutes` (24 horas por defecto, 0 para mostrar el QR al
+acreditar). El comprador ve el QR y el código de puerta recién en
+`valid_from` menos esa anticipación. Hasta entonces la API pública, Mis
+entradas y el mail de confirmación no entregan ni el token ni el código. El
+mail con el PNG sale cuando la ventana abre. La puerta no se adelanta: el
+scan sigue exigiendo `valid_from` / `valid_until`. El panel y Seguridad ven
+el QR siempre. La credencial de atleta no usa esta reserva.
+
 El límite superior siempre es exclusivo. Los cambios de política se aplican al
 tipo de entrada y se reflejan al próximo escaneo; la auditoría conserva la
 ventana efectiva y la jornada de cada ingreso. La duración relativa se cuenta
@@ -250,10 +409,48 @@ Reglas:
   rol. Super Admin, Administrador y cualquier rol global con ese permiso pueden
   operar cualquier evento. Una cuenta con evento asignado sólo puede operar ese
   evento, tanto en la interfaz como en la API.
+- El rol de sistema **Organizador** (`organizador_evento`) es una cuenta por
+  evento: su `AccessRole.scope = event` (con fallback legacy por clave) limita
+  la operación a los grants de `UserEventAccess`. Al invitar o al pasar a ese
+  rol, PLU debe autorizar al menos un evento en el mismo acto (desde Usuarios o
+  desde el workspace del evento). Al ingresar, la cuenta entra a un shell
+  exclusivo (sin menú global del admin). La API vuelve a validar el alcance con
+  `eventScope`. El lote de cambio de rol no admite Organizador.
+- El rol de sistema **Coordinador de seguridad** (`coordinador_seguridad`)
+  también es por evento, con `baseRole` `operador_plu_arg` para no mezclarse
+  con las cuentas de puerta. Puede leer sus eventos, armar el equipo y las
+  zonas, ver quién compró y el QR, escanear, habilitar o rechazar una orden
+  de **entradas** de ese evento (`admin.tickets.enable`) y dejar una vigencia
+  individual para que el mismo QR siga abriendo. No cobra afiliaciones,
+  inscripciones, tienda ni el libro de caja, no edita el evento y no
+  administra usuarios globales. Las cuentas que da de alta siguen siendo
+  `seguridad_plu_arg` atadas a ese evento. El lote de cambio de rol tampoco
+  lo admite.
+- La puerta (`seguridad_plu_arg`) escanea, habilita esas mismas órdenes de
+  entradas y puede forzar **este** ingreso de una entrada ya paga que está
+  fuera de vigencia o de zona (`admin.checkin.override`), con motivo. Ese
+  ingreso queda en la telemetría y en la auditoría como excepción. No
+  reescribe la vigencia ni la zona de la credencial, y no cobra el resto.
 - Toda ruta sensible valida permisos en Express aunque la navegación no muestre
   el módulo.
 - Si una matriz personalizada deja de coincidir con un rol base, no se emite un
   token Supabase privilegiado que pueda eludir la autorización de Express.
+
+## Cobros: borrar una orden que no se cobró
+
+`staff_delete_athlete_payment_order` (permiso `admin.payments.approve`, motivo
+obligatorio) da de baja una fila de Cobros. **Nunca** borra plata:
+
+- `PLU31` orden cobrada/reembolsada, o combo financiado con derechos otorgados;
+- `PLU32` comprobante adjunto (primero va a la papelera);
+- `PLU33` pago declarado en una orden abierta;
+- `PLU34` intento de pasarela en vuelo;
+- `PLU35` movimientos en el libro de pagos o suscripción: queda como historial.
+
+Una orden abierta se cancela antes (cupón devuelto, inscripción liberada) y recién
+después se borra. Queda `payment_order.deleted` en la auditoría con quién, por qué
+y una foto de la orden. Hoy cubre las órdenes de atleta (afiliación, inscripción,
+combo); las de entradas y tienda no.
 
 ## Libro de caja
 
@@ -300,15 +497,21 @@ ventana abierta y cupo disponible. La afiliación activa vigente **no** es
 condición para crear ni pagar la inscripción: puede quedar pendiente en
 paralelo. Si el evento tiene `requires_membership`, el **check-in en puerta**
 sí exige afiliación activa y vigente; sin ese requisito, la inscripción
-confirmada alcanza para ingresar.
+confirmada alcanza para ingresar. La card del perfil, Mi QR, la página que
+abre el QR y la lista de check-in usan esa misma condición: una persona no
+puede figurar habilitada en una superficie y bloqueada en otra. Quien ya
+tiene afiliación vigente carga el DNI en el perfil, sin volver a pagar.
+Quien ya está inscripto y tiene código de credencial abre esa misma credencial desde el torneo: el botón nombra el evento y Mi QR muestra esa inscripción. Sin código, la fila no abre una credencial vacía. El QR de la persona se lee igual si el lector devuelve la URL, el token pelado, mayúsculas o un espacio de más. La puerta busca ese token en el evento que está acreditando, no en un evento viejo que haya quedado en el enlace. Un competidor
+entra cada día del torneo, una sola vez por día calendario de Argentina; el
+día en que levanta no le cierra el otro.
 
 Los pagos de Mercado Pago se acreditan únicamente por webhook firmado o por
 conciliación server-side. Finanzas puede aprobar solamente métodos manuales.
 
 Transferencia y Wise exigen comprobante por defecto. Finanzas puede acreditar
 sin archivo solo con un **motivo de override** (≥ 8 caracteres) que queda en
-`domain_audit_logs` (`overrideWithoutProof` + `overrideReason`). El efectivo en
-Pitbull (`cash_pitbull`) sigue sin exigir archivo porque la evidencia es el
+`domain_audit_logs` (`overrideWithoutProof` + `overrideReason`). El efectivo en el
+lugar (`cash_pitbull`, se cobra en la sede del evento) sigue sin exigir archivo porque la evidencia es el
 cobro presencial. Force-settle de órdenes perdidas del proveedor **sigue**
 exigiendo comprobante adjunto.
 

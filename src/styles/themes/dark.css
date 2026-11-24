@@ -64,6 +64,13 @@
   --theme-atmosphere-layer:
     var(--theme-atmosphere-vignette), var(--theme-atmosphere-satin),
     var(--theme-atmosphere-wash-celeste), var(--theme-atmosphere-wash-gold);
+  /* Papel del tema claro. Vive en :root (no solo en light) para que el cruce
+     de tema interpole la opacidad de .app-shell::after y no el background-image. */
+  --theme-paper-wash: radial-gradient(
+    ellipse 84% 46% at 92% -6%,
+    color-mix(in srgb, var(--plu-gold-600) 8%, transparent),
+    transparent 62%
+  );
   --theme-atmosphere-wash-celeste-admin: radial-gradient(
     ellipse 90% 55% at 8% -4%,
     color-mix(in srgb, var(--plu-celeste-400) 3%, transparent),

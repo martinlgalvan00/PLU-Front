@@ -1,3 +1,5 @@
+import { registrationDeclaredTotalView } from '../../../shared/declaredMeetTotal.js'
+import { formatModalities } from '../../../shared/registrationSelection.js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
@@ -8,6 +10,7 @@ import {
   MessageSquare,
   PencilLine,
   Trash2,
+  Upload,
   Users,
 } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
@@ -19,19 +22,22 @@ import AdminBulkRegistrationStatusDialog from '../../components/admin/AdminBulkR
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminPaymentReconciliationAlert from '../../components/admin/AdminPaymentReconciliationAlert.jsx'
 import AdminScheduleAssigner from '../../components/admin/AdminScheduleAssigner.jsx'
-import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
 import PaymentRecoveryAction from '../../components/admin/PaymentRecoveryAction.jsx'
 import PaymentValidationAction from '../../components/admin/PaymentValidationAction.jsx'
+import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
 import {
   AdminActionOverflow,
   AdminIdentityCell,
   AdminPaymentCell,
+  AdminProofCell,
   AdminTableActions,
   AdminTableActionsEmpty,
 } from '../../components/admin/AdminTableCells.jsx'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import { EntitlementStateCell } from '../../components/admin/AdminStateCell.jsx'
 import ExportButton from '../../components/ui/ExportButton.jsx'
+import RegistrationSheetImportDialog from '../../components/admin/RegistrationSheetImportDialog.jsx'
+import { downloadRegistrationSheet } from '../../services/registrationSheetService.js'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
@@ -40,7 +46,11 @@ import { getRegistrationsTourSteps } from '../../lib/adminTourSteps.js'
 import { useEventSchedule } from '../../hooks/useEventSchedule.js'
 import { ATHLETE_FILTER_STATUSES, REGISTRATION_FILTER_STATUSES } from '../../lib/constants.js'
 import { EMPTY_DATE_RANGE } from '../../lib/adminDateRangeFilter.js'
-import { formatScheduleSummary } from '../../lib/eventSchedule.js'
+import {
+  formatScheduleDate,
+  formatScheduleSummary,
+  hasScheduledDay,
+} from '../../lib/eventSchedule.js'
 import { money } from '../../lib/format.js'
 import {
   createRegistrationPaymentIndex,
@@ -48,8 +58,10 @@ import {
   resolveRegistrationPayment,
 } from '../../services/registrationAdminService.js'
 import {
+  buildPaymentValidationItem,
   canForceSettleOrder,
   canApproveManualOrder,
+  describePaymentProof,
   isManualOrder,
   isOpenOrder,
 } from '../../services/paymentValidationService.js'
@@ -59,16 +71,113 @@ import {
 } from '../../services/platformSettingsAdminService.js'
 import { isPlaceholderReason, resolveStateBacking } from '../../services/stateCoherenceService.js'
 import { notifyError as toastError, notifySuccess as toastSuccess } from '../../lib/adminToast.js'
-import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 import {
+  buildAdminDivisionOptions,
   buildAdminFacetOptions,
 } from '../../lib/adminPeopleFilters.js'
+import {
+  matchesRegistrationEventFilter,
+  registrationEventFilterKey,
+} from '../../lib/athleteEventStatus.js'
+import { ageOnDate, todayCalendarDate } from '../../../shared/ageDivision.js'
+import { normalizeGender } from '../../../shared/competitionLexicon.js'
+import { formatDeclaredBodyWeight, formatExportDateDmy } from '../../../shared/exportRows.js'
+import {
+  LIFTERS_COLUMNS,
+  classifyLifterExportRow,
+  filterLiftersRowsByCompleteness,
+  liftersImportColumnsMissing,
+  liftersRowsForSpreadsheet,
+  resolveLiftersColumnKeys,
+  summarizeLifterMeet,
+  validateLifterExport,
+} from '../../../shared/liftersExport.js'
+import {
+  competitionBodyweight,
+  competitionWeightClass,
+  getWeightClassWarning,
+  suggestWeightClass,
+  weightClassLabelsForSex,
+} from '../../../shared/pluWeightClasses.js'
+import {
+  correctOfficialWeightClass,
+  correctRegistrationWeightClass,
+  correctRegistrationsWeightClass,
+  recordRegistrationWeighIn,
+  setEventRosterFrozen,
+} from '../../services/athleteApi.js'
+import {
+  loadLiftersExportStudioOptions,
+  saveLiftersExportStudioOptions,
+} from '../../lib/liftersExportStudio.js'
 
 // Fallback estable para cuando no llega la prop (Storybook, tests) — evita
 // tener que null-check `gatePendingIds` en cada lugar que lo usa.
 const EMPTY_GATE_PENDING_IDS = new Set()
 /** Con un solo evento el filtro no decide nada. Select nativo recién con muchos. */
-const EVENT_FILTER_CHIP_MAX = 8
+function editStamp(actor, at) {
+  const email = String(actor ?? '').includes(':')
+    ? String(actor).split(':').slice(1).join(':')
+    : String(actor ?? '')
+  const match = String(at ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/)
+  const date = match ? `${match[3]}/${match[2]}/${match[1]}` : ''
+  return [email, date].filter(Boolean).join(' · ')
+}
+
+function registrationMeet(registration) {
+  const bodyweight = formatDeclaredBodyWeight(
+    registration.bodyweight ?? registration.athlete?.estimatedWeight,
+  )
+  const weighInBodyweight = formatDeclaredBodyWeight(registration.weighInBodyweight)
+  const declaredClass = String(registration.declaredWeightClass ?? '').trim()
+  const officialClass = String(registration.officialWeightClass ?? '').trim()
+  const weightClass = competitionWeightClass(registration)
+  const competitionKg = formatDeclaredBodyWeight(competitionBodyweight(registration)) || bodyweight
+  const sheetRow = {
+    name: registration.athlete?.fullName ?? '',
+    gender: normalizeGender(registration.athlete?.sex),
+    rawOrEquipped: registration.category ?? '',
+    division: registration.division ?? '',
+    declaredAwardsWeightClass: weightClass,
+    bodyWeight: competitionKg,
+    birthDate: formatExportDateDmy(registration.athlete?.birthDate),
+    squatOpener: '',
+    benchOpener: '',
+    deadliftOpener: '',
+    _meta: {
+      athleteId: registration.athleteId ?? null,
+      bodyweightSource: weighInBodyweight ? 'weigh-in' : 'declared',
+      declaredWeightClass: declaredClass,
+      officialWeightClass: officialClass,
+      weighInBodyweight,
+      rosterFrozen: Boolean(registration.rosterFrozenAt),
+    },
+  }
+  return {
+    sex: registration.athlete?.sex ?? '',
+    age: ageOnDate(
+      registration.athlete?.birthDate,
+      registration.eventStartsAt || todayCalendarDate(),
+    ),
+    equipment: registration.category ?? '',
+    division: registration.division ?? '',
+    bodyweight,
+    weighInBodyweight,
+    declaredClass,
+    officialClass,
+    weightClass,
+    suggestedClass: suggestWeightClass(registration.athlete?.sex, weighInBodyweight || bodyweight),
+    rosterFrozen: Boolean(registration.rosterFrozenAt),
+    declaredStamp: editStamp(registration.declaredWeightClassSetBy, registration.declaredWeightClassSetAt),
+    officialStamp: editStamp(registration.officialWeightClassSetBy, registration.officialWeightClassSetAt),
+    weighInStamp: editStamp(registration.weighInRecordedBy, registration.weighInRecordedAt),
+    declaredTotal: registrationDeclaredTotalView(registration),
+    warning: getWeightClassWarning(competitionKg, weightClass, {
+      source: weighInBodyweight ? 'weigh-in' : 'declared',
+    }),
+    exportStatus: classifyLifterExportRow(sheetRow),
+  }
+}
 
 function formatRegistrationWeight(registration) {
   const raw = registration.bodyweight ?? registration.athlete?.estimatedWeight ?? null
@@ -96,9 +205,11 @@ function canValidateRegistrationPayment(row, canValidatePayments) {
  * El caso "el pago figura cancelado pero la plata entró": revalidar aplica a
  * cualquier orden de Mercado Pago sin importar el permiso (no acredita nada
  * por sí sola); acreditar a mano exige el mismo permiso que en Finanzas.
+ * Con el pago ya aprobado no hay nada que recuperar: ofrecerlo era ruido en
+ * cada fila sana y la acción que el operador más necesita quedaba debajo.
  */
 function canRecoverRegistrationPayment(row, canForceSettle) {
-  if (!row.payment) return false
+  if (!row.payment || row.payment.status === 'aprobado') return false
   return row.payment.method === 'mercado_pago' || (canForceSettle && canForceSettleOrder(row.payment))
 }
 
@@ -123,6 +234,36 @@ function buildRegistrationFilterCounts(registrations, resolvePayment, gatePendin
   return { statusCounts, affiliationCounts }
 }
 
+function liftersScopeSlug(value) {
+  const slug = String(value ?? '').trim()
+  return slug && slug !== 'all' ? slug : null
+}
+
+const LIFTERS_COLUMN_GROUPS = [
+  ['identity', ['name', 'team', 'gender', 'birthDate', 'memberNumber']],
+  ['session', ['lot', 'platform', 'session', 'flight']],
+  ['class', ['rawOrEquipped', 'division', 'declaredAwardsWeightClass', 'bodyWeight']],
+  ['lifts', ['squatOpener', 'benchOpener', 'deadliftOpener', 'squatRackHeight', 'benchRackHeight', 'deadliftRackHeight']],
+  ['contact', ['country', 'state', 'instagram', 'notes']],
+]
+
+/**
+ * "Raw · Junior + Open · Full Power + Banco": categoría, divisiones y, solo si no
+ * es la modalidad de siempre, las modalidades del torneo.
+ */
+function registrationEntryLabel(reg) {
+  const divisions = [reg.division, reg.secondaryDivision].filter(Boolean).join(' + ')
+  const modalities = reg.modalities ?? []
+  const customModalities =
+    modalities.length > 0 && !(modalities.length === 1 && modalities[0] === 'full_power')
+  return [
+    `${reg.category} · ${divisions}`,
+    customModalities ? formatModalities(modalities) : '',
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
+
 export default function RegistrationsSection({
   canAssignSchedule = false,
   canEdit,
@@ -139,6 +280,9 @@ export default function RegistrationsSection({
   onRejectPayment,
   onExportAdmin,
   onExportPluUsa,
+  onExportLifters,
+  onFetchLiftersReadiness,
+  onNotifyAthletesIncomplete,
   onGoToEvents,
   onRefreshAthleteData,
   onScheduleAssigned,
@@ -166,6 +310,8 @@ export default function RegistrationsSection({
   const hasAnyRegistrationEditCapability =
     canSetStatus || canValidatePayments || canForceSettle || canManageVisibility || canDelete
   const [selectedIds, setSelectedIds] = useState(() => new Set())
+  const [sheetImportOpen, setSheetImportOpen] = useState(false)
+  const [sheetExporting, setSheetExporting] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteError, setDeleteError] = useState('')
   const [deleting, setDeleting] = useState(false)
@@ -182,7 +328,68 @@ export default function RegistrationsSection({
   const [bulkStatusError, setBulkStatusError] = useState('')
   const [savingBulkStatus, setSavingBulkStatus] = useState(false)
   const [validationEnabled, setValidationEnabled] = useState(true)
-  const { views: savedViews, saveView, removeView } = useAdminSavedFilterViews('registrations')
+  const [proofTarget, setProofTarget] = useState(null)
+  const [liftersOpen, setLiftersOpen] = useState(false)
+  const [liftersLoading, setLiftersLoading] = useState(false)
+  const [liftersNotifying, setLiftersNotifying] = useState(false)
+  const [liftersReadiness, setLiftersReadiness] = useState(null)
+  const [liftersError, setLiftersError] = useState('')
+  const [liftersStudio, setLiftersStudio] = useState(() => loadLiftersExportStudioOptions())
+  const [liftersEventSlug, setLiftersEventSlug] = useState('all')
+  const [liftersSheetRows, setLiftersSheetRows] = useState([])
+  const [classEdit, setClassEdit] = useState(null)
+  const [classEditMode, setClassEditMode] = useState('declared')
+  const [classEditValue, setClassEditValue] = useState('')
+  const [bulkClassOpen, setBulkClassOpen] = useState(false)
+  const [bulkClassValue, setBulkClassValue] = useState('')
+  const [bulkClassError, setBulkClassError] = useState('')
+  const [savingBulkClass, setSavingBulkClass] = useState(false)
+  const [freezingRoster, setFreezingRoster] = useState(false)
+  const [rosterError, setRosterError] = useState('')
+  const [classEditError, setClassEditError] = useState('')
+  const [savingClass, setSavingClass] = useState(false)
+
+  const updateLiftersStudio = useCallback((patch) => {
+    setLiftersStudio((prev) => {
+      const next = { ...prev, ...patch }
+      if ('preset' in patch && !('columns' in patch)) next.columns = null
+      return saveLiftersExportStudioOptions(next)
+    })
+  }, [])
+
+  const liftersSelectedColumns = useMemo(
+    () => resolveLiftersColumnKeys(liftersStudio),
+    [liftersStudio],
+  )
+
+  const toggleLiftersColumn = useCallback((key) => {
+    setLiftersStudio((prev) => {
+      const current = resolveLiftersColumnKeys(prev)
+      if (current.includes(key) && current.length === 1) return prev
+      const selected = new Set(current)
+      if (selected.has(key)) selected.delete(key)
+      else selected.add(key)
+      const columns = LIFTERS_COLUMNS.map((column) => column.key).filter((item) => selected.has(item))
+      return saveLiftersExportStudioOptions({ ...prev, columns })
+    })
+  }, [])
+
+  const liftersPreview = useMemo(() => {
+    if (!liftersReadiness) return null
+    const total = liftersReadiness.total ?? 0
+    const incomplete = liftersReadiness.incomplete ?? 0
+    const complete = liftersReadiness.complete ?? Math.max(0, total - incomplete)
+    const rowCount =
+      liftersStudio.rowFilter === 'complete'
+        ? complete
+        : liftersStudio.rowFilter === 'incomplete'
+          ? incomplete
+          : total
+    return {
+      rowCount,
+      columnCount: resolveLiftersColumnKeys(liftersStudio).length,
+    }
+  }, [liftersReadiness, liftersStudio])
 
   useEffect(() => {
     startTour('admin-registrations', getRegistrationsTourSteps(t))
@@ -234,9 +441,18 @@ export default function RegistrationsSection({
     [paymentIndex],
   )
 
+  // Las pestañas de estado cuentan dentro del evento elegido: con "Todos 12"
+  // frente a una lista de 4 filas el número no coincidía con lo que se ve.
   const { statusCounts, affiliationCounts } = useMemo(
-    () => buildRegistrationFilterCounts(enrichedAdminRegistrations, resolvePayment, gatePendingIds),
-    [enrichedAdminRegistrations, resolvePayment, gatePendingIds],
+    () =>
+      buildRegistrationFilterCounts(
+        enrichedAdminRegistrations.filter((registration) =>
+          matchesRegistrationEventFilter(registration, filters.event),
+        ),
+        resolvePayment,
+        gatePendingIds,
+      ),
+    [enrichedAdminRegistrations, filters.event, resolvePayment, gatePendingIds],
   )
 
   const statusOptions = useMemo(
@@ -268,30 +484,108 @@ export default function RegistrationsSection({
   )
   const divisionOptions = useMemo(
     () =>
-      buildAdminFacetOptions(
-        enrichedAdminRegistrations,
-        (registration) => registration.division,
-        t('admin.filters.allDivisions'),
-      ),
+      buildAdminDivisionOptions(enrichedAdminRegistrations, t('admin.filters.allDivisions')),
     [enrichedAdminRegistrations, t],
   )
   const eventOptions = useMemo(() => {
     const counts = new Map()
     for (const registration of enrichedAdminRegistrations) {
-      if (!registration.event) continue
-      counts.set(registration.event, (counts.get(registration.event) ?? 0) + 1)
+      const key = registrationEventFilterKey(registration)
+      if (!key) continue
+      const label = String(registration.event ?? key).trim() || key
+      const current = counts.get(key)
+      counts.set(key, {
+        label: current?.label ?? label,
+        count: (current?.count ?? 0) + 1,
+      })
     }
-    const names = [...counts.keys()].sort((left, right) => left.localeCompare(right))
+    const entries = [...counts.entries()].sort(([, left], [, right]) =>
+      left.label.localeCompare(right.label, 'es'),
+    )
     return [
       ['all', t('admin.filters.allEvents'), enrichedAdminRegistrations.length],
-      ...names.map((event) => [event, event, counts.get(event) ?? 0]),
+      ...entries.map(([value, entry]) => [value, entry.label, entry.count]),
     ]
   }, [enrichedAdminRegistrations, t])
+  const liftersEventLabel = useMemo(() => {
+    const selected = liftersEventSlug && liftersEventSlug !== 'all' ? liftersEventSlug : 'all'
+    const match = eventOptions.find((option) => option[0] === selected)
+    return match?.[1] ?? t('admin.filters.allEvents')
+  }, [eventOptions, liftersEventSlug, t])
+
+  const loadLiftersReadiness = useCallback(
+    async (nextSlug) => {
+      const slug = nextSlug && nextSlug !== 'all' ? nextSlug : 'all'
+      setLiftersEventSlug(slug)
+      setLiftersOpen(true)
+      setLiftersLoading(true)
+      setLiftersError('')
+      const result = await onFetchLiftersReadiness?.({ eventSlug: liftersScopeSlug(slug) })
+      setLiftersLoading(false)
+      if (result?.error) {
+        setLiftersError(result.error)
+        setLiftersReadiness(null)
+        return
+      }
+      setLiftersReadiness(result?.readiness ?? null)
+      setLiftersSheetRows(result?.rows ?? [])
+    },
+    [onFetchLiftersReadiness],
+  )
+
+  const liftersFileCheck = useMemo(() => {
+    const filtered = filterLiftersRowsByCompleteness(liftersSheetRows, liftersStudio.rowFilter)
+    if (!liftersSheetRows.length) return null
+    return validateLifterExport(filtered)
+  }, [liftersSheetRows, liftersStudio.rowFilter])
+
+  const liftersMeetSummary = useMemo(() => {
+    const filtered = filterLiftersRowsByCompleteness(liftersSheetRows, liftersStudio.rowFilter)
+    if (!filtered.length) return null
+    return summarizeLifterMeet(filtered)
+  }, [liftersSheetRows, liftersStudio.rowFilter])
+
+  const liftersImportBlocked = liftersImportColumnsMissing(liftersStudio)
+
+  const liftersFilePreview = useMemo(() => {
+    const keys = resolveLiftersColumnKeys(liftersStudio)
+    const filtered = filterLiftersRowsByCompleteness(liftersSheetRows, liftersStudio.rowFilter)
+    return {
+      columns: keys,
+      rows: liftersRowsForSpreadsheet(filtered, keys).slice(0, 5),
+    }
+  }, [liftersSheetRows, liftersStudio])
+
+  const sheetEventSlug = filters.event && filters.event !== 'all' ? filters.event : null
+
+  /** Planilla .xlsx de lo que muestra la tabla (con sus filtros). */
+  async function exportRegistrationSheet() {
+    if (!filteredRegistrations.length) {
+      toastError(t('admin.registrationSheet.exportEmpty'))
+      return
+    }
+    setSheetExporting(true)
+    try {
+      const result = await downloadRegistrationSheet({
+        registrations: filteredRegistrations,
+        athletes,
+        payments,
+        scope: sheetEventSlug ?? '',
+      })
+      if (result.ok) toastSuccess(t('admin.registrationSheet.exportDone', { count: result.rows }))
+    } catch (error) {
+      console.warn('No se pudo generar la planilla de inscripciones.', error)
+      toastError(t('admin.registrationSheet.exportError'))
+    } finally {
+      setSheetExporting(false)
+    }
+  }
 
   const registrationRows = useMemo(
     () =>
       filteredRegistrations.map((reg) => {
         const payment = resolvePayment(reg)
+        const meet = registrationMeet(reg)
         return {
           id: reg.id,
           athlete: reg.athlete?.fullName,
@@ -301,8 +595,9 @@ export default function RegistrationsSection({
           photoUrl: reg.athlete?.photoUrl ?? null,
           event: reg.event,
           eventSlug: reg.eventSlug ?? null,
-          category: `${reg.category} · ${reg.division}`,
+          category: registrationEntryLabel(reg),
           bodyweight: formatRegistrationWeight(reg),
+          meet,
           publicVisible: reg.publicVisible !== false,
           schedule: reg.schedule ?? null,
           status: reg.status,
@@ -319,6 +614,8 @@ export default function RegistrationsSection({
           paymentMethod: payment?.method,
           amount: payment ? money(payment.amount) : '—',
           paymentId: payment?.id,
+          // Qué mostrar en la columna de comprobante, sin abrir nada.
+          proof: describePaymentProof(payment),
           // La orden completa: el diálogo de validación necesita comprobante,
           // canal y notas, no sólo el id y el estado.
           payment: payment ?? null,
@@ -334,6 +631,15 @@ export default function RegistrationsSection({
     () => registrationRows.filter((row) => selectedIds.has(row.id)),
     [registrationRows, selectedIds],
   )
+
+  const bulkClassLabels = useMemo(() => {
+    if (!visibleSelectedRows.length || visibleSelectedRows.some((row) => !row.meet?.sex)) return []
+    const lists = [...new Set(visibleSelectedRows.map((row) => row.meet.sex))].map((sex) =>
+      weightClassLabelsForSex(sex),
+    )
+    return lists.reduce((shared, list) => shared.filter((label) => list.includes(label)))
+  }, [visibleSelectedRows])
+  const selectedRosterFrozen = visibleSelectedRows.some((row) => row.meet?.rosterFrozen)
 
   const selectedEventSlugs = useMemo(
     () => new Set(visibleSelectedRows.map((row) => row.eventSlug).filter(Boolean)),
@@ -619,6 +925,7 @@ export default function RegistrationsSection({
   }
 
   const eventCount = Math.max(0, eventOptions.length - 1)
+  const singleEventScope = Boolean(filters.event && filters.event !== 'all')
   const eventFilter =
     eventCount <= 1
       ? null
@@ -628,7 +935,10 @@ export default function RegistrationsSection({
           value: filters.event ?? 'all',
           onChange: handleEventChange,
           options: eventOptions,
-          variant: eventCount > EVENT_FILTER_CHIP_MAX ? 'select' : undefined,
+          // Siempre a la vista junto al buscador: decide qué filas ve y qué
+          // exporta quien opera varios meets a la vez.
+          surface: 'scope',
+          variant: 'select',
           showLabel: true,
         }
   const affiliationFilter = {
@@ -668,95 +978,8 @@ export default function RegistrationsSection({
     advanced: true,
   }
 
-  const savedViewSnapshot = useMemo(
-    () => ({
-      event: filters.event ?? 'all',
-      status: filters.status ?? 'all',
-      affiliationStatus: filters.affiliationStatus ?? 'all',
-      gym: filters.gym ?? 'all',
-      division: filters.division ?? 'all',
-      query: filters.query ?? '',
-      createdAtRange: {
-        from: createdAtRange.from ?? '',
-        to: createdAtRange.to ?? '',
-      },
-    }),
-    [
-      filters.event,
-      filters.status,
-      filters.affiliationStatus,
-      filters.gym,
-      filters.division,
-      filters.query,
-      createdAtRange,
-    ],
-  )
-  const activeSavedView = useMemo(
-    () => findMatchingView(savedViews, savedViewSnapshot),
-    [savedViews, savedViewSnapshot],
-  )
-  const hasFiltersToSave =
-    savedViewSnapshot.event !== 'all' ||
-    savedViewSnapshot.status !== 'all' ||
-    savedViewSnapshot.affiliationStatus !== 'all' ||
-    savedViewSnapshot.gym !== 'all' ||
-    savedViewSnapshot.division !== 'all' ||
-    savedViewSnapshot.query.trim() !== '' ||
-    Boolean(savedViewSnapshot.createdAtRange.from) ||
-    Boolean(savedViewSnapshot.createdAtRange.to)
-
-  function formatDateForSummary(isoDate) {
-    return new Date(`${isoDate}T00:00:00`).toLocaleDateString('es-AR')
-  }
-
-  // Resumen legible de filtros activos para el popover
-  const filterSummary = useMemo(() => {
-    const items = []
-    if (savedViewSnapshot.query.trim()) items.push({ label: 'Búsqueda', value: savedViewSnapshot.query.trim() })
-    if (savedViewSnapshot.event !== 'all') items.push({ label: t('admin.filters.event'), value: savedViewSnapshot.event })
-    if (savedViewSnapshot.status !== 'all') {
-      const opt = statusOptions.find(([v]) => v === savedViewSnapshot.status)
-      if (opt) items.push({ label: t('admin.filters.status'), value: opt[1] })
-    }
-    if (savedViewSnapshot.affiliationStatus !== 'all') {
-      const opt = affiliationOptions.find(([v]) => v === savedViewSnapshot.affiliationStatus)
-      if (opt) items.push({ label: t('admin.filters.affiliation'), value: opt[1] })
-    }
-    if (savedViewSnapshot.gym !== 'all') {
-      const opt = gymOptions.find(([v]) => v === savedViewSnapshot.gym)
-      if (opt) items.push({ label: t('admin.filters.gym'), value: opt[1] })
-    }
-    if (savedViewSnapshot.division !== 'all') {
-      const opt = divisionOptions.find(([v]) => v === savedViewSnapshot.division)
-      if (opt) items.push({ label: t('admin.filters.division'), value: opt[1] })
-    }
-    const range = savedViewSnapshot.createdAtRange
-    if (range.from || range.to) {
-      const value =
-        range.from && range.to
-          ? `${formatDateForSummary(range.from)} – ${formatDateForSummary(range.to)}`
-          : range.from
-            ? t('admin.filters.registeredAtFrom', { date: formatDateForSummary(range.from) })
-            : t('admin.filters.registeredAtTo', { date: formatDateForSummary(range.to) })
-      items.push({ label: t('admin.filters.registrationDate'), value })
-    }
-    return items
-  }, [savedViewSnapshot, statusOptions, affiliationOptions, gymOptions, divisionOptions, t])
-
-  function applySavedView(view) {
-    const snapshot = view.snapshot ?? {}
-    onSetFilters((current) => ({
-      ...current,
-      ...snapshot,
-      createdAtRange: {
-        from: snapshot.createdAtRange?.from ?? '',
-        to: snapshot.createdAtRange?.to ?? '',
-      },
-    }))
-  }
-
   // En la card compacta las secundarias van al menú “más”: el footer no
-  // puede ser una franja de 44px. Validar/recuperar quedan a la vista.
+  // puede ser una franja de 44px. Validar queda a la vista.
   function renderRowActions(row, { compact = false } = {}) {
     const canValidate = canValidateRegistrationPayment(row, canValidatePayments)
     const canRecover = canRecoverRegistrationPayment(row, canForceSettle)
@@ -764,35 +987,33 @@ export default function RegistrationsSection({
       canValidate || canRecover || canManageVisibility || canSetStatus || canDelete
     if (!hasActions) return compact ? null : <AdminTableActionsEmpty />
 
-    const paymentActions = [
-      canValidate ? (
-        <PaymentValidationAction
-          key="validate"
-          athlete={{ fullName: row.athlete, documentId: row.document }}
-          detail={[row.event, row.category].filter(Boolean).join(' · ')}
-          disabled={!validationEnabled || !canApproveManualOrder(row.payment)}
-          label={
-            validationEnabled
-              ? t('admin.actions.validate')
-              : t('admin.athletePayments.validationPaused')
-          }
-          onApprove={handleApprovePayment}
-          onReject={onRejectPayment}
-          order={row.payment}
-        />
-      ) : null,
-      canRecover ? (
-        <PaymentRecoveryAction
-          key="recover"
-          athlete={{ fullName: row.athlete, documentId: row.document }}
-          canForceSettle={canForceSettle}
-          detail={[row.event, row.category].filter(Boolean).join(' · ')}
-          onForceSettlePayment={onForceSettlePayment}
-          onRefreshAthleteData={onRefreshAthleteData}
-          order={row.payment}
-        />
-      ) : null,
-    ].filter(Boolean)
+    const validateAction = canValidate ? (
+      <PaymentValidationAction
+        key="validate"
+        athlete={{ fullName: row.athlete, documentId: row.document }}
+        detail={[row.event, row.category].filter(Boolean).join(' · ')}
+        disabled={!validationEnabled || !canApproveManualOrder(row.payment)}
+        label={
+          validationEnabled
+            ? t('admin.actions.validate')
+            : t('admin.athletePayments.validationPaused')
+        }
+        onApprove={handleApprovePayment}
+        onReject={onRejectPayment}
+        order={row.payment}
+      />
+    ) : null
+    const recoverAction = canRecover ? (
+      <PaymentRecoveryAction
+        key="recover"
+        athlete={{ fullName: row.athlete, documentId: row.document }}
+        canForceSettle={canForceSettle}
+        detail={[row.event, row.category].filter(Boolean).join(' · ')}
+        onForceSettlePayment={onForceSettlePayment}
+        onRefreshAthleteData={onRefreshAthleteData}
+        order={row.payment}
+      />
+    ) : null
 
     const secondary = [
       <AdminIconButton
@@ -856,11 +1077,15 @@ export default function RegistrationsSection({
       ) : null,
     ].filter(Boolean)
 
-    // Una acción a la vista (validar/recuperar, o la primera secundaria) y el
-    // resto en el menú "más", también en escritorio: una fila con cuatro
-    // íconos sueltos se leía como una barra de herramientas por cada atleta.
-    const primaryActions = paymentActions.length > 0 ? paymentActions : secondary.slice(0, 1)
-    const overflowActions = paymentActions.length > 0 ? secondary : secondary.slice(1)
+    // Una acción a la vista (validar, o la primera secundaria) y el resto en el
+    // menú "más", también en escritorio: una fila con cuatro íconos sueltos se
+    // leía como una barra de herramientas por cada atleta. Recuperar un pago va
+    // siempre al menú — son hasta tres botones y solo aplican a pagos caídos.
+    const primaryActions = validateAction ? [validateAction] : secondary.slice(0, 1)
+    const overflowActions = [
+      ...(validateAction ? secondary : secondary.slice(1)),
+      recoverAction,
+    ].filter(Boolean)
 
     return (
       <AdminTableActions onClick={(event) => event.stopPropagation()}>
@@ -880,6 +1105,415 @@ export default function RegistrationsSection({
         entries={unreconciledPayments}
         onSelectAthlete={onSelectAthlete}
       />
+      {liftersOpen ? (
+        <div
+          className="admin-lifters-export"
+          role="region"
+          aria-label={t('admin.actions.exportLifters')}
+        >
+          <div className="admin-lifters-export__head">
+            <div className="admin-lifters-export__head-copy">
+              <strong className="admin-lifters-export__title">{t('admin.liftersExport.title')}</strong>
+              <label className="admin-lifters-export__field admin-lifters-export__event-field">
+                <span>{t('admin.liftersExport.eventLabel')}</span>
+                <select
+                  value={liftersEventSlug}
+                  disabled={liftersLoading}
+                  onChange={(event) => {
+                    void loadLiftersReadiness(event.target.value)
+                  }}
+                >
+                  {eventOptions.map(([value, label, count]) => (
+                    <option key={value} value={value}>
+                      {value === 'all' || count == null ? label : `${label} (${count})`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {liftersEventSlug === 'all' ? (
+                <p className="admin-lifters-export__mixed">{t('admin.liftersExport.mixedEvents')}</p>
+              ) : null}
+            </div>
+            <Button type="button" variant="ghost" onClick={() => setLiftersOpen(false)}>
+              {t('admin.liftersExport.close')}
+            </Button>
+          </div>
+          <ol className="admin-lifters-export__steps">
+            <li className="admin-lifters-export__step">
+              <div>
+                <h3>{t('admin.liftersExport.steps.review')}</h3>
+                {liftersReadiness ? (
+                  <p className="admin-lifters-export__meta" role="status">
+                    {t('admin.liftersExport.summary', {
+                      complete: liftersReadiness.complete,
+                      total: liftersReadiness.total,
+                      incomplete: liftersReadiness.incomplete,
+                    })}
+                    {(liftersReadiness.divisionOpenUpgrade ?? 0) > 0
+                      ? ` · ${t('admin.liftersExport.openUpgradeCount', {
+                          count: liftersReadiness.divisionOpenUpgrade,
+                        })}`
+                      : ''}
+                    {(liftersReadiness.divisionMismatch ?? 0) > 0 ? (
+                      <span className="admin-lifters-export__meta-alert">
+                        {` · ${t('admin.liftersExport.divisionMismatchLead', {
+                          count: liftersReadiness.divisionMismatch,
+                        })}`}
+                      </span>
+                    ) : null}
+                  </p>
+                ) : null}
+                {liftersLoading ? (
+                  <p className="admin-lifters-export__status">{t('admin.liftersExport.loading')}</p>
+                ) : null}
+                {liftersError ? (
+                  <p className="admin-lifters-export__error" role="alert">
+                    {liftersError}
+                  </p>
+                ) : null}
+                {liftersReadiness?.incomplete > 0 ? (
+                  <div className="admin-lifters-export__grid">
+                    <div className="admin-lifters-export__gaps">
+                      <h4>{t('admin.liftersExport.gapsTitle')}</h4>
+                      <ol className="admin-lifters-export__gap-list">
+                        {(liftersReadiness.topGaps ?? liftersReadiness.fieldGaps ?? [])
+                          .slice(0, 5)
+                          .map((gap) => (
+                            <li key={gap.field}>
+                              <span>{t(`admin.liftersExport.fields.${gap.field}`)}</span>
+                        <span>
+                          {t('admin.liftersExport.gapCount', {
+                            count: gap.count,
+                            total: liftersReadiness.total,
+                          })}
+                        </span>
+                            </li>
+                          ))}
+                      </ol>
+                    </div>
+                    <div className="admin-lifters-export__athletes">
+                      <h4>{t('admin.liftersExport.athletesTitle')}</h4>
+                      <ul className="admin-lifters-export__list">
+                        {liftersReadiness.athletes.slice(0, 6).map((row) => {
+                          const contact = row.phone || row.email || ''
+                          return (
+                          <li key={row.athleteId}>
+                            <span className="admin-lifters-export__who">
+                              <button
+                                type="button"
+                                className="admin-empty__text-link"
+                                onClick={() => onSelectAthlete?.(row.athleteId)}
+                              >
+                                {row.name || row.athleteId}
+                              </button>
+                              {contact ? (
+                                <span className="admin-lifters-export__contact">{contact}</span>
+                              ) : null}
+                            </span>
+                            <span className="admin-lifters-export__missing">
+                              {(row.missing ?? [])
+                                .slice(0, 3)
+                                .map((field) => t(`admin.liftersExport.fields.${field}`))
+                                .join(' · ')}
+                              {(row.missing?.length ?? 0) > 3
+                                ? ` +${row.missing.length - 3}`
+                              : ''}
+                          </span>
+                          </li>
+                          )
+                        })}
+                      </ul>
+                      {liftersReadiness.athletes.length > 6 ? (
+                        <p className="admin-lifters-export__more">
+                          {t('admin.liftersExport.more', {
+                            count: liftersReadiness.athletes.length - 6,
+                          })}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : liftersReadiness ? (
+                  <p className="admin-lifters-export__ready">{t('admin.liftersExport.allComplete')}</p>
+                ) : null}
+              </div>
+            </li>
+            <li className="admin-lifters-export__step">
+              <div>
+                <h3>{t('admin.liftersExport.steps.build')}</h3>
+          <div className="admin-lifters-export__studio">
+            <div className="admin-lifters-export__studio-grid">
+              <label className="admin-lifters-export__field">
+                <span>{t('admin.liftersExport.presetLabel')}</span>
+                <select
+                  value={liftersStudio.preset}
+                  onChange={(event) => updateLiftersStudio({ preset: event.target.value })}
+                >
+                  <option value="audit">{t('admin.liftersExport.presets.audit')}</option>
+                  <option value="official">{t('admin.liftersExport.presets.official')}</option>
+                  <option value="minimal">{t('admin.liftersExport.presets.minimal')}</option>
+                  <option value="contact">{t('admin.liftersExport.presets.contact')}</option>
+                </select>
+              </label>
+              <label className="admin-lifters-export__field">
+                <span>{t('admin.liftersExport.rowFilterLabel')}</span>
+                <select
+                  value={liftersStudio.rowFilter}
+                  onChange={(event) => updateLiftersStudio({ rowFilter: event.target.value })}
+                >
+                  <option value="all">{t('admin.liftersExport.rowFilters.all')}</option>
+                  <option value="complete">{t('admin.liftersExport.rowFilters.complete')}</option>
+                  <option value="incomplete">
+                    {t('admin.liftersExport.rowFilters.incomplete')}
+                  </option>
+                </select>
+              </label>
+              <label className="admin-lifters-export__check">
+                <input
+                  type="checkbox"
+                  checked={liftersStudio.highlightEmpty}
+                  onChange={(event) =>
+                    updateLiftersStudio({ highlightEmpty: event.target.checked })
+                  }
+                />
+                <span>{t('admin.liftersExport.highlightEmpty')}</span>
+              </label>
+              <label className="admin-lifters-export__check">
+                <input
+                  type="checkbox"
+                  checked={liftersStudio.freezeHeader}
+                  onChange={(event) =>
+                    updateLiftersStudio({ freezeHeader: event.target.checked })
+                  }
+                />
+                <span>{t('admin.liftersExport.freezeHeader')}</span>
+              </label>
+              <label className="admin-lifters-export__check">
+                <input
+                  type="checkbox"
+                  checked={liftersStudio.includeSummarySheet}
+                  onChange={(event) =>
+                    updateLiftersStudio({ includeSummarySheet: event.target.checked })
+                  }
+                />
+                <span>{t('admin.liftersExport.includeSummarySheet')}</span>
+              </label>
+            </div>
+            <fieldset className="admin-lifters-export__columns">
+              <legend>{t('admin.liftersExport.columnPicker')}</legend>
+              {LIFTERS_COLUMN_GROUPS.map(([group, keys]) => (
+                <div key={group} className="admin-lifters-export__column-group">
+                  <span>{t(`admin.liftersExport.columnGroups.${group}`)}</span>
+                  <div>
+                    {keys.map((key) => (
+                      <label key={key} className="admin-lifters-export__check">
+                        <input
+                          type="checkbox"
+                          checked={liftersSelectedColumns.includes(key)}
+                          onChange={() => toggleLiftersColumn(key)}
+                        />
+                        <span>{t(`admin.liftersExport.sheetColumns.${key}`)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </fieldset>
+            {liftersSelectedColumns.length < LIFTERS_COLUMNS.length ? (
+              <p className="admin-lifters-export__hint">{t('admin.liftersExport.importColumnsHint')}</p>
+            ) : null}
+            {liftersPreview ? (
+              <p className="admin-lifters-export__preview">
+                {t('admin.liftersExport.preview', {
+                  rows: liftersPreview.rowCount,
+                  columns: liftersPreview.columnCount,
+                })}
+              </p>
+            ) : null}
+            {liftersFilePreview.rows.length ? (
+              <div className="admin-lifters-export__file">
+                <h4>{t('admin.liftersExport.filePreview')}</h4>
+                <div className="admin-lifters-export__file-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        {liftersFilePreview.columns.map((key) => {
+                          const header =
+                            LIFTERS_COLUMNS.find((column) => column.key === key)?.header ?? key
+                          return (
+                            <th key={key} scope="col" title={header}>
+                              {t(`admin.liftersExport.sheetColumns.${key}`)}
+                            </th>
+                          )
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {liftersFilePreview.rows.map((previewRow, index) => (
+                        <tr key={`${previewRow.name ?? 'row'}-${index}`}>
+                          {liftersFilePreview.columns.map((key) => {
+                            const header =
+                              LIFTERS_COLUMNS.find((column) => column.key === key)?.header ?? key
+                            const value = previewRow[header]
+                            const empty = value == null || String(value).trim() === ''
+                            return (
+                              <td key={key} className={empty ? 'is-empty' : undefined}>
+                                {empty ? '—' : value}
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="admin-lifters-export__hint">{t('admin.liftersExport.fileClassHint')}</p>
+              </div>
+            ) : null}
+              </div>
+              </div>
+            </li>
+            <li className="admin-lifters-export__step">
+              <div>
+                <h3>{t('admin.liftersExport.steps.deliver')}</h3>
+            {liftersImportBlocked ? (
+              <p className="admin-lifters-export__hint" role="alert">
+                {t('admin.liftersExport.importColumnsBlocked')}
+              </p>
+            ) : null}
+            {liftersMeetSummary ? (
+              <div className="admin-lifters-export__brief">
+                <p>
+                  {t('admin.liftersExport.meetSummary', {
+                    classes: liftersMeetSummary.classGroups.length,
+                    small: liftersMeetSummary.smallClasses.length,
+                    mismatches: liftersMeetSummary.mismatches.length,
+                    missingWeighIn: liftersMeetSummary.missingWeighIn.length,
+                  })}
+                </p>
+                {liftersMeetSummary.smallClasses.length ? (
+                  <ul className="admin-lifters-export__roster">
+                    {liftersMeetSummary.smallClasses.slice(0, 6).map((group) => (
+                      <li key={`${group.gender}-${group.division}-${group.equipment}-${group.weightClass}`}>
+                        <span>
+                          {[group.gender, group.division, group.equipment].filter(Boolean).join(' · ')}
+                        </span>
+                        <span>
+                          {group.weightClass} kg · {group.count}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {liftersMeetSummary.smallClasses.length > 6 ? (
+                  <p className="admin-lifters-export__more">
+                    {t('admin.liftersExport.more', {
+                      count: liftersMeetSummary.smallClasses.length - 6,
+                    })}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            {liftersFileCheck ? (
+              <p className="admin-lifters-export__preview" role="status">
+                {t('admin.liftersExport.exportSummary', {
+                  total: liftersFileCheck.total,
+                  ready: liftersFileCheck.ready,
+                  warnings: liftersFileCheck.warnings,
+                  errors: liftersFileCheck.errors,
+                })}
+              </p>
+            ) : null}
+            {liftersFileCheck && !liftersFileCheck.valid ? (
+              <div className="admin-lifters-export__brief admin-lifters-export__brief--alert" role="alert">
+                <p>{t('admin.liftersExport.exportBlocked')}</p>
+                <ul className="admin-lifters-export__roster">
+                  {liftersFileCheck.issues.slice(0, 8).map((issue) => (
+                    <li key={`${issue.athleteId}-${issue.field}`}>
+                      <span>{issue.athleteName || issue.athleteId}</span>
+                      <span>{issue.message}</span>
+                    </li>
+                  ))}
+                </ul>
+                {liftersFileCheck.issues.length > 8 ? (
+                  <p className="admin-lifters-export__more">
+                    {t('admin.liftersExport.more', { count: liftersFileCheck.issues.length - 8 })}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            {liftersFileCheck?.valid && liftersFileCheck.warnings > 0 ? (
+              <p className="admin-lifters-export__hint">{t('admin.liftersExport.exportWarningsOk')}</p>
+            ) : null}
+            <div className="admin-lifters-export__actions">
+            <Button
+              type="button"
+              variant="primary"
+              disabled={
+                liftersLoading ||
+                !onExportLifters ||
+                (liftersPreview != null && liftersPreview.rowCount === 0) ||
+                (liftersFileCheck != null && !liftersFileCheck.valid) ||
+                liftersImportBlocked
+              }
+              onClick={() =>
+                onExportLifters?.({
+                  eventSlug: liftersScopeSlug(liftersEventSlug),
+                  options: liftersStudio,
+                })
+              }
+            >
+              {liftersScopeSlug(liftersEventSlug)
+                ? t('admin.liftersExport.downloadEvent', { event: liftersEventLabel })
+                : t('admin.liftersExport.download')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={
+                liftersLoading ||
+                liftersNotifying ||
+                !onNotifyAthletesIncomplete ||
+                !liftersReadiness?.incomplete
+              }
+              onClick={async () => {
+                const ids = (liftersReadiness?.athletes ?? []).map((row) => row.athleteId)
+                if (!ids.length) return
+                const topFields = (liftersReadiness.topGaps ?? liftersReadiness.fieldGaps ?? [])
+                  .slice(0, 4)
+                  .map((gap) => t(`admin.liftersExport.fields.${gap.field}`))
+                  .join(', ')
+                const message = topFields
+                  ? t('admin.liftersExport.notifyPresetWithGaps', { fields: topFields })
+                  : t('admin.liftersExport.notifyPreset')
+                setLiftersNotifying(true)
+                try {
+                  const result = await onNotifyAthletesIncomplete(ids, message)
+                  toastSuccess(
+                    t('admin.liftersExport.notifyDone', {
+                      sent: result?.sent?.length ?? 0,
+                      skipped: result?.skipped?.length ?? 0,
+                    }),
+                  )
+                } catch (error) {
+                  toastError(error?.message ?? t('admin.liftersExport.notifyError'))
+                } finally {
+                  setLiftersNotifying(false)
+                }
+              }}
+            >
+              {liftersNotifying
+                ? t('admin.liftersExport.notifying')
+                : t('admin.liftersExport.notify')}
+            </Button>
+            </div>
+            {liftersReadiness?.incomplete > 0 ? (
+              <p className="admin-lifters-export__hint">{t('admin.liftersExport.notifyHint')}</p>
+            ) : null}
+              </div>
+            </li>
+          </ol>
+        </div>
+      ) : null}
       {!validationEnabled ? (
         <div className="admin-payments-ops-callout" role="status">
           <AlertTriangle size={16} aria-hidden />
@@ -910,16 +1544,62 @@ export default function RegistrationsSection({
           isGloballyEmpty ? null : (
             <>
               <ExportButton
+                label={t('admin.registrationSheet.export')}
+                ariaLabel={t('admin.registrationSheet.exportAria', {
+                  count: filteredRegistrations.length,
+                })}
+                onClick={() => void exportRegistrationSheet()}
+                disabled={sheetExporting || filteredRegistrations.length === 0}
+              />
+              {canSetStatus ? (
+                <button
+                  type="button"
+                  className="export-btn export-btn--default"
+                  aria-label={t('admin.registrationSheet.importAria')}
+                  title={t('admin.registrationSheet.importAria')}
+                  onClick={() => setSheetImportOpen(true)}
+                >
+                  <Upload size={16} aria-hidden />
+                  <span className="export-btn__label">{t('admin.registrationSheet.import')}</span>
+                </button>
+              ) : null}
+              <ExportButton
                 label={t('admin.actions.exportCsvShort')}
-                ariaLabel={t('admin.actions.exportCsvAdmin')}
-                onClick={onExportAdmin}
+                ariaLabel={
+                  filters.event && filters.event !== 'all'
+                    ? t('admin.actions.exportCsvAdminFiltered')
+                    : t('admin.actions.exportCsvAdmin')
+                }
+                onClick={() =>
+                  onExportAdmin?.({
+                    eventSlug:
+                      filters.event && filters.event !== 'all' ? filters.event : null,
+                  })
+                }
                 disabled={!canEdit}
               />
               <ExportButton
                 label={t('admin.actions.exportPluUsaShort')}
-                ariaLabel={t('admin.actions.exportPluUsa')}
-                onClick={onExportPluUsa}
+                ariaLabel={
+                  filters.event && filters.event !== 'all'
+                    ? t('admin.actions.exportPluUsaFiltered')
+                    : t('admin.actions.exportPluUsa')
+                }
+                onClick={() =>
+                  onExportPluUsa?.({
+                    eventSlug:
+                      filters.event && filters.event !== 'all' ? filters.event : null,
+                  })
+                }
                 variant="gold"
+              />
+              <ExportButton
+                label={t('admin.actions.exportLiftersShort')}
+                ariaLabel={t('admin.actions.exportLifters')}
+                onClick={() => {
+                  const eventSlug = filters.event && filters.event !== 'all' ? filters.event : 'all'
+                  void loadLiftersReadiness(eventSlug)
+                }}
               />
             </>
           )
@@ -944,25 +1624,6 @@ export default function RegistrationsSection({
               ].filter(Boolean)
         }
         onQueryChange={handleQueryChange}
-        beforeFilters={
-          isGloballyEmpty ? null : (
-          <AdminSavedViews
-              views={savedViews}
-              activeViewId={activeSavedView?.id ?? null}
-              allLabel={t('admin.savedViews.all')}
-              caption={t('admin.savedViews.caption')}
-              addLabel={t('admin.savedViews.add')}
-              namePlaceholder={t('admin.savedViews.namePlaceholder')}
-              removeAriaLabel={(label) => t('admin.savedViews.remove', { label })}
-              canSave={hasFiltersToSave && !activeSavedView}
-              filterSummary={filterSummary}
-              onApply={applySavedView}
-              onClear={handleClearFilters}
-              onSave={(label) => saveView(label, savedViewSnapshot)}
-              onRemove={removeView}
-            />
-          )
-        }
       >
         {isGloballyEmpty ? (
           <div className="admin-empty admin-empty--registrations">
@@ -1004,29 +1665,44 @@ export default function RegistrationsSection({
                 selectedCount={visibleSelectedRows.length}
                 targetEventName={visibleSelectedRows[0]?.event ?? ''}
                 extraAction={
-                  canSetStatus && onBulkSetRegistrationStatus ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="btn--small"
-                      onClick={() => {
-                        setBulkStatusError('')
-                        setBulkStatusOpen(true)
-                      }}
-                    >
-                      <Users size={14} aria-hidden />
-                      {t('admin.registrationBulkStatus.action')}
-                    </Button>
-                  ) : null
+                  <>
+                    {canSetStatus && onBulkSetRegistrationStatus ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="btn--small"
+                        onClick={() => {
+                          setBulkStatusError('')
+                          setBulkStatusOpen(true)
+                        }}
+                      >
+                        <Users size={14} aria-hidden />
+                        {t('admin.registrationBulkStatus.action')}
+                      </Button>
+                    ) : null}
+                    {canEdit ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="btn--small"
+                        disabled={selectedRosterFrozen}
+                        onClick={() => {
+                          setBulkClassError(
+                            selectedRosterFrozen ? t('admin.liftersExport.rosterFrozen') : '',
+                          )
+                          setBulkClassOpen(true)
+                        }}
+                      >
+                        {t('admin.liftersExport.bulkWeightClass')}
+                      </Button>
+                    ) : null}
+                  </>
                 }
               />
             )}
             {/* Sin permiso de grilla no hay barra de arriba que lleve la
                 cuenta de la selección -- esta es la única, no una segunda. */}
-            {!canAssignSchedule &&
-            canSetStatus &&
-            onBulkSetRegistrationStatus &&
-            visibleSelectedRows.length > 0 ? (
+            {!canAssignSchedule && canEdit && visibleSelectedRows.length > 0 ? (
               <div
                 className="admin-bulk-status-bar"
                 role="region"
@@ -1036,17 +1712,77 @@ export default function RegistrationsSection({
                   <Users size={15} aria-hidden />
                   {t('admin.schedule.selectedCount', { count: visibleSelectedRows.length })}
                 </span>
+                {canSetStatus && onBulkSetRegistrationStatus ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="btn--small"
+                    onClick={() => {
+                      setBulkStatusError('')
+                      setBulkStatusOpen(true)
+                    }}
+                  >
+                    {t('admin.registrationBulkStatus.action')}
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   variant="secondary"
                   className="btn--small"
+                  disabled={selectedRosterFrozen}
                   onClick={() => {
-                    setBulkStatusError('')
-                    setBulkStatusOpen(true)
+                    setBulkClassError(selectedRosterFrozen ? t('admin.liftersExport.rosterFrozen') : '')
+                    setBulkClassOpen(true)
                   }}
                 >
-                  {t('admin.registrationBulkStatus.action')}
+                  {t('admin.liftersExport.bulkWeightClass')}
                 </Button>
+              </div>
+            ) : null}
+            {canEdit && filters.event && filters.event !== 'all' ? (
+              <div className="admin-lifters-export__hint" role="status">
+                <p>
+                  {registrations.some(
+                    (row) =>
+                      registrationEventFilterKey(row) === filters.event && row.rosterFrozenAt,
+                  )
+                    ? t('admin.liftersExport.rosterFrozen')
+                    : t('admin.liftersExport.rosterOpen')}
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="btn--small"
+                  disabled={freezingRoster}
+                  onClick={async () => {
+                    const frozen = registrations.some(
+                      (row) =>
+                        registrationEventFilterKey(row) === filters.event && row.rosterFrozenAt,
+                    )
+                    setFreezingRoster(true)
+                    setRosterError('')
+                    try {
+                      await setEventRosterFrozen(filters.event, !frozen)
+                      await onRefreshAthleteData?.()
+                    } catch (error) {
+                      setRosterError(error?.message ?? t('admin.liftersExport.rosterSaveError'))
+                    } finally {
+                      setFreezingRoster(false)
+                    }
+                  }}
+                >
+                  {registrations.some(
+                    (row) =>
+                      registrationEventFilterKey(row) === filters.event && row.rosterFrozenAt,
+                  )
+                    ? t('admin.liftersExport.reopenRoster')
+                    : t('admin.liftersExport.freezeRoster')}
+                </Button>
+                {rosterError ? (
+                  <p className="admin-lifters-export__error" role="alert">
+                    {rosterError}
+                  </p>
+                ) : null}
               </div>
             ) : null}
             <AdminDataTable
@@ -1054,7 +1790,7 @@ export default function RegistrationsSection({
               density="compact"
               fit
               columns={[
-                ...(canAssignSchedule
+                ...(canAssignSchedule || canEdit
                   ? [
                       {
                         key: 'select',
@@ -1095,6 +1831,12 @@ export default function RegistrationsSection({
                 {
                   key: 'athlete',
                   label: t('admin.columns.athlete'),
+                  // Todas las columnas llevan ancho: la planilla es de layout
+                  // fijo, el sobrante se reparte entre ellas en proporción y la
+                  // suma (~910px) es lo mínimo antes de que se corte la acción.
+                  // Sin ancho, esta absorbía todo (700px para un nombre y un
+                  // gimnasio) y apretaba el resto.
+                  width: 168,
                   mobile: 'primary',
                   sortable: true,
                   render: (row) => (
@@ -1106,24 +1848,168 @@ export default function RegistrationsSection({
                     />
                   ),
                 },
+                // Con un solo evento filtrado el nombre se repite en cada fila: la
+                // columna se va y el espacio vuelve a la competencia.
+                ...(singleEventScope
+                  ? []
+                  : [
+                    {
+                      // Tabla: evento y, debajo, categoría · división · peso. Cards:
+                      // el evento solo; categoría y peso van en sus propias filas.
+                      key: 'event',
+                      label: t('admin.columns.event'),
+                      width: 120,
+                      mobile: 'default',
+                      mobileMeta: 'labeled',
+                      sortable: true,
+                      render: (row) => (
+                        <div className="data-table__stack">
+                          <span className="data-table__stack-main">{row.event}</span>
+                          <span className="data-table__sub">{row.category}</span>
+                        </div>
+                      ),
+                      mobileRender: (row) => row.event,
+                    },
+                  ]),
                 {
-                  // Tabla: evento y, debajo, categoría · división · peso. Cards:
-                  // el evento solo; categoría y peso van en sus propias filas.
-                  key: 'event',
-                  label: t('admin.columns.event'),
-                  width: 220,
+                  key: 'meet',
+                  label: t('admin.liftersExport.meetColumn'),
+                  width: 228,
+                  className: 'data-table__column--meet',
+                  ellipsis: false,
                   mobile: 'default',
                   mobileMeta: 'labeled',
-                  sortable: true,
-                  render: (row) => (
-                    <div className="data-table__stack">
-                      <span className="data-table__stack-main">{row.event}</span>
-                      <span className="data-table__sub">
-                        {[row.category, row.bodyweight].filter(Boolean).join(' · ')}
-                      </span>
-                    </div>
-                  ),
-                  mobileRender: (row) => row.event,
+                  sortable: false,
+                  render: (row) => {
+                    const statusKey =
+                      row.meet.exportStatus === 'READY'
+                        ? 'exportReady'
+                        : row.meet.exportStatus === 'WARNING'
+                          ? 'exportWarning'
+                          : 'exportError'
+                    const identity = [
+                      row.meet.sex,
+                      row.meet.age != null ? String(row.meet.age) : '',
+                      row.meet.division,
+                      row.meet.equipment,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
+                    const competingClass = row.meet.officialClass || row.meet.declaredClass || ''
+                    const declaredTotal = row.meet.declaredTotal
+                    const totalLine = declaredTotal
+                      ? t(
+                          declaredTotal.source === 'training'
+                            ? 'admin.liftersExport.trainingTotalLine'
+                            : 'admin.liftersExport.competitionTotalLine',
+                          { total: formatDeclaredBodyWeight(declaredTotal.kg) },
+                        )
+                      : ''
+                    const weightLine = [
+                      row.meet.bodyweight ? `${row.meet.bodyweight} kg` : '',
+                      row.meet.weighInBodyweight
+                        ? t('admin.liftersExport.weighInShort', { weight: row.meet.weighInBodyweight })
+                        : '',
+                      competingClass ? `${competingClass} kg` : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
+                    const dossier = [
+                      identity,
+                      `${t('admin.liftersExport.bodyweightLabel')}: ${row.meet.bodyweight ? `${row.meet.bodyweight} kg` : '—'}`,
+                      totalLine,
+                      `${t('admin.liftersExport.weighInLabel')}: ${row.meet.weighInBodyweight ? `${row.meet.weighInBodyweight} kg` : '—'}${row.meet.weighInStamp ? ` · ${row.meet.weighInStamp}` : ''}`,
+                      `${t('admin.liftersExport.declaredClassLabel')}: ${row.meet.declaredClass ? `${row.meet.declaredClass} kg` : '—'}`,
+                      `${t('admin.liftersExport.officialClassLabel')}: ${row.meet.officialClass ? `${row.meet.officialClass} kg` : '—'}${row.meet.officialStamp ? ` · ${row.meet.officialStamp}` : ''}`,
+                    ]
+                      .filter(Boolean)
+                      .join('\n')
+                    return (
+                      <div className="admin-meet-facts" title={dossier}>
+                        {identity ? <span className="admin-meet-facts__line">{identity}</span> : null}
+                        {weightLine ? (
+                          <span className="admin-meet-facts__line admin-meet-facts__muted">{weightLine}</span>
+                        ) : null}
+                        {totalLine ? (
+                          <span className="admin-meet-facts__line admin-meet-facts__muted">{totalLine}</span>
+                        ) : null}
+                        {row.meet.suggestedClass && row.meet.suggestedClass !== row.meet.weightClass ? (
+                          <span
+                            className="admin-meet-facts__line admin-meet-facts__warning"
+                            title={t('admin.liftersExport.classSuggestion', {
+                              className: row.meet.suggestedClass,
+                            })}
+                          >
+                            {t('admin.liftersExport.classSuggestionShort', {
+                              className: row.meet.suggestedClass,
+                            })}
+                          </span>
+                        ) : null}
+                        {row.meet.rosterFrozen ? (
+                          <span className="admin-meet-facts__line">{t('admin.liftersExport.rosterFrozenShort')}</span>
+                        ) : null}
+                        {row.meet.warning ? (
+                          <span className="admin-meet-facts__line admin-meet-facts__warning" title={row.meet.warning.message}>
+                            {row.meet.warning.message}
+                          </span>
+                        ) : null}
+                        <span className={`admin-meet-facts__status admin-export-readiness admin-export-readiness--${row.meet.exportStatus.toLowerCase()}`}>
+                          <span className="admin-meet-facts__mark" aria-hidden />
+                          {t(`admin.liftersExport.${statusKey}`)}
+                        </span>
+                        {canEdit ? (
+                          <div className="admin-meet-facts__actions" role="group" aria-label={t('admin.liftersExport.meetActions')}>
+                            {!row.meet.rosterFrozen ? (
+                              <button
+                                type="button"
+                                className="admin-meet-facts__action"
+                                aria-label={t('admin.liftersExport.recordWeighIn')}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  setClassEdit(row)
+                                  setClassEditMode('weigh-in')
+                                  setClassEditValue(row.meet.weighInBodyweight)
+                                  setClassEditError('')
+                                }}
+                              >
+                                {t('admin.liftersExport.weighInStrip')}
+                              </button>
+                            ) : null}
+                            {!row.meet.rosterFrozen ? (
+                              <button
+                                type="button"
+                                className="admin-meet-facts__action"
+                                aria-label={t('admin.liftersExport.editWeightClass')}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  setClassEdit(row)
+                                  setClassEditMode('declared')
+                                  setClassEditValue(row.meet.declaredClass)
+                                  setClassEditError('')
+                                }}
+                              >
+                                {t('admin.liftersExport.declaredStrip')}
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              className="admin-meet-facts__action"
+                              aria-label={t('admin.liftersExport.editOfficialClass')}
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                setClassEdit(row)
+                                setClassEditMode('official')
+                                setClassEditValue(row.meet.officialClass)
+                                setClassEditError('')
+                              }}
+                            >
+                              {t('admin.liftersExport.officialStrip')}
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    )
+                  },
                 },
                 {
                   key: 'category',
@@ -1136,7 +2022,7 @@ export default function RegistrationsSection({
                 },
                 {
                   key: 'bodyweight',
-                  label: t('admin.columns.weight'),
+                  label: t('admin.liftersExport.bodyweightLabel'),
                   cardOnly: true,
                   mobile: 'default',
                   mobileMeta: 'labeled',
@@ -1149,23 +2035,39 @@ export default function RegistrationsSection({
                   // quedan juntas y se ven de un vistazo las que faltan repartir.
                   key: 'schedule',
                   label: t('admin.columns.schedule'),
-                  width: 104,
+                  width: 96,
                   mobile: 'default',
                   mobileMeta: 'labeled',
                   mobileSortable: false,
                   sortable: true,
                   sortAccessor: (row) => formatScheduleSummary(row.schedule, locale),
-                  render: (row) =>
-                    formatScheduleSummary(row.schedule, locale) || (
-                      <span className="admin-muted-text">
-                        {t('admin.schedule.unassignedShort')}
-                      </span>
-                    ),
+                  render: (row) => {
+                    // Día y fecha arriba, tanda abajo: en una sola línea se
+                    // cortaba con puntos suspensivos ("Día 1 · sáb 14 n…").
+                    if (!hasScheduledDay(row.schedule)) {
+                      return (
+                        <span className="admin-muted-text">
+                          {t('admin.schedule.unassignedShort')}
+                        </span>
+                      )
+                    }
+                    const day = [row.schedule.dayLabel, formatScheduleDate(row.schedule, locale)]
+                      .filter(Boolean)
+                      .join(' · ')
+                    return (
+                      <div className="data-table__stack" title={formatScheduleSummary(row.schedule, locale)}>
+                        <span className="data-table__stack-main">{day}</span>
+                        {row.schedule.sessionName ? (
+                          <span className="data-table__sub">{row.schedule.sessionName}</span>
+                        ) : null}
+                      </div>
+                    )
+                  },
                 },
                 {
                   key: 'status',
                   label: t('admin.columns.status'),
-                  width: 164,
+                  width: 152,
                   mobile: 'badge',
                   sortable: true,
                   render: (row) => (
@@ -1175,13 +2077,31 @@ export default function RegistrationsSection({
                 {
                   key: 'payment',
                   label: t('admin.columns.payment'),
-                  width: 132,
+                  width: 136,
                   mobile: 'badge',
                   mobileSortable: false,
                   sortable: true,
                   sortAccessor: (row) => row.amount,
                   render: (row) => (
                     <AdminPaymentCell amount={row.amount} status={row.paymentStatus} />
+                  ),
+                },
+                {
+                  // Siempre a la vista: adjunto (se abre en lectura), efectivo,
+                  // Mercado Pago o "Sin comprobante". Sin precargar binarios.
+                  key: 'proof',
+                  label: t('admin.columns.proof'),
+                  width: 120,
+                  mobile: 'default',
+                  mobileMeta: 'labeled',
+                  mobileSortable: false,
+                  sortable: false,
+                  render: (row) => (
+                    <AdminProofCell
+                      proof={row.proof}
+                      viewLabel={t('admin.registrationProof.viewAria', { name: row.athlete ?? '' })}
+                      onView={() => setProofTarget(row)}
+                    />
                   ),
                 },
                 {
@@ -1204,6 +2124,175 @@ export default function RegistrationsSection({
                 onSelectAthlete ? 'data-table__row--clickable data-table__row--registration' : ''
               }
             />
+            {classEdit ? (
+              <form
+                className="admin-lifters-export admin-class-edit"
+                role="dialog"
+                aria-labelledby="class-edit-title"
+                onSubmit={async (event) => {
+                  event.preventDefault()
+                  setSavingClass(true)
+                  setClassEditError('')
+                  try {
+                    if (classEditMode === 'weigh-in') {
+                      await recordRegistrationWeighIn(
+                        classEdit.id,
+                        classEditValue === '' ? null : Number(String(classEditValue).replace(',', '.')),
+                      )
+                    } else if (classEditMode === 'official') {
+                      await correctOfficialWeightClass(classEdit.id, classEditValue)
+                    } else {
+                      await correctRegistrationWeightClass(classEdit.id, classEditValue)
+                    }
+                    await onRefreshAthleteData?.()
+                    setClassEdit(null)
+                    toastSuccess(t('admin.liftersExport.classSaved'))
+                  } catch (error) {
+                    setClassEditError(error?.message ?? t('admin.liftersExport.classSaveError'))
+                  } finally {
+                    setSavingClass(false)
+                  }
+                }}
+              >
+                <h3 id="class-edit-title">
+                  {classEditMode === 'weigh-in'
+                    ? t('admin.liftersExport.recordWeighIn')
+                    : classEditMode === 'official'
+                      ? t('admin.liftersExport.editOfficialClass')
+                      : t('admin.liftersExport.editWeightClass')}
+                </h3>
+                <p>
+                  {classEdit.athlete} · {t('admin.liftersExport.bodyweightLabel')}:{' '}
+                  {classEdit.meet.bodyweight ? `${classEdit.meet.bodyweight} kg` : '—'}
+                </p>
+                {classEditMode === 'weigh-in' ? (
+                  <label className="admin-lifters-export__field">
+                    <span>{t('admin.liftersExport.weighInLabel')}</span>
+                    <input
+                      inputMode="decimal"
+                      value={classEditValue}
+                      onChange={(event) => setClassEditValue(event.target.value)}
+                      required
+                    />
+                  </label>
+                ) : (
+                <label className="admin-lifters-export__field">
+                  <span>
+                    {classEditMode === 'official'
+                      ? t('admin.liftersExport.officialClassLabel')
+                      : t('admin.liftersExport.declaredClassLabel')}
+                  </span>
+                  <select
+                    value={classEditValue}
+                    onChange={(event) => setClassEditValue(event.target.value)}
+                    required={classEditMode !== 'official'}
+                  >
+                    <option value="">
+                      {classEditMode === 'official'
+                        ? t('admin.liftersExport.clearOfficialClass')
+                        : t('admin.liftersExport.chooseClass')}
+                    </option>
+                    {weightClassLabelsForSex(classEdit.meet.sex).map((label) => (
+                      <option key={label} value={label}>
+                        {label} kg
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                )}
+                {classEditError ? (
+                  <p className="admin-lifters-export__error" role="alert">
+                    {classEditError}
+                  </p>
+                ) : null}
+                <div className="admin-lifters-export__actions">
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={savingClass || (classEditMode !== 'official' && !classEditValue)}
+                  >
+                    {savingClass
+                      ? t('admin.liftersExport.classSaving')
+                      : t('admin.liftersExport.classSave')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={savingClass}
+                    onClick={() => setClassEdit(null)}
+                  >
+                    {t('admin.liftersExport.close')}
+                  </Button>
+                </div>
+              </form>
+            ) : null}
+            {bulkClassOpen ? (
+              <form
+                className="admin-lifters-export admin-class-edit"
+                onSubmit={async (event) => {
+                  event.preventDefault()
+                  setSavingBulkClass(true)
+                  setBulkClassError('')
+                  try {
+                    await correctRegistrationsWeightClass(
+                      visibleSelectedRows.map((row) => row.id),
+                      bulkClassValue,
+                    )
+                    await onRefreshAthleteData?.()
+                    setBulkClassOpen(false)
+                    setSelectedIds(new Set())
+                    toastSuccess(t('admin.liftersExport.classSaved'))
+                  } catch (error) {
+                    const details = Array.isArray(error?.body?.errors) ? error.body.errors : []
+                    setBulkClassError(
+                      details.length
+                        ? details.map((item) => item.message).join(' ')
+                        : (error?.message ?? t('admin.liftersExport.classSaveError')),
+                    )
+                  } finally {
+                    setSavingBulkClass(false)
+                  }
+                }}
+              >
+                <h3>{t('admin.liftersExport.bulkWeightClass')}</h3>
+                <p>{t('admin.schedule.selectedCount', { count: visibleSelectedRows.length })}</p>
+                <label className="admin-lifters-export__field">
+                  <span>{t('admin.liftersExport.declaredClassLabel')}</span>
+                  <select
+                    value={bulkClassValue}
+                    onChange={(event) => setBulkClassValue(event.target.value)}
+                    required
+                  >
+                    <option value="">{t('admin.liftersExport.chooseClass')}</option>
+                    {bulkClassLabels.map((label) => (
+                      <option key={label} value={label}>
+                        {label} kg
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {bulkClassError ? (
+                  <p className="admin-lifters-export__error" role="alert">
+                    {bulkClassError}
+                  </p>
+                ) : null}
+                <div className="admin-lifters-export__actions">
+                  <Button type="submit" variant="primary" disabled={savingBulkClass || !bulkClassValue}>
+                    {savingBulkClass
+                      ? t('admin.liftersExport.classSaving')
+                      : t('admin.liftersExport.classSave')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={savingBulkClass}
+                    onClick={() => setBulkClassOpen(false)}
+                  >
+                    {t('admin.liftersExport.close')}
+                  </Button>
+                </div>
+              </form>
+            ) : null}
             {deleteTarget ? (
               <AdminDeleteConfirmDialog
                 busy={deleting}
@@ -1235,6 +2324,19 @@ export default function RegistrationsSection({
                         onPreviewRegistrationNotification(statusTarget.id, { type, message })
                     : undefined
                 }
+              />
+            ) : null}
+            {proofTarget?.payment ? (
+              <PaymentValidationDialog
+                item={buildPaymentValidationItem(proofTarget.payment, {
+                  mode: 'view',
+                  athlete: { fullName: proofTarget.athlete, documentId: proofTarget.document },
+                  detail: [proofTarget.event, proofTarget.category].filter(Boolean).join(' · '),
+                  meta: proofTarget.amount,
+                })}
+                mode="view"
+                onCancel={() => setProofTarget(null)}
+                onConfirm={() => {}}
               />
             ) : null}
             {observationsTarget ? (
@@ -1277,6 +2379,19 @@ export default function RegistrationsSection({
           </>
         )}
       </AdminListSection>
+      {sheetImportOpen ? (
+        <RegistrationSheetImportDialog
+          eventSlug={sheetEventSlug}
+          eventLabel={
+            sheetEventSlug
+              ? (filteredRegistrations.find((item) => item.eventSlug === sheetEventSlug)?.event ??
+                sheetEventSlug)
+              : ''
+          }
+          onClose={() => setSheetImportOpen(false)}
+          onApplied={() => void onRefreshAthleteData?.()}
+        />
+      ) : null}
     </>
   )
 }

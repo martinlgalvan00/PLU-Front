@@ -19,6 +19,7 @@ import {
   TICKET_ACCESS_USAGE_MODES,
   isTicketDurationValidityMode,
   summarizeTicketQrValidity,
+  ticketTypeDaysUsagePatch,
   ticketValidityDurationParts,
 } from '../../lib/ticketValidityPolicy.js'
 
@@ -95,6 +96,10 @@ function ticketTypeValidityRowCopy(t, summary) {
       return t('admin.eventEditor.supabase.ticketTypeRowValidityFromFirstScan', {
         duration: formatValidityDuration(t, summary.durationMinutes),
       })
+    case 'first_entry_day':
+      return t('admin.eventEditor.supabase.ticketTypeRowValidityFirstEntryDay', {
+        days: summary.labels.join(' · '),
+      })
     default:
       return t('admin.eventEditor.supabase.ticketTypeRowValidityMissing')
   }
@@ -145,6 +150,14 @@ function ticketTypeValidityPreviewCopy(t, summary) {
       detail: t('admin.eventEditor.supabase.ticketTypeValidityPreviewFromFirstScanDetail'),
     }
   }
+  if (summary.kind === 'first_entry_day') {
+    return {
+      title: t('admin.eventEditor.supabase.ticketTypeValidityPreviewFirstEntryDayTitle', {
+        days: summary.labels.join(' · '),
+      }),
+      detail: t('admin.eventEditor.supabase.ticketTypeValidityPreviewFirstEntryDayDetail'),
+    }
+  }
   if (summary.mode === TICKET_ACCESS_POLICY_MODE.FIXED_WINDOW) {
     return {
       title: t('admin.eventEditor.supabase.ticketTypeValidityPreviewFixedTitle'),
@@ -188,6 +201,9 @@ function ticketTypeValidityNoteKey(mode) {
   if (mode === TICKET_ACCESS_POLICY_MODE.FROM_FIRST_SCAN) {
     return 'admin.eventEditor.supabase.ticketTypeValidityNoteFromFirstScan'
   }
+  if (mode === TICKET_ACCESS_POLICY_MODE.FIRST_ENTRY_DAY) {
+    return 'admin.eventEditor.supabase.ticketTypeValidityNoteFirstEntryDay'
+  }
   return 'admin.eventEditor.supabase.ticketTypeValidityNoteFromPayment'
 }
 
@@ -204,6 +220,15 @@ function nextTicketValidityPatch(validityMode, current) {
       validityDurationMinutes: null,
       validFrom: '',
       validUntil: '',
+    }
+  }
+  if (validityMode === TICKET_ACCESS_POLICY_MODE.FIRST_ENTRY_DAY) {
+    return {
+      validityMode,
+      validityDurationMinutes: null,
+      validFrom: '',
+      validUntil: '',
+      accessUsageMode: TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL,
     }
   }
   if (validityMode === TICKET_ACCESS_POLICY_MODE.FIXED_WINDOW) {
@@ -408,11 +433,12 @@ export default function AdminTicketTypesEditor({
   }
 
   function toggleTicketTypeDay(target, dayIndex) {
-    const currentDays = ticketTypes[target]?.dayIndexes ?? []
+    const type = ticketTypes[target] ?? {}
+    const currentDays = type.dayIndexes ?? []
     const next = currentDays.includes(dayIndex)
       ? currentDays.filter((value) => value !== dayIndex)
       : [...currentDays, dayIndex]
-    patchTicketType(target, { dayIndexes: next })
+    patchTicketType(target, ticketTypeDaysUsagePatch(type, next))
   }
 
   function toggleTicketTypeAddon(target, addonId) {
@@ -694,32 +720,6 @@ export default function AdminTicketTypesEditor({
                   </label>
                 </div>
 
-                <label className="admin-event-form__field admin-ticket-types__description">
-                  <span>{t('admin.eventEditor.supabase.ticketTypeDescription')}</span>
-                  <textarea
-                    disabled={!canEdit}
-                    maxLength={240}
-                    rows={3}
-                    value={current.description ?? ''}
-                    name={`ticketTypes.${index}.description`}
-                    data-field={`ticketTypes.${index}.description`}
-                    aria-invalid={Boolean(errorFor('description'))}
-                    onChange={(event) =>
-                      patchTicketType(index, { description: event.target.value })
-                    }
-                    placeholder={t('admin.eventEditor.supabase.ticketTypeDescriptionPlaceholder')}
-                  />
-                  {errorFor('description') ? (
-                    <small className="admin-event-form__error" role="alert">
-                      {errorFor('description')}
-                    </small>
-                  ) : (
-                    <small className="admin-event-form__field-hint">
-                      {t('admin.eventEditor.supabase.ticketTypeDescriptionHint')}
-                    </small>
-                  )}
-                </label>
-
                 <div className="admin-ticket-types__prices">
                   <span className="admin-ticket-types__days-label">
                     {t('admin.eventEditor.supabase.ticketTypePricesLabel')}
@@ -828,6 +828,41 @@ export default function AdminTicketTypesEditor({
                   ) : null}
                 </div>
 
+                <AdminTicketTypeChannels
+                  canEdit={canEdit}
+                  error={errorFor('paymentChannels')}
+                  eventOverrides={eventPaymentChannelOverrides}
+                  fieldName={`ticketTypes.${index}.paymentChannels`}
+                  value={current.paymentChannels ?? null}
+                  onChange={(paymentChannels) => patchTicketType(index, { paymentChannels })}
+                />
+
+                <label className="admin-event-form__field admin-ticket-types__description">
+                  <span>{t('admin.eventEditor.supabase.ticketTypeDescription')}</span>
+                  <textarea
+                    disabled={!canEdit}
+                    maxLength={240}
+                    rows={3}
+                    value={current.description ?? ''}
+                    name={`ticketTypes.${index}.description`}
+                    data-field={`ticketTypes.${index}.description`}
+                    aria-invalid={Boolean(errorFor('description'))}
+                    onChange={(event) =>
+                      patchTicketType(index, { description: event.target.value })
+                    }
+                    placeholder={t('admin.eventEditor.supabase.ticketTypeDescriptionPlaceholder')}
+                  />
+                  {errorFor('description') ? (
+                    <small className="admin-event-form__error" role="alert">
+                      {errorFor('description')}
+                    </small>
+                  ) : (
+                    <small className="admin-event-form__field-hint">
+                      {t('admin.eventEditor.supabase.ticketTypeDescriptionHint')}
+                    </small>
+                  )}
+                </label>
+
                 <TicketTypeFold
                   key={`window-${index}`}
                   open={windowHasError || undefined}
@@ -882,15 +917,6 @@ export default function AdminTicketTypesEditor({
                     </small>
                   </div>
                 </TicketTypeFold>
-
-                <AdminTicketTypeChannels
-                  canEdit={canEdit}
-                  error={errorFor('paymentChannels')}
-                  eventOverrides={eventPaymentChannelOverrides}
-                  fieldName={`ticketTypes.${index}.paymentChannels`}
-                  value={current.paymentChannels ?? null}
-                  onChange={(paymentChannels) => patchTicketType(index, { paymentChannels })}
-                />
 
                 <TicketTypeFold
                   key={`access-${index}`}

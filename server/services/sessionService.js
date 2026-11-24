@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { getDefaultPermissionsForRole } from '../../src/lib/permissions.js'
+import { getDefaultPermissionsForRole, isEventScopedRole } from '../../src/lib/permissions.js'
 import { staffSessionCache } from '../lib/sessionCache.js'
 import { ACCESS_ROLE_INCLUDE, permissionKeysFromAccessRole } from './accessControlService.js'
 
@@ -154,6 +154,9 @@ export function serializeUser(user) {
   const roleKey = user.accessRole?.key ?? user.role
   const permissions =
     permissionKeysFromAccessRole(user.accessRole) ?? getDefaultPermissionsForRole(roleKey)
+  // Preferir el AccessRole completo (con `scope`); si no hay, la clave legacy.
+  const scopeSubject = user.accessRole ?? roleKey
+  const eventScoped = isEventScopedRole(scopeSubject)
 
   return {
     id: user.id,
@@ -170,6 +173,19 @@ export function serializeUser(user) {
     mustChangePassword: Boolean(user.mustChangePassword),
     eventId: user.eventId ?? null,
     eventSlug: user.eventSlug ?? null,
+    // Rol "por evento": solo opera sobre `eventAccess`. Sale del scope del rol
+    // (columna `AccessRole.scope`, con fallback a la clave). Sin eventos
+    // asignados sigue siendo por evento y no ve nada.
+    scope: eventScoped ? 'event' : 'global',
+    eventScoped,
+    ...(eventScoped
+      ? {
+          eventAccess: (user.eventAccess ?? []).map(({ eventId, eventSlug }) => ({
+            eventId,
+            eventSlug,
+          })),
+        }
+      : {}),
     // Zona del meet a la que está asignada la cuenta de seguridad. El panel la
     // usa para agrupar el equipo por zona; nulo mientras nadie la asignó.
     securityZoneId: user.securityZoneId ?? null,
@@ -233,9 +249,22 @@ export async function readSession({ prisma, token, now = new Date() }) {
     return null
   }
 
+  // Los eventos asignados se leen SOLO para cuentas de rol por evento: el resto del
+  // staff no toca la tabla (y funciona aunque la migración todavía no esté aplicada).
+  const staffUser = session.user
+  if (isEventScopedRole(staffUser.accessRole ?? staffUser.accessRole?.key ?? staffUser.role)) {
+    staffUser.eventAccess =
+      typeof prisma.userEventAccess?.findMany === 'function'
+        ? await prisma.userEventAccess.findMany({
+            where: { userId: staffUser.id },
+            select: { eventId: true, eventSlug: true },
+          })
+        : (staffUser.eventAccess ?? [])
+  }
+
   const resolved = {
     session,
-    user: serializeUser(session.user),
+    user: serializeUser(staffUser),
   }
   // Sólo el resultado positivo: una cookie revocada tiene que volver a
   // consultarse en vez de quedar clavada en "no" por lo que dure el TTL.

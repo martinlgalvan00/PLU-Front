@@ -1,8 +1,8 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import HelpDock from './HelpDock.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useHelp } from '../../providers/HelpProvider.jsx'
-import { isTicketSalesEnabled } from '../../lib/eventPricing.js'
+import { canBuyEventTickets } from '../../lib/eventPublicActions.js'
 import { useAssist } from '../../providers/AssistProvider.jsx'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { isJourneyActionRedundant, resolveAthleteJourney } from '../../lib/athleteJourney.js'
@@ -10,7 +10,9 @@ import { getOrientationTour, getPublicTour } from '../../lib/publicTourSteps.js'
 import { markHomeGuideSeen } from '../../lib/homeGuideStorage.js'
 
 const AssistNavBar = lazy(() => import('../layout/AssistNavBar.jsx'))
-const HelpPanel = lazy(() => import('./HelpPanel.jsx'))
+const HelpPanelPresence = lazy(() =>
+  import('./HelpPanel.jsx').then((module) => ({ default: module.HelpPanelPresence })),
+)
 
 /**
  * Capa de ayuda y navegación asistida de las pantallas públicas y de la cuenta.
@@ -36,6 +38,10 @@ export default function HelpLayer({
 }) {
   const { t } = useI18n()
   const { open, closeHelp, toggleHelp } = useHelp()
+  // Después del primer abierto el panel queda montado para poder salir
+  // animado. Desmontarlo en el mismo click lo cortaba.
+  const [helpMounted, setHelpMounted] = useState(open)
+  if (open && !helpMounted) setHelpMounted(true)
   const { assist } = useAssist()
   const { replayTour, startTour, readTourProgress } = useAdminTour()
 
@@ -101,9 +107,10 @@ export default function HelpLayer({
 
   return (
     <>
-      {open ? (
+      {helpMounted ? (
         <Suspense fallback={null}>
-          <HelpPanel
+          <HelpPanelPresence
+            open={open}
             journey={journey}
             view={view}
             atDestination={isJourneyActionRedundant(journey.next, view)}
@@ -115,7 +122,7 @@ export default function HelpLayer({
             onLogin={() => onNavigate?.('login')}
             onStartTour={tour ? runTour : null}
             onTickets={
-              isTicketSalesEnabled(event)
+              canBuyEventTickets(event)
                 ? () => onNavigate?.('tickets', { eventSlug: event?.slug ?? event?.id })
                 : null
             }

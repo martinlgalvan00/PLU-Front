@@ -38,6 +38,16 @@ function createPrismaDouble(users) {
         if (where.email) return users.find((user) => user.email === where.email) ?? null
         return users.find((user) => user.id === where.id) ?? null
       },
+      findFirst: async ({ where } = {}) =>
+        users.find((user) => {
+          if (where?.eventId && user.eventId !== where.eventId) return false
+          if (where?.eventSlug && user.eventSlug !== where.eventSlug) return false
+          if (where?.role && user.role !== where.role) return false
+          if (where?.securityAccessCode && user.securityAccessCode !== where.securityAccessCode) {
+            return false
+          }
+          return true
+        }) ?? null,
       findMany: async ({ where }) => {
         if (where?.email?.in) return users.filter((user) => where.email.in.includes(user.email))
         return users
@@ -239,7 +249,8 @@ describe('access-link (generación de credencial)', () => {
       const link = await linkResponse.json()
 
       expect(linkResponse.status).toBe(200)
-      expect(link.url).toContain('/evento/pitbull-classic-2026/seguridad?acceso=')
+      expect(link.url).toContain('/evento/pitbull-classic-2026/seguridad?c=')
+      expect(link.code).toMatch(/^[A-HJ-NP-Z2-9]{3}-[A-HJ-NP-Z2-9]{3}$/)
       expect(link.emailed).toBe(false)
       expect(typeof link.token).toBe('string')
 
@@ -250,6 +261,82 @@ describe('access-link (generación de credencial)', () => {
         body: JSON.stringify({ token: link.token }),
       })
       expect(gateResponse.status).toBe(200)
+
+      const byCode = await fetch(`${target.url}/api/auth/security-gate`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ code: link.code, eventSlug: 'pitbull-classic-2026' }),
+      })
+      expect(byCode.status).toBe(200)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('repite la misma credencial hasta que se regenera, y ahí invalida la anterior', async () => {
+    const admin = await buildAdmin()
+    const guard = await buildGuard()
+    const target = listen(createApp({ prisma: createPrismaDouble([admin, guard]), env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url, admin)
+      const issue = async (body) => {
+        const response = await fetch(`${target.url}/api/auth/security-users/${guard.id}/access-link`, {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify(body),
+        })
+        return { status: response.status, body: await response.json() }
+      }
+
+      const first = await issue({ sendEmail: false })
+      const second = await issue({ sendEmail: false })
+      expect(second.status).toBe(200)
+      expect(second.body.code).toBe(first.body.code)
+      expect(second.body.url).toBe(first.body.url)
+
+      const rotated = await issue({ sendEmail: false, rotate: true })
+      expect(rotated.body.code).not.toBe(first.body.code)
+
+      const staleCode = await fetch(`${target.url}/api/auth/security-gate`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ code: first.body.code, eventSlug: 'pitbull-classic-2026' }),
+      })
+      const staleToken = await fetch(`${target.url}/api/auth/security-gate`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ token: first.body.token }),
+      })
+      const freshCode = await fetch(`${target.url}/api/auth/security-gate`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ code: rotated.body.code, eventSlug: 'pitbull-classic-2026' }),
+      })
+
+      expect(staleCode.status).toBe(401)
+      expect(staleToken.status).toBe(401)
+      expect(freshCode.status).toBe(200)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('un código vencido no entra', async () => {
+    const guard = await buildGuard({
+      securityAccessCode: 'AB2-K4M',
+      securityAccessExpiresAt: new Date(Date.now() - 60_000),
+      securityAccessVersion: 1,
+    })
+    const target = listen(createApp({ prisma: createPrismaDouble([guard]), env: ENV }))
+
+    try {
+      const response = await fetch(`${target.url}/api/auth/security-gate`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ code: 'AB2-K4M', eventSlug: 'pitbull-classic-2026' }),
+      })
+      expect(response.status).toBe(401)
     } finally {
       await target.close()
     }
@@ -301,7 +388,7 @@ describe('alta de equipo con acceso personal', () => {
       const body = await response.json()
       expect(response.status).toBe(201)
       expect(body.created).toHaveLength(2)
-      expect(body.created.every((item) => item.accessUrl.includes('?acceso='))).toBe(true)
+      expect(body.created.every((item) => item.accessUrl.includes('?c='))).toBe(true)
       expect(body.created.every((item) => item.expiresAt)).toBe(true)
       expect(body.skipped).toEqual([])
     } finally {
@@ -340,7 +427,7 @@ describe('alta de equipo con acceso personal', () => {
       expect(response.status).toBe(201)
       expect(body).toMatchObject({ reused: true, tempPassword: null })
       expect(body.accessUrl).toMatch(
-        /^http:\/\/localhost:5173\/evento\/pitbull-classic-2026\/seguridad\?acceso=/,
+        /^http:\/\/localhost:5173\/evento\/pitbull-classic-2026\/seguridad\?c=/,
       )
       expect(legacyGuard).toMatchObject({
         status: 'active',

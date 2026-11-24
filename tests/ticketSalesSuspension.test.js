@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_EVENT_PRICING, isTicketSalesEnabled } from '../src/lib/eventPricing.js'
+import {
+  DEFAULT_EVENT_PRICING,
+  eventAllowsPublicTickets,
+  isTicketSalesEnabled,
+} from '../src/lib/eventPricing.js'
 
 const migration = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20260823120000_suspend_spectator_ticket_sales.sql'),
@@ -13,6 +17,18 @@ describe('suspensión de ventas de entradas', () => {
     expect(DEFAULT_EVENT_PRICING.ticketsEnabled).toBe(false)
     expect(isTicketSalesEnabled({})).toBe(false)
     expect(isTicketSalesEnabled({ pricing: { ticketsEnabled: true } })).toBe(true)
+  })
+
+  it('el checkout en vivo gana al catálogo en las dos direcciones', () => {
+    const abierto = { pricing: { ticketsEnabled: true }, status: 'inscripcion_abierta' }
+    const cerrado = { pricing: { ticketsEnabled: false }, status: 'inscripcion_abierta' }
+    const finalizado = { pricing: { ticketsEnabled: true }, status: 'finalizado' }
+
+    expect(eventAllowsPublicTickets(abierto, false)).toBe(false)
+    expect(eventAllowsPublicTickets(cerrado, true)).toBe(true)
+    expect(eventAllowsPublicTickets(abierto, null)).toBe(true)
+    expect(eventAllowsPublicTickets(cerrado, undefined)).toBe(false)
+    expect(eventAllowsPublicTickets(finalizado, true)).toBe(false)
   })
 
   it('cierra los toggles y eventos existentes sin tocar tickets emitidos', () => {

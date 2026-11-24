@@ -355,7 +355,7 @@ export default function RulebookPage({ onNavigate }) {
       />
 
       <div className="institutional-page__inner rulebook-institutional__inner">
-        <section className="rulebook-document-block" aria-labelledby="rulebook-document-title">
+        <Reveal as="section" variant="fade" className="rulebook-document-block" aria-labelledby="rulebook-document-title">
           <header className="rulebook-document-block__head">
             <p className="rulebook-document-block__kicker">
               01 / {t('pages.rulebook.docSectionEyebrow')}
@@ -371,7 +371,7 @@ export default function RulebookPage({ onNavigate }) {
             locale={locale}
             manifest={rulebook.manifest}
           />
-        </section>
+        </Reveal>
 
         <RulebookSummary items={rulebook.summary} />
 
@@ -423,7 +423,7 @@ export default function RulebookPage({ onNavigate }) {
           <RulebookBackToIndex label={t('pages.rulebook.backToIndex')} />
         </section>
 
-        <section className="rulebook-contact-band" aria-labelledby="rulebook-contact-title">
+        <Reveal as="section" variant="fade" className="rulebook-contact-band" aria-labelledby="rulebook-contact-title">
           <div>
             <p className="institutional-kicker">{t('pages.rulebook.technicalEyebrow')}</p>
             <h2 id="rulebook-contact-title">{t('pages.rulebook.technicalTitle')}</h2>
@@ -436,7 +436,7 @@ export default function RulebookPage({ onNavigate }) {
             {t('pages.rulebook.contactCta')}
             <ArrowRight size={16} aria-hidden />
           </button>
-        </section>
+        </Reveal>
       </div>
     </main>
   )

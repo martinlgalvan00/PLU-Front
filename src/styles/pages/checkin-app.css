@@ -3,20 +3,28 @@
    ============================================= */
 
 .checkin-app {
-  --checkin-app-header-height: 57px;
+  --checkin-app-header-height: 66px;
+  --checkin-app-ops-offset: 128px;
   background: var(--admin-canvas);
   color: var(--admin-ink);
   min-height: 100dvh;
 }
 
+.checkin-app--pending {
+  align-items: center;
+  display: grid;
+  font-size: 14px;
+  place-items: center;
+}
+
 .checkin-app__top {
   align-items: center;
-  background: color-mix(in srgb, var(--admin-surface) 94%, transparent);
+  background: var(--admin-canvas);
   border-bottom: 1px solid var(--admin-hairline);
   display: flex;
   gap: 16px;
   justify-content: space-between;
-  padding: 12px clamp(14px, 3vw, 32px);
+  padding: 8px clamp(14px, 3vw, 32px);
   position: sticky;
   top: 0;
   z-index: 30;
@@ -60,10 +68,10 @@
   align-items: center;
   color: var(--admin-brand);
   display: flex;
-  font-size: 8px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: 700;
   gap: 5px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -80,11 +88,11 @@
   color: var(--admin-ink-muted);
   cursor: pointer;
   display: inline-flex;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   gap: 6px;
-  min-height: 34px;
-  padding: 0 10px;
+  min-height: 44px;
+  padding: 0 12px;
 }
 
 .checkin-app__exit:hover {
@@ -119,21 +127,26 @@
 }
 
 .checkin-app__metrics {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 14px;
   display: grid;
   flex: 1;
   gap: 0;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   min-width: 0;
+  overflow: hidden;
 }
 
 .checkin-app__metric {
   border-right: 1px solid var(--admin-hairline);
   color: var(--admin-ink-muted);
   display: grid;
-  gap: 1px;
-  min-height: 40px;
+  gap: 2px;
+  align-content: center;
+  min-height: 68px;
   min-width: 0;
-  padding: 4px 10px;
+  padding: 10px 14px 12px;
 }
 
 .checkin-app__metric:last-child {
@@ -142,18 +155,23 @@
 
 .checkin-app__metric strong {
   color: var(--admin-ink);
-  font-size: 16px;
+  font-size: clamp(22px, 2.6vw, 30px);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.03em;
+  font-weight: 700;
+  letter-spacing: -0.04em;
   line-height: 1;
 }
 
 .checkin-app__metric small {
-  font-size: 10px;
+  display: -webkit-box;
+  font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.25;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-transform: none;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .checkin-app__metric--success strong {
@@ -162,6 +180,43 @@
 
 .checkin-app__metric--brand strong {
   color: var(--admin-brand);
+}
+
+.checkin-app__ticket-control {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--admin-hairline);
+  border-radius: var(--radius-md, 8px);
+  background: var(--admin-surface, transparent);
+}
+
+.checkin-app__ticket-control .checkin-app__metric {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--admin-hairline);
+  cursor: pointer;
+  font: inherit;
+  min-height: 44px;
+  text-align: left;
+}
+
+.checkin-app__ticket-control .checkin-app__metric:last-child {
+  border-right: 0;
+}
+
+.checkin-app__ticket-control .checkin-app__metric.is-active {
+  background: var(--admin-brand-soft);
+}
+
+.checkin-app__metric--inside strong,
+.checkin-app__metric--unpaid strong,
+.checkin-app__metric--blocked strong {
+  color: var(--admin-ink);
+}
+
+.checkin-app__metric--unpaid strong {
+  color: var(--color-warning, var(--plu-gold-400));
 }
 
 .checkin-app__metric--warning strong {
@@ -240,6 +295,17 @@
   padding-top: 12px;
 }
 
+.checkin-app__scan-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.checkin-app__scan-toggle {
+  align-self: flex-start;
+}
+
 .checkin-app__scan-layout {
   align-items: start;
   display: grid;
@@ -263,7 +329,7 @@
 
 .checkin-app__scan-aside {
   position: sticky;
-  top: 70px;
+  top: calc(var(--checkin-app-header-height) + var(--checkin-app-ops-offset) + 8px);
 }
 
 .checkin-app__list {
@@ -318,7 +384,7 @@
   min-width: 0;
   padding: 8px 14px 10px;
   position: sticky;
-  top: calc(var(--checkin-app-header-height) + 88px);
+  top: calc(var(--checkin-app-header-height) + var(--checkin-app-ops-offset));
   z-index: 20;
 }
 
@@ -364,11 +430,15 @@
 
 .checkin-app__filters .admin-filter-group__label {
   color: var(--admin-ink-muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  line-height: 1;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: none;
+}
+
+.checkin-app__list .data-table__row--selected > td {
+  background: color-mix(in srgb, var(--color-brand-action) 14%, var(--admin-surface));
 }
 
 .checkin-app__filters .admin-filter-chips-rail,
@@ -436,6 +506,27 @@
   border-radius: 0;
 }
 
+.checkin-app__list .admin-data-table .ant-table-content > table,
+.checkin-app__list .admin-data-table .ant-table-body > table {
+  table-layout: fixed;
+}
+
+.checkin-app__list td.data-table__column--clip {
+  overflow: hidden;
+}
+
+.checkin-app__list td.data-table__column--clip .data-table__cell-content {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.checkin-app__clip {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .checkin-app__admit-btn,
 .checkin-app__admitted {
   border-radius: 8px;
@@ -450,10 +541,14 @@
 }
 
 .checkin-app__admit-btn {
-  background: var(--admin-brand);
-  border: 1px solid var(--admin-brand);
-  color: var(--admin-on-brand);
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  color: var(--color-brand-action-text);
   cursor: pointer;
+}
+
+.checkin-app__admit-btn:hover:not(:disabled) {
+  background: var(--color-brand-action-hover);
 }
 
 .checkin-app__admit-btn:disabled {
@@ -502,7 +597,19 @@
 
 @media (max-width: 760px) {
   .checkin-app {
-    --checkin-app-header-height: 53px;
+    --checkin-app-header-height: 58px;
+    --checkin-app-ops-offset: 196px;
+  }
+
+  .checkin-app__top {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .checkin-app__top-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 58%;
   }
 
   .checkin-app__overview {
@@ -510,11 +617,20 @@
   }
 
   .checkin-app__metrics {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .checkin-app__metric {
-    padding-inline: 8px;
+  .checkin-app__metrics .checkin-app__metric:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .checkin-app__metrics .checkin-app__metric:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--admin-hairline);
+  }
+
+  .checkin-app__metrics .checkin-app__metric {
+    min-height: 64px;
+    padding: 10px 12px;
   }
 
   .checkin-app__tabs {
@@ -536,6 +652,23 @@
     border: 1px solid var(--admin-hairline);
     border-radius: 10px;
     margin: 0;
+  }
+
+  .checkin-app__scan-primary .admin-offline-sync-status--compact .admin-offline-sync-status__main,
+  .checkin-app__scan-bar .admin-offline-sync-status--compact .admin-offline-sync-status__main {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .checkin-app__scan-primary .admin-offline-sync-status--compact .admin-offline-sync-status__actions,
+  .checkin-app__scan-bar .admin-offline-sync-status--compact .admin-offline-sync-status__actions {
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .checkin-app__scan-primary .admin-offline-sync-status--compact .admin-offline-sync-status__actions .btn,
+  .checkin-app__scan-bar .admin-offline-sync-status--compact .admin-offline-sync-status__actions .btn {
+    flex: 1 1 auto;
   }
 
   .checkin-app .admin-offline-sync-status__badge {
@@ -587,7 +720,6 @@
 
   .checkin-app__list-toolbar {
     padding: 8px 10px 10px;
-    top: calc(var(--checkin-app-header-height) + 84px);
   }
 
   .checkin-app__list .data-table__avatar {
@@ -626,11 +758,19 @@
   }
 
   .checkin-app__brand-copy strong {
-    max-width: 155px;
+    max-width: 100%;
   }
 
   .checkin-app__overview {
     padding-inline: 10px;
+  }
+
+  .checkin-app__ticket-control {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .checkin-app__ticket-control .checkin-app__metric:nth-child(2) {
+    border-right: 0;
   }
 
   .checkin-app__tabs {
@@ -644,13 +784,26 @@
     padding-inline: 10px;
   }
 
-  .checkin-app__metric {
-    min-height: 36px;
-    padding-inline: 6px;
+  .checkin-app__metrics .checkin-app__metric {
+    min-height: 60px;
+    padding: 8px 10px;
   }
 
-  .checkin-app__metric strong {
-    font-size: 15px;
+  .checkin-app__metrics .checkin-app__metric strong {
+    font-size: 22px;
+  }
+
+  .checkin-app__exit {
+    min-width: 44px;
+    padding-inline: 12px;
+  }
+
+  .checkin-app .segmented-switch--checkin .segmented-switch__label--full {
+    display: none;
+  }
+
+  .checkin-app .segmented-switch--checkin .segmented-switch__label--short {
+    display: inline;
   }
 }
 
@@ -659,6 +812,10 @@
   .checkin-app *::before,
   .checkin-app *::after {
     scroll-behavior: auto !important;
+  }
+
+  .checkin-app .admin-checkin-result {
+    animation: none;
   }
 }
 
@@ -694,6 +851,18 @@
   white-space: nowrap;
 }
 
+@media (max-width: 760px) {
+  .checkin-app__zone-notice {
+    align-items: flex-start;
+  }
+
+  .checkin-app__zone-notice span {
+    overflow: visible;
+    text-overflow: unset;
+    white-space: normal;
+  }
+}
+
 .checkin-app__zone-notice strong {
   color: var(--admin-ink, var(--color-text-primary));
   font-size: 12.5px;
@@ -701,8 +870,93 @@
   margin-right: 6px;
 }
 
+.checkin-app .admin-checkin-scanner {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 16px;
+}
+
+.checkin-app .admin-checkin-scanner__mode-switch {
+  flex: 1 1 180px;
+  max-width: 320px;
+  min-width: 0;
+  width: auto;
+}
+
+.checkin-app .segmented-switch--checkin .segmented-switch__option {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0;
+  min-height: 40px;
+  min-width: 0;
+  text-transform: none;
+}
+
+.checkin-app .segmented-switch--checkin .segmented-switch__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .checkin-app .admin-checkin-scanner--compact {
-  padding: 8px;
+  padding: 10px;
+}
+
+.checkin-app .admin-checkin-scanner--compact .segmented-switch--checkin {
+  min-height: 44px;
+}
+
+.checkin-app__scan-aside .admin-offline-sync-status--compact .admin-offline-sync-status__main {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.checkin-app__scan-aside .admin-offline-sync-status--compact .admin-offline-sync-status__actions {
+  justify-content: stretch;
+  width: 100%;
+}
+
+.checkin-app .admin-offline-sync-status--compact .admin-offline-sync-status__actions .btn {
+  justify-content: center;
+  min-height: 44px;
+  white-space: normal;
+}
+
+.checkin-app__scan-aside .admin-offline-sync-status--compact .admin-offline-sync-status__actions .btn {
+  flex: 1 1 auto;
+}
+
+.checkin-app .admin-offline-sync-status__badge {
+  background: color-mix(in srgb, var(--color-status-success) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-status-success) 28%, transparent);
+  border-radius: 999px;
+  color: var(--color-status-success);
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.checkin-app .admin-offline-sync-status--offline .admin-offline-sync-status__badge {
+  background: color-mix(in srgb, var(--color-warning, var(--plu-gold-400)) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-warning, var(--plu-gold-400)) 28%, transparent);
+  color: var(--color-warning, var(--plu-gold-400));
+}
+
+.checkin-app .admin-offline-sync-status__title,
+.checkin-app .admin-offline-sync-status__meta {
+  overflow-wrap: break-word;
+}
+
+.checkin-app .admin-checkin-history__title {
+  font-size: 14px;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.checkin-app .admin-checkin-history__empty {
+  color: var(--admin-ink-muted);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 4px 0 0;
 }
 
 .checkin-app .admin-checkin-scanner__manual-input {
@@ -732,6 +986,25 @@
   width: min(100%, 420px);
 }
 
+/* Con un veredicto en pantalla la cámara deja de ser el protagonista: queda
+   como herramienta para la siguiente lectura, al lado del nombre que hay que
+   cotejar. */
+.checkin-app__scan-layout--verdict .admin-checkin-scanner--compact .admin-checkin-scanner__viewport {
+  aspect-ratio: 16 / 10;
+  max-height: 168px;
+  min-height: 132px;
+  width: min(100%, 280px);
+}
+
+.checkin-app--verdict .checkin-app__metric {
+  min-height: 48px;
+  padding: 6px 12px 8px;
+}
+
+.checkin-app--verdict .checkin-app__metric strong {
+  font-size: 18px;
+}
+
 .checkin-app .admin-checkin-scanner--compact .admin-checkin-scanner__video {
   object-fit: cover;
   object-position: center;
@@ -742,12 +1015,132 @@
 }
 
 .checkin-app .admin-checkin-history--empty {
-  padding: 10px 12px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 14px;
+  padding: 14px 16px;
 }
 
-.checkin-app .admin-checkin-history--empty .admin-checkin-history__empty-icon,
-.checkin-app .admin-checkin-history--empty .admin-checkin-history__hint {
+.checkin-app .admin-checkin-history--empty .admin-checkin-history__empty-icon {
   display: none;
+}
+
+.checkin-app .admin-checkin-history--empty .admin-checkin-history__hint {
+  color: var(--admin-ink-muted);
+  display: block;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 4px 0 0;
+}
+
+/* El veredicto es la pieza. Una regla del color del estado, el texto a escala
+   de quien está de pie, y el oro sólo en Ingresar. La ficha no se tiñe: el
+   color dice la decisión, no ambienta la tarjeta. */
+@keyframes checkin-verdict-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.checkin-app .admin-checkin-result {
+  animation: checkin-verdict-in var(--motion-base) var(--ease-out) both;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 12px;
+  border-top-width: 3px;
+  margin: 0;
+  padding: 16px 16px 14px;
+}
+
+.checkin-app .admin-checkin-result--success,
+.checkin-app .admin-checkin-result--warning,
+.checkin-app .admin-checkin-result--danger {
+  background: var(--admin-surface);
+  border-color: var(--admin-hairline);
+}
+
+.checkin-app .admin-checkin-result--success {
+  border-top-color: var(--admin-status-success);
+}
+
+.checkin-app .admin-checkin-result--warning {
+  border-top-color: var(--admin-status-warning);
+}
+
+.checkin-app .admin-checkin-result--danger {
+  border-top-color: var(--admin-status-danger);
+}
+
+.checkin-app .admin-checkin-result--success .admin-checkin-result__header {
+  color: var(--admin-status-success);
+}
+
+.checkin-app .admin-checkin-result--warning .admin-checkin-result__header {
+  color: var(--admin-status-warning);
+}
+
+.checkin-app .admin-checkin-result--danger .admin-checkin-result__header {
+  color: var(--admin-status-danger);
+}
+
+.checkin-app .admin-checkin-result--decision .admin-checkin-result__header {
+  align-items: center;
+  gap: 12px;
+}
+
+.checkin-app .admin-checkin-result--decision .admin-checkin-result__header strong {
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(26px, 5vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.checkin-app .admin-checkin-result--decision .admin-checkin-result__header svg {
+  flex: none;
+  height: 28px;
+  width: 28px;
+}
+
+.checkin-app .admin-checkin-result--offline {
+  background: var(--admin-surface);
+  border-style: dashed;
+  border-top-width: 3px;
+}
+
+.checkin-app .admin-checkin-result__actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.checkin-app .admin-checkin-result__actions .btn--primary {
+  font-size: 16px;
+  min-height: 52px;
+  width: 100%;
+}
+
+.checkin-app .admin-checkin-result__actions .btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--admin-ink-muted);
+  min-height: 44px;
+}
+
+.checkin-app .admin-checkin-result__actions .btn--ghost:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--admin-ink);
+}
+
+.checkin-app .admin-checkin-result__meta dd.admin-checkin-result__credential {
+  font-size: clamp(20px, 3vw, 24px);
 }
 
 /* En la puerta el DNI físico se coteja contra esta ficha: nombre y documento
@@ -761,10 +1154,10 @@
 .checkin-app .admin-checkin-result__person-name {
   color: var(--admin-ink, var(--color-text-primary));
   font-family: var(--font-display, var(--font-family));
-  font-size: clamp(20px, 2.4vw, 26px);
+  font-size: clamp(24px, 3.2vw, 32px);
   font-weight: 700;
   letter-spacing: -0.03em;
-  line-height: 1.12;
+  line-height: 1.08;
 }
 
 .checkin-app .admin-checkin-result__person-doc {
@@ -773,4 +1166,26 @@
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   letter-spacing: 0.02em;
+}
+
+.checkin-app--kiosk .checkin-app__overview,
+.checkin-app--kiosk .checkin-app__scan-aside {
+  display: none;
+}
+
+.checkin-app--kiosk .checkin-app__scan-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.checkin-app--kiosk .admin-checkin-scanner__manual-input {
+  font-size: 32px;
+  letter-spacing: 0.14em;
+  min-height: 72px;
+  text-align: center;
+}
+
+.checkin-app--kiosk .admin-checkin-result__turnstile {
+  font-size: clamp(20px, 2.4vw, 28px);
+  font-weight: 700;
+  margin: 0 0 12px;
 }

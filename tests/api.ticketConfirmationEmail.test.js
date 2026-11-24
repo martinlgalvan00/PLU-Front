@@ -100,12 +100,12 @@ describe('POST /api/tickets/orders/:id/approve', () => {
     })
   })
 
-  // El QR no vive en la ficha del evento: sin sesión, la única forma de
-  // recuperarlo es referencia + mail contra /orders/lookup (TicketOrderLookup).
+  // El link abre /entradas con la referencia y la clave firmada. Sin la clave,
+  // la recuperación sigue pidiendo el mail.
   it('el link del mail lleva a la recuperación por referencia, no a la ficha del evento', async () => {
     await withApp(async ({ send }) => {
       const [payload] = send.mock.calls[0]
-      expect(payload.params.ticketUrl).toMatch(/\/entradas\?ref=TORD-abc123$/)
+      expect(payload.params.ticketUrl).toMatch(/\/entradas\?ref=TORD-abc123&k=[\w-]+$/)
     })
   })
 

@@ -1,4 +1,6 @@
-import { registrationCheckinStatus, scheduleDayIndexes } from './checkinScanService.js'
+import { applyAthleteCheckinGate } from '../lib/athleteCredential.js'
+import { competitorCheckInCountsToday } from '../lib/ticketValidityPolicy.js'
+import { registrationCheckinStatus } from './checkinScanService.js'
 import { findOpenManualOrderForRegistration } from './paymentValidationService.js'
 import { ticketIsCurrentlyValid } from '../lib/ticketValidity.js'
 
@@ -8,8 +10,7 @@ function belongsToEvent(record, eventSlug) {
 }
 
 /** Días a los que da acceso un ticket, resueltos vía su tipo de entrada.
- * 'all' = sin restricción de día (un atleta al que todavía no le asignaron
- * grilla entra en cualquiera; ver scheduleDayIndexes). */
+ * El competidor no pasa por acá: entra todos los días del torneo. */
 function ticketDayIndexes(ticket, ticketTypes) {
   const type = ticketTypes.find((item) => item.id === ticket.ticketTypeId)
   return type?.dayIndexes ?? []
@@ -29,6 +30,10 @@ function matchesStatus(row, status) {
   if (status === 'ready') return isReady
   // Subconjunto de "sin habilitar": los que la puerta puede resolver cobrando.
   if (status === 'to_validate') return Boolean(row.pendingOrder)
+  if (status === 'unpaid') return row.status === 'pendiente_pago'
+  if (status === 'blocked') {
+    return row.status !== 'usada' && row.status !== 'pendiente_pago' && !isReady
+  }
   return row.status !== 'usada' && !isReady
 }
 
@@ -60,7 +65,11 @@ export function mapAllowlistToCheckinSources(allowlist, eventSlug) {
     category: entry.category ?? null,
     division: entry.division ?? null,
     status: entry.status,
-    checkedInAt: entry.checkedInAt ?? null,
+    checkedInAt: competitorCheckInCountsToday(entry.checkedInAt, entry.accessWindowKey)
+      ? entry.checkedInAt
+      : entry.checkedInLocally
+        ? 'offline'
+        : null,
   }))
   const athletes = (allowlist?.registrations ?? []).map((entry) => ({
     id: entry.registrationId,
@@ -80,17 +89,58 @@ export function mapAllowlistToCheckinSources(allowlist, eventSlug) {
     credentialLabel: entry.credentialLabel ?? null,
     credentialScopes: entry.credentialScopes ?? [],
     status: entry.status,
-    checkedInAt: entry.checkedInAt ?? null,
+    checkedInAt: entry.checkedInAt ?? (entry.checkedInLocally ? 'offline' : null),
     validFrom: entry.validFrom ?? null,
     validUntil: entry.validUntil ?? null,
+    validityMode: entry.validityMode ?? null,
   }))
   return { athletes, registrations, tickets }
+}
+
+function serverAdmissionAt(value) {
+  if (!value || value === 'offline') return null
+  return value
+}
+
+/**
+ * La lista del panel puede estar atrasada respecto de otro puesto.
+ * La foto del servidor pisa solo el ingreso ya acreditado: no reabre a nadie
+ * y no toma la marca local de "sin señal".
+ */
+export function applyServerAdmissions(rows = [], sources) {
+  if (!sources) return rows
+  const registrations = new Map()
+  for (const entry of sources.registrations ?? []) {
+    const at = serverAdmissionAt(entry.checkedInAt)
+    if (at && entry.id) registrations.set(entry.id, at)
+  }
+  const tickets = new Map()
+  for (const entry of sources.tickets ?? []) {
+    const at = serverAdmissionAt(entry.checkedInAt)
+    if (at && entry.qrToken) tickets.set(entry.qrToken, at)
+  }
+  if (registrations.size === 0 && tickets.size === 0) return rows
+
+  let changed = false
+  const next = rows.map((row) => {
+    if (row.status === 'usada') return row
+    const at = row.registrationId
+      ? registrations.get(row.registrationId)
+      : row.qrToken
+        ? tickets.get(row.qrToken)
+        : null
+    if (!at) return row
+    changed = true
+    return { ...row, status: 'usada', checkedInAt: at }
+  })
+  return changed ? next : rows
 }
 
 const STATUS_ORDER = { pagada: 0, pendiente: 1, pendiente_pago: 1, confirmada: 1, usada: 2 }
 
 export function buildCheckinRows({
   athletes = [],
+  memberships = [],
   payments = [],
   registrations = [],
   tickets = [],
@@ -112,11 +162,12 @@ export function buildCheckinRows({
         name: athlete?.fullName,
         document: athlete?.documentId,
         meta: [registration.category, registration.division].filter(Boolean).join(' · '),
-        // Antes todos los atletas iban a 'all' y aparecían en la pestaña de
-        // cada día. Con la grilla asignada el roster de un día es el de ese día.
-        dayIndexes: scheduleDayIndexes(registration.schedule),
+        // La grilla dice cuándo levanta. El acceso al predio es los dos días.
+        dayIndexes: 'all',
         schedule: registration.schedule ?? null,
-        status: registrationCheckinStatus(registration),
+        status: applyAthleteCheckinGate(registrationCheckinStatus(registration), registration, {
+          memberships,
+        }),
         checkedInAt: registration.checkedInAt,
         // La orden manual que traba el ingreso, si la hay. Sin esto la puerta
         // veía "sin habilitar" y no tenía con qué resolverlo: el efectivo que
@@ -138,12 +189,15 @@ export function buildCheckinRows({
       ticketTypeDescription: ticket.ticketTypeDescription ?? null,
       credentialLabel: ticket.credentialLabel ?? null,
       credentialScopes: ticket.credentialScopes ?? [],
+      orderId: ticket.orderId ?? ticket.order?.id ?? null,
+      paymentProofPath: ticket.paymentProofPath ?? ticket.order?.paymentProofPath ?? null,
       dayIndexes: ticketDayIndexes(ticket, ticketTypes),
       status: ticket.checkedInAt ? 'usada' : ticket.status,
       checkedInAt: ticket.checkedInAt,
       addons: ticket.addons ?? [],
       validFrom: ticket.validFrom ?? null,
       validUntil: ticket.validUntil ?? null,
+      validityMode: ticket.validityMode ?? null,
     }))
 
   return [...athleteRows, ...ticketRows].sort((left, right) => {
@@ -153,11 +207,20 @@ export function buildCheckinRows({
   })
 }
 
+function liftingDayLabel(row, eventDays) {
+  if (typeof row.schedule?.dayIndex !== 'number') return ''
+  const day = eventDays.find((item) => item.dayIndex === row.schedule.dayIndex)?.label
+  return [day, row.schedule.sessionName].filter(Boolean).join(' · ')
+}
+
 export function formatCheckinRowDay(row, eventDays = [], t) {
+  if (row.type === 'atleta') {
+    const access = t('admin.checkin.bothDays')
+    const lifting = liftingDayLabel(row, eventDays)
+    return lifting ? `${access} · ${lifting}` : access
+  }
   if (row.dayIndexes === 'all' || !eventDays.length) {
-    return row.type === 'atleta'
-      ? t('admin.checkin.scheduleUnassigned')
-      : t('admin.checkin.bothDays')
+    return t('admin.checkin.bothDays')
   }
   const labels = row.dayIndexes
     .map((dayIndex) => eventDays.find((item) => item.dayIndex === dayIndex)?.label)
@@ -180,6 +243,7 @@ export function summarizeCheckinRows(rows = [], eventDays = []) {
         row.status !== 'usada' &&
         !(row.status === 'pagada' && (row.type === 'atleta' || ticketIsCurrentlyValid(row))),
     ),
+    unpaid: count((row) => row.status === 'pendiente_pago'),
     // Cuántos de los que no pueden ingresar se destraban cobrando en la puerta.
     toValidate: count((row) => Boolean(row.pendingOrder)),
     athletes: count((row) => row.type === 'atleta'),
@@ -190,21 +254,50 @@ export function summarizeCheckinRows(rows = [], eventDays = []) {
   }
 }
 
+/**
+ * Control de entradas para la puerta. No mezcla atletas: seguridad tiene que
+ * ver, sobre las entradas del evento, quién puede entrar, quién ya entró,
+ * quién no pagó y quién está paga pero fuera de vigencia.
+ */
+export function summarizeTicketControl(rows = []) {
+  const tickets = rows.filter((row) => row.type === 'espectador')
+  const ready = tickets.filter(
+    (row) => row.status === 'pagada' && ticketIsCurrentlyValid(row),
+  ).length
+  const inside = tickets.filter((row) => row.status === 'usada').length
+  const unpaid = tickets.filter((row) => row.status === 'pendiente_pago').length
+  return {
+    total: tickets.length,
+    ready,
+    inside,
+    unpaid,
+    blocked: tickets.length - ready - inside - unpaid,
+  }
+}
+
+function digitsOnly(value) {
+  return String(value ?? '').replace(/\D/g, '')
+}
+
 export function filterCheckinRows(
   rows = [],
   { query = '', type = 'all', day = 'all', status = 'all', credential = 'all' } = {},
 ) {
   const normalizedQuery = query.trim().toLocaleLowerCase('es')
+  const queryDigits = digitsOnly(normalizedQuery)
 
   return rows.filter((row) => {
     const typeMatch = matchesType(row, type)
     const dayMatch = matchesDay(row, day)
     const statusMatch = matchesStatus(row, status)
     const credentialMatch = matchesCredential(row, credential)
+    const documentDigits = digitsOnly(row.document)
     const queryMatch =
       !normalizedQuery ||
       row.name?.toLocaleLowerCase('es').includes(normalizedQuery) ||
-      row.document?.includes(normalizedQuery) ||
+      row.document?.toLocaleLowerCase('es').includes(normalizedQuery) ||
+      (queryDigits.length >= 3 && documentDigits.includes(queryDigits)) ||
+      row.ticketCode?.toLocaleLowerCase('es').includes(normalizedQuery) ||
       row.meta?.toLocaleLowerCase('es').includes(normalizedQuery) ||
       row.credentialLabel?.toLocaleLowerCase('es').includes(normalizedQuery)
 

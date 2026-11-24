@@ -39,21 +39,23 @@ async function buyTicket({ fullName, dni, ticketTypeId, key, paid = true }) {
     p_access_token_hash: createHash('sha256').update(idempotencyKey).digest('hex'),
   })
   if (error) throw new Error(error.message)
+  // Se filtra por la orden y no por DNI: con `retries: 1` el reintento compra
+  // de nuevo con el mismo DNI y la consulta por DNI traía también las
+  // credenciales del primer intento.
+  const orderId = data.order.id
 
   if (paid) {
     const { error: payError } = await admin
       .from('tickets')
       .update({ status: 'pagada' })
-      .eq('event_id', fixture.ticketEventId)
-      .eq('attendee_dni', dni)
+      .eq('order_id', orderId)
     if (payError) throw new Error(payError.message)
   }
 
   const { data: credentials, error: readError } = await admin
     .from('tickets')
     .select('qr_token, credential_label, ticket_type_id, attendee_name, status')
-    .eq('event_id', fixture.ticketEventId)
-    .eq('attendee_dni', dni)
+    .eq('order_id', orderId)
     .order('is_primary_credential', { ascending: false })
   if (readError) throw new Error(readError.message)
   return { order: data, credentials }
@@ -184,7 +186,15 @@ test.describe('Puerta de seguridad — entradas', () => {
     await expect(page.locator('.checkin-app__list')).toContainText('ENTRENADOR')
     await openScanTab(page)
 
+    // Salir cierra la sesión del puesto: hay que esperar el logout antes de
+    // volver a abrir la puerta, o la sesión vieja todavía está viva y no hay
+    // formulario para entrar con la cuenta del calentamiento.
+    const loggedOut = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/auth/logout') && response.request().method() === 'POST',
+    )
     await page.locator('.checkin-app__exit').click()
+    await loggedOut
     await openSecurityGate(page, fixture.ticketEventSlug)
     await loginSecurityGate(page, {
       email: fixture.warmupEmail,

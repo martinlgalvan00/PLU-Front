@@ -5,17 +5,16 @@
    ============================================= */
 
 @media (min-width: 641px) and (max-width: 1199px) {
-  .pitbull-page__body,
   .members-page__body,
   .events-page--premium .events-page__body,
   .community-page__inner {
     gap: clamp(14px, 2.2vw, 20px);
-    padding: clamp(12px, 1.8vw, 18px) var(--layout-gutter-lg) clamp(32px, 4vw, 48px);
+    padding: clamp(12px, 1.8vw, 18px) var(--institution-gutter) clamp(32px, 4vw, 48px);
   }
 
   .pitbull-page--premium .pitbull-page__body {
     max-width: none;
-    padding-inline: var(--layout-gutter-lg);
+    padding-inline: 0;
   }
 
   .pitbull-page--premium .pitbull-hero.design-hero--compact,

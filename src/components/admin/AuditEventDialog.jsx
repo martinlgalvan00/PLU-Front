@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import { Copy, FileCode2, History, Info, TriangleAlert, X } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 import { auditLabels } from '../../i18n/adminHelpers.js'
-import es from '../../i18n/locales/es.js'
+import es from '../../i18n/locales/esFull.js'
 import { translate } from '../../i18n/translate.js'
 import { fetchAuditEventContext, residualMetadata } from '../../services/auditService.js'
 

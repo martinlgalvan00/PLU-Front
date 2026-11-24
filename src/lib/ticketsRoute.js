@@ -40,13 +40,19 @@ export function getTicketsRouteEventSlug(
 
 /**
  * Referencia de una compra ya hecha (`?ref=`), la que trae el link del mail
- * de confirmación. Sólo precarga el campo del formulario de recuperación:
- * el mail del comprador nunca viaja en la URL, lo tipea la persona.
+ * de confirmación. `k` es la firma del servidor: con las dos, la pantalla
+ * abre el QR sin pedir el mail. Sin `k`, la persona lo tipea.
  */
 export function getTicketsRouteOrderReference(
   search = typeof window !== 'undefined' ? window.location.search : '',
 ) {
   return new URLSearchParams(search).get('ref') || null
+}
+
+export function getTicketsRouteOpenKey(
+  search = typeof window !== 'undefined' ? window.location.search : '',
+) {
+  return new URLSearchParams(search).get('k') || null
 }
 
 /**

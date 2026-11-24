@@ -333,6 +333,20 @@ const CATALOG = [
     retryable: false,
   },
   {
+    code: 'ATHLETE_MEMBERSHIP_DATA_INCOMPLETE',
+    match: /ATHLETE_MEMBERSHIP_DATA_INCOMPLETE|datos de afiliaci[oó]n antes de pagar/i,
+    title: 'Faltan datos para emitir la afiliación',
+    cause:
+      'El pago de afiliación y el combo se frenan si falta nombre, documento, nacimiento, sexo, teléfono, país, provincia o ciudad. No se inició ningún cobro.',
+    fix: [
+      'Completar esos datos en Afiliación. Categoría, peso y gimnasio no hacen falta para este paso.',
+      'Si la persona tiene menos de 14 años, la afiliación no corresponde.',
+    ],
+    severity: 'expected',
+    scope: 'cliente',
+    retryable: true,
+  },
+  {
     code: 'ATHLETE_PROFILE_INCOMPLETE',
     match: /ATHLETE_PROFILE_INCOMPLETE|Complet[aá] tu perfil antes de inscribirte/i,
     title: 'El perfil deportivo está incompleto',
@@ -377,6 +391,20 @@ const CATALOG = [
     severity: 'expected',
     scope: 'cliente',
     retryable: false,
+  },
+  {
+    code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+    match: /ATHLETE_DOCUMENTS_INCOMPLETE|documentos obligatorios/i,
+    title: 'Faltan documentos de afiliación',
+    cause:
+      'Pagar afiliación y el combo exigen DNI frente y dorso. El certificado médico es opcional. Quien ya estaba afiliado puede inscribirse a un torneo abierto sin el DNI. La renovación, y un torneo que exige afiliación, sí lo piden.',
+    fix: [
+      'El atleta sube los archivos desde Mi cuenta > Datos personales.',
+      'Si es menor de 18, también tiene que cargar la autorización del tutor.',
+    ],
+    severity: 'expected',
+    scope: 'cliente',
+    retryable: true,
   },
   {
     code: 'EMAIL_NOT_VERIFIED',

@@ -476,6 +476,22 @@
   right: 12px;
 }
 
+/* Alcance de la lista (evento): junto al buscador, a la vista. Activo = tinta
+   marcada, igual que el botón «Filtros» con criterios aplicados. */
+.admin-toolbar__scope {
+  flex: 0 1 15rem;
+  min-width: 9rem;
+}
+
+.admin-toolbar__scope select {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.admin-toolbar__scope.is-active select {
+  border-color: var(--admin-ink);
+}
+
 .admin-toolbar__options {
   display: flex;
   flex-wrap: wrap;
@@ -572,7 +588,12 @@
 
   .admin-toolbar__actions {
     flex-basis: 100%;
+    flex-wrap: wrap;
     margin-left: 0;
+  }
+
+  .admin-toolbar__scope {
+    flex: 1 1 100%;
   }
 
   .admin-toolbar__trigger {

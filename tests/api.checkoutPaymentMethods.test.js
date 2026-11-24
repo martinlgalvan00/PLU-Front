@@ -14,7 +14,7 @@ import { listen } from './integration/helpers/supabaseTestClient.js'
  * transacción que crea la orden (ver `atomicCheckoutPricing.test.js` y los
  * tests de integración para esa parte).
  *
- *   elige "efectivo en Pitbull" (cash_pitbull)
+ *   elige "efectivo en el lugar" (cash_pitbull)
  *     -> se guarda method = 'manual_link', canal = 'cash_pitbull'
  *   elige "transferencia" (manual_link)
  *     -> se guarda method = 'manual_link', canal = 'bank_transfer'
@@ -100,6 +100,24 @@ const COMPLETE_COMPETITION_PROFILE = {
   estimated_weight: 90,
 }
 
+const COMPLETE_MEMBERSHIP_FILE = {
+  full_name: 'Atleta de Prueba',
+  document_id: '30111222',
+  birth_date: '1995-01-01',
+  sex: 'Masculino',
+  phone: '1122334455',
+  country: 'Argentina',
+  province: 'Buenos Aires',
+  city: 'La Plata',
+}
+
+const COMPLETE_DOCUMENT_PACK = {
+  birthDate: '1995-01-01',
+  documentsGrandfathered: false,
+  documents: [{ kind: 'dni_front' }, { kind: 'dni_back' }, { kind: 'medical_certificate' }],
+  unavailable: false,
+}
+
 function buildApp({ toggles = {}, channelPolicy = null } = {}) {
   const createMembershipOrder = vi.fn().mockResolvedValue({ order: { id: 'order-membership' } })
   const createRegistration = vi.fn().mockResolvedValue({ order: { id: 'order-registration' } })
@@ -117,6 +135,8 @@ function buildApp({ toggles = {}, channelPolicy = null } = {}) {
     platformSettingsRepository: { get: vi.fn().mockResolvedValue(toggles) },
     athleteRepository: {
       findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+      findProfileCompleteness: vi.fn().mockResolvedValue(COMPLETE_MEMBERSHIP_FILE),
+      findDocumentPack: vi.fn().mockResolvedValue(COMPLETE_DOCUMENT_PACK),
       findCompetitionProfile: vi.fn().mockResolvedValue(COMPLETE_COMPETITION_PROFILE),
       findMembershipPlan: vi.fn().mockResolvedValue({
         code: 'plu-annual',
@@ -168,7 +188,10 @@ function registrationBody(paymentMethod, extra = {}) {
     eventSlug: 'pitbull-classic-2026',
     division: 'Open',
     category: 'Raw',
+    modalities: ['full_power'],
     bodyweightKg: 90,
+    declaredWeightClass: '90',
+    competitionBestTotalKg: 500,
     paymentMethod,
     idempotencyKey: crypto.randomUUID(),
     ...extra,
@@ -187,7 +210,7 @@ describe('afiliación — medio de pago elegido vs. orden persistida', () => {
   it.each([
     ['Mercado Pago', 'mercado_pago', 'mercado_pago', null],
     ['transferencia bancaria', 'manual_link', 'manual_link', 'bank_transfer'],
-    ['efectivo en Pitbull', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
+    ['efectivo en el lugar', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
   ])(
     '%s crea la orden con el método, el canal y los precios correctos',
     async (_label, paymentMethod, storedMethod, manualChannel) => {
@@ -239,7 +262,7 @@ describe('inscripción a torneo — medio de pago elegido vs. orden persistida',
   it.each([
     ['Mercado Pago', 'mercado_pago', 'mercado_pago', null],
     ['transferencia bancaria', 'manual_link', 'manual_link', 'bank_transfer'],
-    ['efectivo en Pitbull', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
+    ['efectivo en el lugar', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
   ])(
     '%s crea la inscripción con el método, el canal y los precios correctos',
     async (_label, paymentMethod, storedMethod, manualChannel) => {
@@ -275,7 +298,7 @@ describe('combo afiliación + inscripción — medio de pago elegido vs. orden p
   it.each([
     ['Mercado Pago', 'mercado_pago', 'mercado_pago', null],
     ['transferencia bancaria', 'manual_link', 'manual_link', 'bank_transfer'],
-    ['efectivo en Pitbull', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
+    ['efectivo en el lugar', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
   ])(
     '%s crea el combo con el método, el canal y los precios correctos',
     async (_label, paymentMethod, storedMethod, manualChannel) => {
@@ -598,6 +621,229 @@ describe('requisitos previos comunes a todos los medios de pago', () => {
     }
   })
 
+  it('exige el legajo de documentos para pagar afiliación', async () => {
+    const createMembershipOrder = vi.fn()
+    const target = listen(
+      createApp({
+        env: { PAID_CHECKOUT_ENABLED: 'true' },
+        supabaseAdmin: authenticatedSupabase(),
+        registrationAccessRepository: {
+          findActiveGate: vi.fn().mockResolvedValue(null),
+          recordUse: vi.fn(),
+        },
+        platformSettingsRepository: { get: vi.fn().mockResolvedValue({}) },
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findDocumentPack: vi.fn().mockResolvedValue({
+            birthDate: '1995-01-01',
+            documentsGrandfathered: false,
+            documents: [],
+            unavailable: false,
+          }),
+          findMembershipPlan: vi.fn().mockResolvedValue({
+            code: 'plu-annual',
+            collection_mode: 'one_time',
+            price: DEFAULT_PRICE,
+            manual_price: MANUAL_PRICE,
+          }),
+          discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
+          createMembershipOrder,
+        },
+      }),
+    )
+    try {
+      const response = await post(target, '/api/athletes/me/membership-orders', membershipBody('mercado_pago'))
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+        missing: ['dni_front', 'dni_back'],
+      })
+      expect(createMembershipOrder).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('exige la ficha de afiliación antes de cobrar', async () => {
+    const createMembershipOrder = vi.fn()
+    const target = listen(
+      createApp({
+        env: { PAID_CHECKOUT_ENABLED: 'true' },
+        supabaseAdmin: authenticatedSupabase(),
+        registrationAccessRepository: {
+          findActiveGate: vi.fn().mockResolvedValue(null),
+          recordUse: vi.fn(),
+        },
+        platformSettingsRepository: { get: vi.fn().mockResolvedValue({}) },
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findProfileCompleteness: vi.fn().mockResolvedValue({
+            ...COMPLETE_MEMBERSHIP_FILE,
+            city: '',
+          }),
+          findDocumentPack: vi.fn().mockResolvedValue(COMPLETE_DOCUMENT_PACK),
+          findMembershipPlan: vi.fn().mockResolvedValue({
+            code: 'plu-annual',
+            collection_mode: 'one_time',
+            price: DEFAULT_PRICE,
+            manual_price: MANUAL_PRICE,
+          }),
+          discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
+          createMembershipOrder,
+        },
+      }),
+    )
+    try {
+      const response = await post(target, '/api/athletes/me/membership-orders', membershipBody('mercado_pago'))
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        code: 'ATHLETE_MEMBERSHIP_DATA_INCOMPLETE',
+        missing: ['city'],
+      })
+      expect(createMembershipOrder).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('exige el legajo de documentos para el combo', async () => {
+    const createRegistrationCombo = vi.fn()
+    const target = listen(
+      createApp({
+        env: { PAID_CHECKOUT_ENABLED: 'true' },
+        supabaseAdmin: authenticatedSupabase(),
+        registrationAccessRepository: {
+          findActiveGate: vi.fn().mockResolvedValue(null),
+          recordUse: vi.fn(),
+        },
+        platformSettingsRepository: { get: vi.fn().mockResolvedValue({}) },
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findDocumentPack: vi.fn().mockResolvedValue({
+            birthDate: '1995-01-01',
+            documentsGrandfathered: false,
+            documents: [],
+            unavailable: false,
+          }),
+          findCompetitionProfile: vi.fn().mockResolvedValue(COMPLETE_COMPETITION_PROFILE),
+          findEventPricing: vi.fn().mockResolvedValue({
+            slug: 'pitbull-classic-2026',
+            price: DEFAULT_PRICE,
+            manual_price: MANUAL_PRICE,
+          }),
+          findEventComboOffer: vi.fn().mockResolvedValue({
+            price: COMBO_DEFAULT_PRICE,
+            manualPrice: COMBO_MANUAL_PRICE,
+          }),
+          discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
+          createRegistrationCombo,
+        },
+      }),
+    )
+    try {
+      const response = await post(
+        target,
+        '/api/athletes/me/registration-combos',
+        registrationBody('mercado_pago'),
+      )
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+        missing: ['dni_front', 'dni_back'],
+      })
+      expect(createRegistrationCombo).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('exige el legajo de documentos para inscribir una cuenta nueva', async () => {
+    const createRegistration = vi.fn()
+    const target = listen(
+      createApp({
+        env: { PAID_CHECKOUT_ENABLED: 'true' },
+        supabaseAdmin: authenticatedSupabase(),
+        registrationAccessRepository: {
+          findActiveGate: vi.fn().mockResolvedValue(null),
+          recordUse: vi.fn(),
+        },
+        platformSettingsRepository: { get: vi.fn().mockResolvedValue({}) },
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findDocumentPack: vi.fn().mockResolvedValue({
+            birthDate: '1995-01-01',
+            documentsGrandfathered: false,
+            documents: [],
+            unavailable: false,
+          }),
+          findCompetitionProfile: vi.fn().mockResolvedValue(COMPLETE_COMPETITION_PROFILE),
+          findEventPricing: vi.fn().mockResolvedValue({
+            slug: 'pitbull-classic-2026',
+            price: DEFAULT_PRICE,
+            manual_price: MANUAL_PRICE,
+          }),
+          discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
+          createRegistration,
+        },
+      }),
+    )
+    try {
+      const response = await post(target, '/api/athletes/me/registrations', registrationBody('mercado_pago'))
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+        missing: ['dni_front', 'dni_back'],
+      })
+      expect(createRegistration).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('exige el DNI a una cuenta anterior si el torneo pide afiliación', async () => {
+    const createRegistration = vi.fn()
+    const target = listen(
+      createApp({
+        env: { PAID_CHECKOUT_ENABLED: 'true' },
+        supabaseAdmin: authenticatedSupabase(),
+        registrationAccessRepository: {
+          findActiveGate: vi.fn().mockResolvedValue(null),
+          recordUse: vi.fn(),
+        },
+        platformSettingsRepository: { get: vi.fn().mockResolvedValue({}) },
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findDocumentPack: vi.fn().mockResolvedValue({
+            birthDate: '1995-01-01',
+            documentsGrandfathered: true,
+            documents: [],
+            unavailable: false,
+          }),
+          findCompetitionProfile: vi.fn().mockResolvedValue(COMPLETE_COMPETITION_PROFILE),
+          findEventPricing: vi.fn().mockResolvedValue({
+            slug: 'pitbull-classic-2026',
+            price: DEFAULT_PRICE,
+            manual_price: MANUAL_PRICE,
+            requires_membership: true,
+          }),
+          discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
+          createRegistration,
+        },
+      }),
+    )
+    try {
+      const response = await post(target, '/api/athletes/me/registrations', registrationBody('mercado_pago'))
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+        missing: ['dni_front', 'dni_back'],
+      })
+      expect(createRegistration).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
   it('no deja cobrar sin sesión de atleta por ningún medio', async () => {
     for (const paymentMethod of ['mercado_pago', 'manual_link', 'cash_pitbull']) {
       const { target, createMembershipOrder } = buildApp({
@@ -786,6 +1032,105 @@ describe('los medios de un codigo forman una lista cerrada', () => {
       expect(app[spyName]).toHaveBeenCalled()
     } finally {
       await app.target.close()
+    }
+  })
+})
+
+describe('categoría de peso en la inscripción', () => {
+  it('rechaza la inscripción si no viene la categoría', async () => {
+    const app = buildApp()
+    try {
+      const body = registrationBody('mercado_pago')
+      delete body.declaredWeightClass
+      const response = await post(app.target, '/api/athletes/me/registrations', body)
+      expect(response.status).toBe(400)
+      const payload = await response.json()
+      expect(payload.error ?? payload.message).toBe(
+        'Seleccioná la categoría de peso en la que vas a competir.',
+      )
+      expect(app.createRegistration).not.toHaveBeenCalled()
+    } finally {
+      await app.target.close()
+    }
+  })
+
+  it('rechaza una clase que no corresponde al sexo', async () => {
+    const app = buildApp()
+    try {
+      const response = await post(
+        app.target,
+        '/api/athletes/me/registrations',
+        registrationBody('mercado_pago', { declaredWeightClass: '44' }),
+      )
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        code: 'WEIGHT_CLASS_INVALID',
+        error: 'Seleccioná la categoría de peso en la que vas a competir.',
+      })
+      expect(app.createRegistration).not.toHaveBeenCalled()
+    } finally {
+      await app.target.close()
+    }
+  })
+
+  it('guarda la clase canónica cuando es válida', async () => {
+    const app = buildApp()
+    try {
+      const response = await post(
+        app.target,
+        '/api/athletes/me/registrations',
+        registrationBody('mercado_pago', { declaredWeightClass: '67.5' }),
+      )
+      expect(response.status).toBe(201)
+      expect(app.createRegistration).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ declaredWeightClass: '67,5' }),
+      )
+    } finally {
+      await app.target.close()
+    }
+  })
+})
+
+/**
+ * El bloque "Cómo pagar" de la landing lee esto sin sesión: tiene que decir lo
+ * mismo que el checkout (si no, la página promete un medio que después no está)
+ * y no exponer datos bancarios.
+ */
+describe('cómo pagar, sin sesión (landing)', () => {
+  async function paymentInfo(toggles) {
+    const { target } = buildApp({ toggles })
+    try {
+      const response = await fetch(
+        `${target.url}/api/athletes/public/events/pitbull-classic-2026/payment-info`,
+      )
+      expect(response.status).toBe(200)
+      return await response.json()
+    } finally {
+      await target.close()
+    }
+  }
+
+  it('sin configuración ofrece solo Mercado Pago, como el checkout', async () => {
+    const info = await paymentInfo({})
+    expect(info.channels).toEqual(['mercado_pago'])
+    expect(JSON.stringify(info)).not.toMatch(/alias|cbu|holder/i)
+  })
+
+  it('con la inscripción pausada en la plataforma no ofrece nada', async () => {
+    const info = await paymentInfo({ checkoutEnabled: false })
+    expect(info.registrationEnabled).toBe(false)
+  })
+
+  it('rechaza un identificador de evento mal formado', async () => {
+    const { target } = buildApp()
+    try {
+      const response = await fetch(
+        `${target.url}/api/athletes/public/events/..%2Fadmin/payment-info`,
+      )
+      expect(response.status).toBe(400)
+    } finally {
+      await target.close()
     }
   })
 })

@@ -17,6 +17,7 @@ export default {
   args: {
     canEdit: true,
     onCancel: () => {},
+    onDone: () => {},
     onOpenFullEditor: () => {},
     onSubmit: async () => ({ event: { id: 'evt-nuevo' } }),
   },
@@ -40,5 +41,29 @@ export const ErrorDelBackend = {
     onSubmit: async () => {
       throw new Error('Ya existe un evento con ese enlace público.')
     },
+  },
+}
+
+/** Duplicar un evento: sede, ciudad, cupo y acceso vienen cargados; las fechas no. */
+export const Duplicando = {
+  args: {
+    duplicateOf: 'Copa Norte',
+    initialDraft: {
+      title: 'Copa Norte',
+      venue: 'Complejo Belgrano',
+      location: 'Salta',
+      slots: 40,
+      requiresMembership: false,
+    },
+  },
+}
+
+/** El selector «Tipo de evento» precarga acceso, plantilla de landing e intención de venta. */
+export const ConTipoDeEvento = {
+  play: async ({ canvasElement }) => {
+    const chip = [...canvasElement.querySelectorAll('button')].find(
+      (button) => button.textContent?.trim() === 'Seminario / clínica',
+    )
+    chip?.click()
   },
 }

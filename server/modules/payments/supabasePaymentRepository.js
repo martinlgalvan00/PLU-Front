@@ -7,6 +7,7 @@ import {
   paymentConceptInputFromOrder,
 } from '../../../src/lib/paymentConcept.js'
 import { mapMercadoPagoStatus } from './paymentWorkflow.js'
+import { maxInstallmentsFor } from '../../../shared/eventModules.js'
 
 function assertResult(result, fallbackMessage) {
   return assertSupabaseResult(result, fallbackMessage)
@@ -30,7 +31,7 @@ export function createSupabasePaymentRepository(
       // título que sale de acá es el que ve el atleta en el resumen de la
       // tarjeta y Finanzas en la app de Mercado Pago.
       .select(
-        '*, athlete:athletes(id, full_name, email, document_id), plan:membership_plans(billing_frequency), membership:memberships(year), registration:event_registrations(id, division, category, event:events(id, title, slug, starts_at, venue, registration_opens_at, mercado_pago_profile_id))',
+        '*, athlete:athletes(id, full_name, email, document_id), plan:membership_plans(billing_frequency), membership:memberships(year), registration:event_registrations(id, division, category, event:events(id, title, slug, starts_at, venue, registration_opens_at, mercado_pago_profile_id, rules))',
       )
       .eq('id', orderId)
       .eq('organization_id', organizationId)
@@ -73,10 +74,21 @@ export function createSupabasePaymentRepository(
         registration: Array.isArray(data.registration)
           ? (data.registration[0] ?? null)
           : (data.registration ?? null),
-        mercadoPagoProfileId:
-          (Array.isArray(data.registration)
-            ? data.registration[0]?.event?.mercado_pago_profile_id
-            : data.registration?.event?.mercado_pago_profile_id) ?? null,
+        // Fijada = la cuenta con la que se abrió el cobro, aunque el evento
+        // haya cambiado de cuenta después (NULL fijado = cuenta global). Sin
+        // fijar todavía, la cuenta actual del evento.
+        mercadoPagoProfileId: data.mercado_pago_account_pinned_at
+          ? (data.mercado_pago_profile_id ?? null)
+          : ((Array.isArray(data.registration)
+              ? data.registration[0]?.event?.mercado_pago_profile_id
+              : data.registration?.event?.mercado_pago_profile_id) ?? null),
+        mercadoPagoAccountPinned: Boolean(data.mercado_pago_account_pinned_at),
+        // Tope de cuotas del evento (inscripción y combo cobran como
+        // inscripción). Una afiliación sola no tiene evento: sin tope.
+        maxInstallments: maxInstallmentsFor(
+          (Array.isArray(data.registration) ? data.registration[0] : data.registration)?.event,
+          'registration',
+        ),
       }
     }
 
@@ -84,7 +96,7 @@ export function createSupabasePaymentRepository(
       await client
         .from('ticket_orders')
         .select(
-          '*, event:events(id, title, slug, registration_opens_at, mercado_pago_profile_id)',
+          '*, event:events(id, title, slug, registration_opens_at, mercado_pago_profile_id, rules)',
         )
         .eq('id', orderId)
         .eq('organization_id', organizationId)
@@ -118,12 +130,38 @@ export function createSupabasePaymentRepository(
       rejectionReason: ticketData.rejection_reason ?? null,
       paymentProofUploadedAt: ticketData.payment_proof_uploaded_at ?? null,
       event: ticketData.event,
-      mercadoPagoProfileId: ticketData.event?.mercado_pago_profile_id ?? null,
+      mercadoPagoProfileId: ticketData.mercado_pago_account_pinned_at
+        ? (ticketData.mercado_pago_profile_id ?? null)
+        : (ticketData.event?.mercado_pago_profile_id ?? null),
+      mercadoPagoAccountPinned: Boolean(ticketData.mercado_pago_account_pinned_at),
+      maxInstallments: maxInstallmentsFor(ticketData.event, 'ticket'),
     }
   }
 
   return {
     getOrder,
+
+    /**
+     * Fija la cuenta de MP de la orden la primera vez que se abre el cobro.
+     * Idempotente y sin pisar: si ya estaba fijada (otro request en paralelo),
+     * gana la primera y se devuelve esa. Antes de la migración la columna no
+     * existe y se sigue con la cuenta del evento, como siempre.
+     */
+    async pinMercadoPagoAccount(order, profileId) {
+      if (!order?.id || order.mercadoPagoAccountPinned) return order?.mercadoPagoProfileId ?? null
+      const table = order.kind === 'ticket' ? 'ticket_orders' : 'athlete_payment_orders'
+      const { error } = await client
+        .from(table)
+        .update({
+          mercado_pago_profile_id: profileId ?? null,
+          mercado_pago_account_pinned_at: new Date().toISOString(),
+        })
+        .eq('id', order.id)
+        .is('mercado_pago_account_pinned_at', null)
+      if (error) return profileId ?? null
+      const fresh = await getOrder(order.id)
+      return fresh?.mercadoPagoProfileId ?? profileId ?? null
+    },
 
     async recordClientEvent({ order, stage, errorCode, message }) {
       return assertResult(
@@ -863,6 +901,22 @@ export function createSupabasePaymentRepository(
           p_actor: actor,
         }),
         'No se pudo descartar el hallazgo.',
+      )
+    },
+
+    /**
+     * Baja de una fila de Cobros que no se cobró. La RPC es la autoridad: si la
+     * orden tiene plata, comprobante, pago declarado o historial en el libro,
+     * responde con un PLU31-35 que la ruta devuelve como 409.
+     */
+    async deleteAthleteOrder(orderId, actor, reason) {
+      return assertResult(
+        await client.rpc('staff_delete_athlete_payment_order', {
+          p_order_id: orderId,
+          p_actor: actor,
+          p_reason: reason,
+        }),
+        'No se pudo borrar la orden.',
       )
     },
 

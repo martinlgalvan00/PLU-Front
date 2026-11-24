@@ -235,7 +235,7 @@ export default function HomeMembershipBand({
           <>
             <button
               type="button"
-              className="btn btn--gold home-membership-band__cta"
+              className="home-membership-band__cta"
               onClick={goToAffiliation}
             >
               {primaryCta}

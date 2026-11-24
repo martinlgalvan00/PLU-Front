@@ -801,24 +801,18 @@
 
 /* ?? Events toolbar (lista + filtros) ????????? */
 
-.filter-pills__label--short {
-  display: none;
-}
-
-.filter-pills__item:has(.filter-pills__label--short) .filter-pills__label--full {
-  display: inline;
-}
+/* La regla base de la etiqueta corta vive en components/filter-pills.css. */
 
 /* Toolbar premium: anula estilos legacy de design-phase2 */
 
 @supports (container-type: inline-size) {
   @container events-main (max-width: 680px) {
 
-    .filter-pills__item:has(.filter-pills__label--short) .filter-pills__label--full {
+    .events-main-column .filter-pills__item:has(.filter-pills__label--short) .filter-pills__label--full {
       display: none;
     }
 
-    .filter-pills__label--short {
+    .events-main-column .filter-pills__label--short {
       display: inline;
     }
   }
@@ -858,11 +852,13 @@
     width: 100%;
   }
 
-  .filter-pills__item:has(.filter-pills__label--short) .filter-pills__label--full {
+  /* Acotado a Eventos: sin el prefijo, esta hoja seguía cargada al pasar a
+     Resultados y le cambiaba las etiquetas a "Pub." / "Espera". */
+  .events-page--design .filter-pills__item:has(.filter-pills__label--short) .filter-pills__label--full {
     display: none;
   }
 
-  .filter-pills__label--short {
+  .events-page--design .filter-pills__label--short {
     display: inline;
   }
 
@@ -910,13 +906,25 @@
 
 /* ?? PLU reference ? events page ????????????????? */
 
+.events-page--plu-ref {
+  /* Un solo ancho de contenido para el encabezado y el cuerpo. Antes el cuerpo
+     contaba el padding dentro del max-width y el hero no: el título arrancaba
+     en x=64 y la lista en x=127 (1366px), y al revés en 1920. */
+  --events-shell-max: var(--max-width-content);
+  --events-shell-pad: var(--institution-gutter);
+}
+
+.events-page--plu-ref .events-page__hero .plu-page-hero__inner {
+  max-width: calc(var(--events-shell-max) - 2 * var(--events-shell-pad));
+}
+
 .events-page--plu-ref .events-page__body {
   display: grid;
   gap: clamp(16px, 2.2vw, 24px);
   margin: 0 auto;
-  max-width: var(--max-width-content);
-  /* Toolbar m�s cerca del hero: menos aire superior */
-  padding: clamp(10px, 1.6vw, 18px) clamp(20px, 5vw, 64px) clamp(48px, 7vw, 72px);
+  max-width: var(--events-shell-max);
+  /* Toolbar más cerca del hero: menos aire superior */
+  padding: clamp(10px, 1.6vw, 18px) var(--events-shell-pad) clamp(48px, 7vw, 72px);
 }
 
 /* Hero Eventos: m�s compacto y editorial en notebook */
@@ -983,6 +991,16 @@
     font-size: 14.5px;
     margin-top: 10px;
   }
+}
+
+.events-page--plu-ref .events-page__notice {
+  border-left: 2px solid var(--color-brand-celeste);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 18px;
+  max-width: 62ch;
+  padding: 2px 0 2px 12px;
 }
 
 .events-page--plu-ref .events-page__toolbar {
@@ -1193,6 +1211,45 @@
   gap: 5px;
   min-width: 0;
   padding: 2px 0;
+}
+
+.events-page--plu-ref .event-card__identity,
+.events-page--plu-ref .events-detail__identity {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.events-page--plu-ref .event-card__mark,
+.events-page--plu-ref .events-detail__mark {
+  align-items: center;
+  background: color-mix(in oklab, var(--color-surface, #fff) 82%, var(--plu-gold-300, #d9aa3d));
+  border: 1px solid color-mix(in oklab, var(--plu-gold-400, #c69222) 38%, transparent);
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.events-page--plu-ref .event-card__mark {
+  border-radius: 50%;
+  height: 34px;
+  width: 34px;
+}
+
+.events-page--plu-ref .events-detail__mark {
+  border-radius: 6px;
+  height: 48px;
+  width: 48px;
+}
+
+.events-page--plu-ref .event-card__mark img,
+.events-page--plu-ref .events-detail__mark img {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
 }
 
 .events-page--plu-ref .event-card__status {
@@ -1749,10 +1806,13 @@
 
 /* Desktop grande: rebalancear para que no se ?estire? el main */
 @media (min-width: 1440px) {
+  .events-page--plu-ref {
+    --events-shell-max: min(1520px, var(--max-width-content));
+    --events-shell-pad: clamp(40px, 4.5vw, 88px);
+  }
+
   .events-page--plu-ref .events-page__body {
     gap: clamp(28px, 2vw, 40px);
-    max-width: min(1520px, var(--max-width-content));
-    padding-inline: clamp(40px, 4.5vw, 88px);
     padding-bottom: clamp(56px, 5.5vw, 88px);
   }
 
@@ -1769,10 +1829,13 @@
 
 /* Full HD+ / TV: m�s presencia, sidebar m�s ancho, menos vac�o visual */
 @media (min-width: 1920px) {
+  .events-page--plu-ref {
+    --events-shell-max: min(1680px, var(--max-width-content));
+    --events-shell-pad: clamp(56px, 5vw, 112px);
+  }
+
   .events-page--plu-ref .events-page__body {
     gap: clamp(32px, 1.8vw, 44px);
-    max-width: min(1680px, var(--max-width-content));
-    padding-inline: clamp(56px, 5vw, 112px);
     padding-bottom: clamp(72px, 6vw, 104px);
   }
 
@@ -1829,7 +1892,7 @@
   }
 
   .events-page--plu-ref .events-page__filters-shell.plu-tab-rail__shell .filter-pills__item {
-    min-height: 34px;
+    min-height: 44px;
     padding: 0 11px;
   }
 
@@ -1846,7 +1909,10 @@
     display: inline;
   }
 
-  .events-page--plu-ref .events-page__count {
+  /* Con la clase del divisor la regla general (más abajo, misma
+     especificidad) volvía a dibujar el filete vertical en mobile. */
+  .events-page--plu-ref .events-page__count,
+  .events-page--plu-ref .events-page__count.plu-meta-chip--divider {
     align-self: flex-start;
     border-left: none;
     margin-left: 0;
@@ -2060,10 +2126,10 @@
 }
 
 .events-page--list-first .events-page__filters-shell.plu-tab-rail__shell .filter-pills__item {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.02em;
-  min-height: 36px;
+  letter-spacing: 0.01em;
+  min-height: 44px;
   padding: 0 14px 0 0;
   position: relative;
   text-transform: none;
@@ -2097,11 +2163,11 @@
   .events-page__filters-shell.plu-tab-rail__shell
   .filter-pills__item.is-active::after {
   background: var(--institution-gold, var(--color-brand-gold));
-  bottom: 2px;
+  bottom: 8px;
   content: '';
-  height: 1px;
+  height: 2px;
   left: 0;
-  opacity: 0.9;
+  opacity: 1;
   position: absolute;
   right: 14px;
 }
@@ -2136,16 +2202,43 @@
   border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 6%, transparent);
   border-radius: 0;
   box-shadow: none;
-  gap: 18px 24px;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 16px 22px;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
   min-height: 0;
-  padding: 18px 2px 18px 0;
+  padding: 22px 4px 22px 16px;
   position: relative;
   transform: none;
   transition:
     background-color var(--motion-fast, 160ms) var(--ease-out, ease),
-    border-color var(--motion-fast, 160ms) var(--ease-out, ease),
-    padding-left var(--motion-fast, 160ms) var(--ease-out, ease);
+    border-color var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.events-page--list-first .events-list--minimal .event-card--selectable {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.events-page--list-first .events-list--minimal .event-card__select {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 16px 22px;
+  grid-template-columns: 84px minmax(0, 1fr);
+  min-height: 44px;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.events-page--list-first .events-list--minimal .event-card__select:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid
+    color-mix(in oklab, var(--institution-gold, var(--color-brand-gold)) 55%, transparent);
+  outline-offset: 4px;
 }
 
 .events-page--list-first .events-list--minimal .event-card::before {
@@ -2166,16 +2259,29 @@
 
 .events-page--list-first .events-list--minimal .event-card:hover,
 .events-page--list-first .events-list--minimal .event-card--selected {
-  background: transparent;
+  background: color-mix(in oklab, var(--institution-gold, var(--color-brand-gold)) 5%, transparent);
   border-bottom-color: color-mix(in oklab, var(--color-text-primary) 10%, transparent);
   box-shadow: none;
-  padding-left: 12px;
   transform: none;
+}
+
+.events-page--list-first .events-list--minimal .event-card--selected {
+  background: color-mix(in oklab, var(--institution-gold, var(--color-brand-gold)) 8%, transparent);
+  border-bottom-color: color-mix(
+    in oklab,
+    var(--institution-gold, var(--color-brand-gold)) 28%,
+    transparent
+  );
 }
 
 .events-page--list-first .events-list--minimal .event-card:hover::after,
 .events-page--list-first .events-list--minimal .event-card--selected::after {
   opacity: 0.85;
+}
+
+.events-page--list-first .events-list--minimal .event-card--selected::after {
+  opacity: 1;
+  width: 2px;
 }
 
 .events-page--list-first .events-list--minimal .event-card.surface-card:hover {
@@ -2207,10 +2313,16 @@
 .events-page--list-first .events-list--minimal .event-card__day {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(1.55rem, 2.2vw, 1.85rem);
+  font-size: clamp(1.6rem, 2.15vw, 1.9rem);
+  font-variant-numeric: tabular-nums;
   font-weight: 650;
   letter-spacing: -0.06em;
   line-height: 0.88;
+  white-space: nowrap;
+}
+
+.events-page--list-first .events-list--minimal .event-card--selected .event-card__day {
+  color: var(--institution-gold, var(--color-brand-gold));
 }
 
 .events-page--list-first .events-list--minimal .event-card__month {
@@ -2223,11 +2335,25 @@
 }
 
 .events-page--list-first .events-list--minimal .event-card__athlete-status {
+  border-left: 2px solid currentColor;
   color: var(--color-text-secondary);
   font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.01em;
   margin: 0;
+  padding-left: 8px;
+}
+
+.events-page--list-first .events-list--minimal .event-card__athlete-status[data-tone='success'] {
+  color: var(--color-status-success, #3d9a6a);
+}
+
+.events-page--list-first .events-list--minimal .event-card__athlete-status[data-tone='warning'] {
+  color: var(--color-status-warning, #c48a2a);
+}
+
+.events-page--list-first .events-list--minimal .event-card__athlete-status[data-tone='info'] {
+  color: var(--color-brand-celeste);
 }
 
 .events-page--list-first .events-list--minimal .event-card__body {
@@ -2245,33 +2371,16 @@
   margin: 0;
 }
 
-.events-page--list-first .events-list--minimal .event-card--pitbull .event-card__brand {
-  align-items: center;
-  display: flex;
-  margin: 0;
-  max-width: min(220px, 100%);
-  min-height: 0;
+.events-page--list-first .events-list--minimal .event-card--selected .event-card__title {
+  font-weight: 700;
 }
 
-.events-page--list-first .events-list--minimal .event-card--pitbull .pitbull-brand-mark--sm {
-  gap: 8px;
-}
-
-.events-page--list-first
-  .events-list--minimal
-  .event-card--pitbull
-  .pitbull-brand-mark--sm
-  .pitbull-brand-mark__emblem {
-  height: 28px;
-}
-
-.events-page--list-first
-  .events-list--minimal
-  .event-card--pitbull
-  .pitbull-brand-mark--sm
-  .pitbull-brand-mark__wordmark {
-  height: 22px;
-  max-width: min(44vw, 160px);
+.events-page--list-first .events-list--minimal .event-card__mark {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  height: 32px;
+  width: 32px;
 }
 
 .events-page--list-first .events-list--minimal .event-card__meta {
@@ -2290,22 +2399,23 @@
   opacity: 0.45;
 }
 
-.events-page--list-first .events-list--minimal .event-card__status--inline {
-  color: var(--color-text-muted);
-  display: inline;
-  font-size: inherit;
-  font-weight: 500;
+.events-page--list-first .events-list--minimal .event-card__status {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.01em;
+  line-height: 1.3;
   margin: 0;
   text-transform: none;
 }
 
-.events-page--list-first .events-list--minimal .event-card__status--inline[data-tone='success'] {
+.events-page--list-first .events-list--minimal .event-card__status[data-tone='success'] {
   color: color-mix(in srgb, var(--color-brand-celeste, #4aa3c7) 68%, var(--color-text-primary));
 }
 
-.events-page--list-first .events-list--minimal .event-card__status--inline[data-tone='warning'] {
-  color: color-mix(in srgb, var(--color-brand-gold, #c9a227) 48%, var(--color-text-muted));
+.events-page--list-first .events-list--minimal .event-card__status[data-tone='warning'],
+.events-page--list-first .events-list--minimal .event-card__status[data-tone='info'] {
+  color: color-mix(in srgb, var(--color-brand-gold, #c9a227) 42%, var(--color-text-secondary));
 }
 
 .events-page--list-first .events-list--minimal .event-card__action,
@@ -2327,6 +2437,12 @@
   transition:
     color var(--motion-fast, 160ms) var(--ease-out, ease),
     opacity var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+/* Inscribirme / Comprar entradas: acción principal de la fila, a tinta plena. */
+.events-page--list-first .events-list--minimal .event-card__action--live {
+  color: var(--color-text-primary);
+  opacity: 1;
 }
 
 .events-page--list-first .events-list--minimal .event-card__action:hover,
@@ -2364,7 +2480,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .events-page--list-first .events-list--minimal .event-card__action--editorial {
+  /* Solo las acciones de consulta se revelan al pasar. "Inscribirme" o
+     "Comprar entradas" (`--live`) quedaban invisibles en toda fila no
+     seleccionada: el evento con inscripción abierta no mostraba su botón. */
+  .events-page--list-first
+    .events-list--minimal
+    .event-card__action--editorial:not(.event-card__action--live) {
     opacity: 0;
   }
 
@@ -2397,27 +2518,32 @@
   .events-page--list-first .events-list--minimal .event-card,
   .events-page--list-first .events-list--minimal .event-card--minimal {
     align-items: start;
-    gap: 12px 14px;
-    grid-template-columns: 52px minmax(0, 1fr);
-    padding: 16px 0;
+    gap: 10px 14px;
+    grid-template-columns: 72px minmax(0, 1fr);
+    padding: 18px 0 18px 12px;
   }
 
-  .events-page--list-first .events-list--minimal .event-card:hover,
-  .events-page--list-first .events-list--minimal .event-card--selected {
-    padding-left: 10px;
+  .events-page--list-first .events-list--minimal .event-card--selectable {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .events-page--list-first .events-list--minimal .event-card__select {
+    gap: 10px 14px;
+    grid-column: 1 / -1;
+    grid-template-columns: 72px minmax(0, 1fr);
   }
 
   .events-page--list-first .events-list--minimal .event-card__action,
   .events-page--list-first .events-list--minimal .event-card__action--editorial {
     grid-column: 2;
     justify-self: start;
-    min-height: 36px;
+    min-height: 44px;
     opacity: 1;
     padding: 2px 0 0;
   }
 
   .events-page--list-first .events-list--minimal .event-card__day {
-    font-size: 1.4rem;
+    font-size: 1.45rem;
   }
 
   .events-page--list-first .events-list--minimal .event-card__meta {
@@ -2437,7 +2563,9 @@
     transition: none;
   }
 
-  .events-page--list-first .events-list--minimal .event-card__action--editorial {
+  .events-page--list-first
+    .events-list--minimal
+    .event-card__action--editorial:not(.event-card__action--live) {
     opacity: 1;
   }
 }
@@ -2448,9 +2576,11 @@
   background: transparent;
   border: 0;
   border-radius: 0;
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 7%, transparent);
   box-shadow: none;
-  margin-top: clamp(8px, 1.5vw, 16px);
+  margin-top: clamp(12px, 2vw, 28px);
   overflow: visible;
+  padding-top: clamp(22px, 3vw, 36px);
 }
 
 .events-page--list-first .events-calendar-board::before,
@@ -2516,7 +2646,7 @@
 
 .events-page--list-first .events-calendar-board__countdown .event-countdown__value {
   color: var(--color-text-primary);
-  font-size: clamp(1.85rem, 3.2vw, 2.45rem);
+  font-size: clamp(2.15rem, 3.6vw, 2.85rem);
   font-weight: 650;
   letter-spacing: -0.06em;
   line-height: 0.9;
@@ -2571,14 +2701,12 @@
 .events-page--list-first .events-calendar-board__countdown .event-countdown__title {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  font-size: clamp(1.2rem, 2.1vw, 1.55rem);
   font-weight: 650;
   letter-spacing: -0.035em;
   line-height: 1.15;
   margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-wrap: balance;
 }
 
 .events-page--list-first .events-calendar-board__countdown .event-countdown__title-arrow {
@@ -2644,26 +2772,33 @@
   }
 }
 
-@media (max-width: 1359px) {
+@media (max-width: 1279px) {
   .events-page--list-first .events-calendar-board__grid {
     display: flex;
     flex-direction: column;
   }
 
-  .events-page--list-first .events-calendar-board__panel {
+  .events-page--list-first .events-calendar-board__calendar {
     border-top: 0;
-    order: -1;
+    order: 0;
   }
 
-  .events-page--list-first .events-calendar-board__calendar {
+  .events-page--list-first .events-calendar-board__panel {
     border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 7%, transparent);
-    order: 1;
+    order: 0;
+  }
+}
+
+@media (max-width: 1023px) {
+  .events-page--list-first .events-calendar-board__panel {
+    order: -1;
+    scroll-margin-top: calc(var(--header-height-scrolled, 52px) + 16px);
   }
 }
 
 .events-page--list-first .events-calendar-board__panel .events-detail--minimal {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   padding: 6px 0 2px;
   position: relative;
 }
@@ -2678,6 +2813,28 @@
   width: 2.5rem;
 }
 
+.events-page--list-first .events-detail--minimal .events-detail__panel-eyebrow {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  margin: 10px 0 0;
+  text-transform: uppercase;
+}
+
+.events-page--list-first .events-detail--minimal .events-detail__brief {
+  align-items: start;
+  display: grid;
+  gap: 14px 18px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.events-page--list-first .events-detail--minimal .events-detail__brief-body {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
 .events-page--list-first .events-detail--minimal .events-detail__head {
   align-items: baseline;
   display: flex;
@@ -2685,7 +2842,7 @@
   gap: 10px 14px;
   justify-content: space-between;
   margin: 0;
-  padding-top: 10px;
+  padding-top: 0;
 }
 
 .events-page--list-first .events-detail--minimal .events-detail__title {
@@ -2720,12 +2877,28 @@
   opacity: 0.45;
 }
 
+.events-page--list-first .events-detail--minimal .events-detail__status-copy {
+  color: var(--color-text-secondary);
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 36ch;
+}
+
 .events-page--list-first .events-detail--minimal .events-detail__athlete-hint {
   color: var(--color-text-muted);
   font-size: 12.5px;
   line-height: 1.45;
   margin: 0;
-  max-width: 42ch;
+  max-width: 36ch;
+}
+
+@media (max-width: 520px) {
+  .events-page--list-first .events-detail--minimal .events-detail__brief {
+    grid-template-columns: 1fr;
+  }
 }
 
 .events-page--list-first .events-detail--minimal .events-detail__coming-soon {
@@ -2792,14 +2965,14 @@
   font-size: 12.5px;
   font-weight: 600;
   gap: 6px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0;
   transition: color var(--motion-fast, 160ms) var(--ease-out, ease);
 }
 
 .events-page--list-first .events-detail--minimal .events-detail__text-link--primary {
   color: var(--institution-gold, var(--color-brand-gold));
-  font-size: 13.5px;
+  font-size: 15px;
   font-weight: 650;
   letter-spacing: -0.01em;
 }
@@ -2909,19 +3082,24 @@
   }
 }
 
-/* Entradas: banda editorial — eyebrow | precio display | CTA */
+/* Entradas: misma superficie que la ficha. Sin venta, solo el estado. */
 .events-page--list-first .events-public-tickets--minimal {
   border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
   display: block;
-  margin-top: 4px;
-  padding: 26px 0 8px;
+  margin-top: 2px;
+  padding: 14px 0 2px;
 }
 
 .events-page--list-first .events-public-tickets--minimal .events-public-tickets__band {
-  align-items: end;
+  align-items: center;
   display: grid;
-  gap: 12px 28px;
+  gap: 8px 20px;
   grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.events-page--list-first .events-public-tickets--closed .events-public-tickets__band {
+  align-items: baseline;
+  grid-template-columns: auto minmax(0, 1fr);
 }
 
 .events-page--list-first .events-public-tickets--minimal .events-public-tickets__title {
@@ -2967,34 +3145,28 @@
 
 .events-page--list-first .events-public-tickets--minimal .events-public-tickets__text-link {
   align-items: center;
-  align-self: end;
+  align-self: center;
   background: none;
   border: 0;
-  border-bottom: 1px solid color-mix(in oklab, var(--color-brand-gold) 60%, transparent);
-  color: var(--color-text-primary);
+  color: var(--institution-gold, var(--color-brand-gold));
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 650;
   gap: 8px;
-  padding: 0 0 4px;
-  transition: border-color var(--motion-fast, 160ms) var(--ease-out, ease);
+  min-height: 44px;
+  padding: 0;
+  transition: color var(--motion-fast, 160ms) var(--ease-out, ease);
 }
 
 .events-page--list-first .events-public-tickets--minimal .events-public-tickets__text-link:hover:not(:disabled) {
-  border-bottom-color: var(--color-brand-gold);
-}
-
-.events-page--list-first .events-public-tickets--minimal .events-public-tickets__text-link:disabled {
-  border-bottom-color: transparent;
-  color: var(--color-text-muted);
-  cursor: not-allowed;
-  opacity: 0.7;
+  color: var(--color-text-primary);
 }
 
 .events-page--list-first .events-public-tickets--minimal .events-public-tickets__text-link:focus-visible {
-  outline: 2px solid color-mix(in oklab, var(--color-brand-gold) 55%, transparent);
+  border-radius: 4px;
+  outline: 2px solid color-mix(in oklab, var(--color-brand-celeste) 55%, transparent);
   outline-offset: 4px;
 }
 
@@ -3014,6 +3186,21 @@
   .events-page--list-first .events-public-tickets--minimal .events-public-tickets__price {
     grid-area: price;
   }
+
+  .events-page--list-first .events-public-tickets--minimal .events-public-tickets__text-link {
+    grid-area: cta;
+  }
+
+  .events-page--list-first .events-public-tickets--closed .events-public-tickets__band {
+    align-items: baseline;
+    grid-template-areas: none;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .events-page--list-first .events-public-tickets--closed .events-public-tickets__title,
+  .events-page--list-first .events-public-tickets--closed .events-public-tickets__price {
+    grid-area: auto;
+  }
 }
 
 .events-page--list-first .events-page__count {
@@ -3023,10 +3210,6 @@
 .events-page--list-first .events-page__count .plu-meta-chip__unit {
   letter-spacing: 0.02em;
   text-transform: lowercase;
-}
-
-.events-page--list-first .events-calendar-board .event-calendar__cell {
-  min-height: clamp(48px, 6vw, 56px);
 }
 
 .events-calendar-board {
@@ -3146,9 +3329,9 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-@media (min-width: 1360px) {
+@media (min-width: 1280px) {
   .events-calendar-board__grid {
-    grid-template-columns: minmax(0, 1.2fr) minmax(400px, 1fr);
+    grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.85fr);
     gap: 0 28px;
   }
 
@@ -3223,11 +3406,11 @@
   color: var(--color-text-muted);
   cursor: pointer;
   font: inherit;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  min-height: 36px;
-  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  min-height: 44px;
+  padding: 0 12px;
   text-transform: uppercase;
   transition: color var(--motion-fast, 160ms) var(--ease-out, ease);
 }
@@ -3246,10 +3429,10 @@
   color: var(--color-text-muted);
   cursor: pointer;
   display: flex;
-  height: 36px;
+  height: 44px;
   justify-content: center;
   transition: color var(--motion-fast, 160ms) var(--ease-out, ease);
-  width: 36px;
+  width: 44px;
 }
 
 .events-page--list-first .events-calendar-board .event-calendar__nav:hover {
@@ -3261,6 +3444,12 @@
 
 .events-page--list-first .events-calendar-board .event-calendar__nav:active {
   transform: none;
+}
+
+.events-page--list-first .events-calendar-board .event-calendar__today-btn:focus-visible,
+.events-page--list-first .events-calendar-board .event-calendar__nav:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--color-brand-celeste) 55%, transparent);
+  outline-offset: 2px;
 }
 
 /* Weekday Labels */
@@ -3275,10 +3464,10 @@
 
 .events-page--list-first .events-calendar-board .event-calendar__weekdays span {
   color: var(--color-text-muted);
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  opacity: 0.55;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  opacity: 0.78;
   padding: 4px 0;
   text-align: center;
   text-transform: uppercase;
@@ -3289,10 +3478,11 @@
   background: transparent;
   border: 0;
   border-radius: 0;
+  container-type: inline-size;
   display: grid;
   gap: 0;
   grid-template-columns: repeat(7, 1fr);
-  overflow: visible;
+  overflow: hidden;
 }
 
 .events-page--list-first .events-calendar-board .event-calendar__cell {
@@ -3305,8 +3495,10 @@
   flex-direction: column;
   gap: 6px;
   justify-content: flex-start;
-  min-height: clamp(48px, 5.5vw, 56px);
-  padding: 12px 8px 14px;
+  min-height: 64px;
+  min-width: 0;
+  overflow: visible;
+  padding: 10px 6px 12px;
   position: relative;
   text-align: left;
   transition:
@@ -3314,9 +3506,9 @@
     color var(--motion-fast, 160ms) var(--ease-out, ease);
 }
 
-@media (min-width: 1360px) {
+@media (min-width: 1280px) {
   .events-page--list-first .events-calendar-board .event-calendar__cell {
-    min-height: 66px;
+    min-height: 72px;
   }
 }
 
@@ -3331,12 +3523,19 @@
 
 .events-page--list-first .events-calendar-board .event-calendar__day {
   align-self: flex-start;
+  background: transparent;
+  border-radius: 0;
   color: var(--color-text-primary);
+  display: inline;
   font-family: var(--font-display);
   font-size: 14px;
   font-weight: 550;
+  height: auto;
   letter-spacing: -0.04em;
   line-height: 1.1;
+  min-width: 0;
+  padding: 0;
+  width: auto;
 }
 
 /* Hoy: acento tipográfico, sin pastilla */
@@ -3352,13 +3551,13 @@
 
 .events-page--list-first .events-calendar-board .event-calendar__cell--today::after {
   background: var(--institution-gold, var(--color-brand-gold));
-  bottom: 0;
+  bottom: 8px;
   content: '';
   height: 2px;
   left: 8px;
   opacity: 0.9;
   position: absolute;
-  right: 8px;
+  width: 1.25rem;
 }
 
 /* Selección: marca quieta, sin box inset */
@@ -3387,155 +3586,141 @@
   outline-offset: -2px;
 }
 
-/* Marcadores: barras de tono; título solo en celda seleccionada */
+/* Nombre en el día de inicio; el resto del tramo sigue como barra. */
 .events-page--list-first .events-calendar-board .event-calendar__chips {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  margin-top: auto;
+  margin-top: 0;
+  min-width: 0;
   width: 100%;
 }
 
 .events-page--list-first .events-calendar-board .event-calendar__chip {
   align-items: center;
   border: 0;
-  border-left: 0;
-  border-radius: 1px;
+  border-radius: 2px;
   display: flex;
-  height: 3px;
+  height: 18px;
   justify-content: flex-start;
-  min-height: 3px;
+  min-height: 18px;
+  min-width: 0;
   overflow: hidden;
   padding: 0;
-  transition: height var(--motion-fast, 150ms) var(--ease-out, ease);
   width: 100%;
 }
 
+.events-page--list-first .events-calendar-board .event-calendar__chip--labeled {
+  padding: 0 5px;
+}
+
+.events-page--list-first .events-calendar-board .event-calendar__chip--label-run {
+  overflow: visible;
+  position: relative;
+  z-index: 1;
+}
+
+.events-page--list-first .events-calendar-board .event-calendar__cell:has(.event-calendar__chip--label-run) {
+  overflow: visible;
+  z-index: 2;
+}
+
 .events-page--list-first .events-calendar-board .event-calendar__chip--success {
-  background: color-mix(in oklab, var(--plu-success-500, #3d9a5f) 75%, transparent);
+  background: color-mix(in oklab, var(--plu-success-500, #3d9a5f) 18%, transparent);
   color: var(--plu-success-400, #8fd4a8);
 }
 
 .events-page--list-first .events-calendar-board .event-calendar__chip--warning {
-  background: color-mix(in oklab, var(--plu-gold-500) 80%, transparent);
+  background: color-mix(in oklab, var(--plu-gold-500) 20%, transparent);
   color: var(--plu-gold-400);
 }
 
 .events-page--list-first .events-calendar-board .event-calendar__chip--neutral {
-  background: color-mix(in oklab, var(--color-brand-celeste) 75%, transparent);
+  background: color-mix(in oklab, var(--color-brand-celeste) 18%, transparent);
   color: var(--color-brand-celeste);
 }
 
 .events-page--list-first .events-calendar-board .event-calendar__chip--danger {
-  background: color-mix(in oklab, var(--plu-red-500, #c44) 75%, transparent);
+  background: color-mix(in oklab, var(--plu-red-500, #c44) 18%, transparent);
   color: var(--plu-red-400, #ff8b86);
 }
 
 /* Modo claro: el texto de las fichas usa los tonos oscuros; los claros (400)
    son para fondo grafito y sobre el tinte pálido no se leen. */
 [data-theme='light'] .events-page--list-first .events-calendar-board .event-calendar__chip--success {
+  background: color-mix(in oklab, var(--plu-success-500, #3d9a5f) 34%, transparent);
   color: var(--plu-success-600, #2d7a4b);
 }
 
 [data-theme='light'] .events-page--list-first .events-calendar-board .event-calendar__chip--warning {
+  background: color-mix(in oklab, var(--plu-gold-500) 38%, transparent);
   color: var(--plu-gold-600, #a9790f);
 }
 
 [data-theme='light'] .events-page--list-first .events-calendar-board .event-calendar__chip--info {
+  background: color-mix(in oklab, var(--color-brand-celeste) 28%, transparent);
   color: var(--plu-celeste-600, #1f5f9e);
 }
 
 [data-theme='light'] .events-page--list-first .events-calendar-board .event-calendar__chip--danger {
+  background: color-mix(in oklab, var(--plu-red-500, #c44) 22%, transparent);
   color: var(--color-danger-text, #b42318);
 }
 
 [data-theme='light'] .events-page--list-first .events-calendar-board .event-calendar__chip--neutral {
-  color: var(--color-text-secondary);
+  background: color-mix(in oklab, var(--color-brand-celeste) 30%, transparent);
+  color: var(--plu-celeste-700, #164e82);
 }
 
 .events-page--list-first .events-calendar-board .event-calendar__chip--span {
   border-radius: 0;
-  margin-left: -8px;
-  margin-right: -8px;
-  width: calc(100% + 16px);
+  margin-left: -7px;
+  margin-right: -7px;
+  width: calc(100% + 14px);
 }
 
 .events-page--list-first .events-calendar-board .event-calendar__chip--span-start {
-  border-bottom-left-radius: 1px;
-  border-top-left-radius: 1px;
+  border-bottom-left-radius: 2px;
+  border-top-left-radius: 2px;
   margin-left: 0;
-  width: calc(100% + 8px);
+  width: calc(100% + 7px);
 }
 
 .events-page--list-first .events-calendar-board .event-calendar__chip--span-end {
-  border-bottom-right-radius: 1px;
-  border-top-right-radius: 1px;
+  border-bottom-right-radius: 2px;
+  border-top-right-radius: 2px;
   margin-right: 0;
-  width: calc(100% + 8px);
+  width: calc(100% + 7px);
 }
 
 .events-page--list-first .events-calendar-board .event-calendar__chip-label {
-  display: none;
-}
-
-.events-page--list-first
-  .events-calendar-board
-  .event-calendar__cell--selected
-  .event-calendar__chip {
-  border-radius: 2px;
-  height: auto;
-  min-height: 18px;
-  padding: 2px 5px;
-}
-
-.events-page--list-first
-  .events-calendar-board
-  .event-calendar__cell--selected
-  .event-calendar__chip-label {
   display: block;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  line-height: 1.2;
+  line-height: 1.15;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   width: 100%;
 }
 
-.events-page--list-first
-  .events-calendar-board
-  .event-calendar__cell--selected
-  .event-calendar__chip--success {
-  background: color-mix(in oklab, var(--plu-success-500, #3d9a5f) 16%, transparent);
-}
-
-.events-page--list-first
-  .events-calendar-board
-  .event-calendar__cell--selected
-  .event-calendar__chip--warning {
-  background: color-mix(in oklab, var(--plu-gold-500) 16%, transparent);
-}
-
-.events-page--list-first
-  .events-calendar-board
-  .event-calendar__cell--selected
-  .event-calendar__chip--neutral {
-  background: color-mix(in oklab, var(--color-brand-celeste) 14%, transparent);
-}
-
-.events-page--list-first
-  .events-calendar-board
-  .event-calendar__cell--selected
-  .event-calendar__chip--danger {
-  background: color-mix(in oklab, var(--plu-red-500, #c44) 14%, transparent);
+.events-page--list-first .events-calendar-board .event-calendar__chip--label-run .event-calendar__chip-label {
+  flex: none;
+  max-width: calc(var(--label-cols) * (100cqw / 7) - 20px);
+  min-width: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: relative;
+  width: max-content;
+  z-index: 1;
 }
 
 .events-page--list-first .events-calendar-board .event-calendar__chip-more {
   color: var(--color-text-muted);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   padding: 0;
 }
 
@@ -3593,10 +3778,7 @@
 
 .events-page--list-first .events-calendar-board__panel .events-detail--minimal {
   background: transparent;
-  display: grid;
-  gap: 18px;
   height: auto;
-  padding: 4px 0 0;
 }
 
 .events-page--list-first .events-detail--minimal .events-detail__date-hero {
@@ -3607,16 +3789,17 @@
   display: grid;
   gap: 4px;
   justify-items: start;
-  padding: 0;
+  min-width: 4.5rem;
+  padding: 2px 0 0;
 }
 
 .events-page--list-first .events-detail--minimal .events-detail__date-day {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(2rem, 3.2vw, 2.5rem);
+  font-size: clamp(1.85rem, 3vw, 2.35rem);
   font-weight: 650;
   letter-spacing: -0.07em;
-  line-height: 0.85;
+  line-height: 0.88;
 }
 
 .events-page--list-first .events-detail--minimal .events-detail__date-month {
@@ -3700,6 +3883,51 @@
   line-height: 1.5;
   margin: 0 0 12px;
   max-width: 42ch;
+}
+
+.events-detail__faq {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.events-detail__faq-title {
+  font-family: var(--font-display, inherit);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.events-detail__faq-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.events-detail__faq-item {
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 4px;
+  padding: 10px 0;
+}
+
+.events-detail__faq-item:last-child {
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+}
+
+.events-detail__faq-item dt {
+  font-size: 0.8125rem;
+  font-weight: 650;
+  margin: 0;
+}
+
+.events-detail__faq-item dd {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  margin: 0;
 }
 
 .events-detail__weighins {

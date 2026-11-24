@@ -24,9 +24,12 @@ const ATHLETE = {
   id: 'ath-1',
   fullName: 'Agustín Di Santo',
   documentId: '30111222',
+  sex: 'Masculino',
   division: 'Open',
   category: 'Raw',
+  declaredWeightClass: '100',
   estimatedWeight: 93,
+  bestTotalKg: 600,
 }
 
 /** Un código-paquete tal como lo devuelve `athlete_list_offer_unlocks`. */
@@ -91,8 +94,9 @@ describe('la ficha del código-paquete', () => {
       </I18nProvider>,
     )
 
-    expect(screen.getByLabelText(/División/i).value).toBe('Open')
-    expect(screen.getByLabelText(/Categoría/i).value).toBe('Raw')
+    expect(screen.getByLabelText(/^División$/i).value).toBe('Open')
+    expect(screen.getByLabelText(/^Categoría$/i).value).toBe('Raw')
+    expect(screen.getByLabelText(/Categoría de peso/i).value).toBe('100')
     expect(screen.getByLabelText(/Peso declarado/i).value).toBe('93')
   })
 
@@ -131,7 +135,10 @@ describe('la ficha del código-paquete', () => {
     expect(call.paymentMethod).toBe('manual_link')
     expect(call.division).toBe('Open')
     expect(call.category).toBe('Raw')
+    expect(call.declaredWeightClass).toBe('100')
     expect(call.bodyweightKg).toBe(93)
+    expect(call.firstMeet).toBe(false)
+    expect(call.competitionBestTotalKg).toBe('600')
     expect(call.event.slug).toBe('pitbull-classic-2026')
     expect(call.offer.code).toBe('ONLY-PITBULL-GOLD')
   })
@@ -153,7 +160,7 @@ describe('la ficha del código-paquete', () => {
     })
 
     expect(onStartOfferPayment).not.toHaveBeenCalled()
-    expect(screen.getByRole('alert').textContent).toMatch(/división, categoría y peso/i)
+    expect(screen.getByRole('alert').textContent).toMatch(/categoría de peso/i)
   })
 
   it('con el derecho ya otorgado manda la cuenta regresiva y retira el formulario', () => {
@@ -220,6 +227,15 @@ describe('la ficha del código-paquete', () => {
     expect(pending.context.destination).toEqual({
       view: 'competition',
       eventSlug: 'pitbull-classic-2026',
+    })
+    expect(pending.context.competition).toEqual({
+      division: 'Open',
+      category: 'Raw',
+      declaredWeightClass: '100',
+      estimatedWeight: '93',
+      firstMeet: false,
+      competitionBestTotalKg: '600',
+      trainingBestTotalKg: '',
     })
   })
 
@@ -355,6 +371,7 @@ describe('la ficha del código-paquete', () => {
       view: 'competition',
       eventSlug: 'pitbull-classic-2026',
     })
+    expect(pending.context.competition).toBeUndefined()
   })
 
   it('la ficha cotiza el canal de la orden, no el del selector', () => {

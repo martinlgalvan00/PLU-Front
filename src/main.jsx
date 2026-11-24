@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import AppProviders from './providers/AppProviders.jsx'
 import PageErrorBoundary from './components/layout/PageErrorBoundary.jsx'
+import { registerCheckinServiceWorker } from './lib/registerCheckinServiceWorker.js'
 import { initTheme } from './lib/theme.js'
 import { purgeLegacyCreatedOrder } from './services/storageService.js'
 import './styles/index.css'
@@ -14,6 +15,7 @@ document.documentElement.lang = localStorage.getItem('plu-arg-locale') === 'en' 
 // escrita en `localStorage`, que de otro modo se queda ahí para siempre en el
 // navegador de cualquiera que ya pasó por el checkout.
 purgeLegacyCreatedOrder()
+registerCheckinServiceWorker()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

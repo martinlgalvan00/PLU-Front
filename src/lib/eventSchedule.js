@@ -40,10 +40,21 @@ export function toCamelEventSession(row) {
     dayIndex: row.dayIndex ?? row.day_index ?? null,
     name: row.name ?? '',
     platform: row.platform ?? '',
+    platformId: row.platformId ?? row.platform_id ?? null,
     weighInAt: row.weighInAt ?? row.weigh_in_at ?? null,
     startsAt: row.startsAt ?? row.starts_at ?? null,
     sortOrder: row.sortOrder ?? row.sort_order ?? 0,
     assignedCount: Number(row.assignedCount ?? row.assigned_count ?? 0),
+  }
+}
+
+/** Tablado del evento (event_platforms). */
+export function toCamelEventPlatform(row) {
+  if (!row) return null
+  return {
+    id: row.id,
+    name: row.name ?? '',
+    sortOrder: row.sortOrder ?? row.sort_order ?? 0,
   }
 }
 
@@ -61,6 +72,7 @@ export function toCamelScheduleDay(row) {
 export function toCamelEventSchedule(payload) {
   return {
     eventSlug: payload?.eventSlug ?? payload?.event_slug ?? null,
+    platforms: (payload?.platforms ?? []).map(toCamelEventPlatform),
     days: (payload?.days ?? []).map(toCamelScheduleDay),
     sessions: (payload?.sessions ?? []).map(toCamelEventSession),
     unassignedCount: Number(payload?.unassignedCount ?? payload?.unassigned_count ?? 0),
@@ -89,11 +101,16 @@ export function formatScheduleDate(schedule, locale = 'es') {
     .replace(',', '')
 }
 
+/** Misma zona que el planner (`ORG_UTC_OFFSET` / migración 20260930100000). */
+const ORG_TIME_ZONE = 'America/Argentina/Buenos_Aires'
+
 /**
  * "08:30" — horario de pesaje o de inicio de tanda.
  *
  * 24 h fijo: es-AR sale en 12 h por defecto ("08:30 a. m.") y una grilla de
- * competencia no se lee así en ningún lado.
+ * competencia no se lee así en ningún lado. La zona es siempre Buenos Aires:
+ * el ISO se genera con offset -03:00 y no puede depender del TZ del runtime
+ * (CI en UTC mostraba "12:00" donde la UI promete "09:00").
  */
 export function formatScheduleTime(iso, locale = 'es') {
   if (!iso) return ''
@@ -103,6 +120,7 @@ export function formatScheduleTime(iso, locale = 'es') {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
+    timeZone: ORG_TIME_ZONE,
   })
 }
 

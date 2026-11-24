@@ -147,7 +147,13 @@ describe('TicketOrdersSection · cancelar y volver a aceptar', () => {
     reinstateTicketOrder.mockRejectedValue(
       new Error('No queda cupo para General (120 de 120 ocupados).'),
     )
-    renderWith([order({ status: 'cancelado', cancellationReason: 'Pidió devolución' })])
+    renderWith([
+      order({
+        status: 'cancelado',
+        cancellationReason: 'Pidió devolución',
+        cancelledAt: '2026-11-20T10:00:00.000Z',
+      }),
+    ])
 
     const row = (await screen.findByText('TORD-abc123')).closest('tr')
     fireEvent.click(within(row).getByRole('button', { name: 'Volver a aceptar' }))
@@ -158,6 +164,14 @@ describe('TicketOrdersSection · cancelar y volver a aceptar', () => {
       await within(dialog).findByText('No queda cupo para General (120 de 120 ocupados).'),
     ).toBeTruthy()
     expect(screen.getByRole('dialog')).toBeTruthy()
+  })
+
+  it('una vencida por el cron con comprobante ofrece Acreditar, no volver a aceptar', async () => {
+    renderWith([order({ status: 'cancelado', cancelledAt: null })])
+
+    const row = (await screen.findByText('TORD-abc123')).closest('tr')
+    expect(within(row).queryByRole('button', { name: 'Volver a aceptar' })).toBeNull()
+    expect(within(row).getByRole('button', { name: /acreditar/i })).toBeTruthy()
   })
 
   it('sin permiso de edición no ofrece ninguna de las dos acciones', async () => {

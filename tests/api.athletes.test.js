@@ -68,12 +68,14 @@ function createAthleteRepoDouble() {
   const visibilityCalls = []
   const adminDataScopes = []
   const statusCalls = []
+  const weightClassCalls = []
   return {
     calls,
     updateCalls,
     visibilityCalls,
     adminDataScopes,
     statusCalls,
+    weightClassCalls,
     adminDataRevision: async () => '1:2026-01-01T00:00:00.000Z|skip|skip|1:2026-01-01T00:00:00.000Z',
     adminData: async (scope) => {
       adminDataScopes.push(scope)
@@ -113,6 +115,69 @@ function createAthleteRepoDouble() {
     setRegistrationPublicVisibility: async (registrationId, publicVisible, actor) => {
       visibilityCalls.push({ registrationId, publicVisible, actor })
       return { id: registrationId, public_visible: publicVisible }
+    },
+    findRegistrationWeightClassContext: async (registrationId) => {
+      if (registrationId === MISSING_ATHLETE_ID) return null
+      return {
+        id: registrationId,
+        bodyweight_kg: 67.5,
+        declared_weight_class: '75',
+        athlete: { sex: 'Masculino' },
+      }
+    },
+    updateDeclaredWeightClass: async (registrationId, declaredWeightClass) => {
+      weightClassCalls.push({ registrationId, declaredWeightClass })
+      return {
+        id: registrationId,
+        athlete_id: ATHLETE_ID,
+        bodyweight_kg: 67.5,
+        declared_weight_class: declaredWeightClass,
+      }
+    },
+    findRegistrationWeightClassContexts: async (registrationIds) =>
+      registrationIds.map((id) => ({
+        id,
+        bodyweight_kg: 67.5,
+        declared_weight_class: '75',
+        athlete: { sex: 'Masculino' },
+        event: { slug: 'meet', roster_frozen_at: null },
+      })),
+    updateDeclaredWeightClasses: async (registrationIds, declaredWeightClass) => {
+      weightClassCalls.push({ registrationIds, declaredWeightClass })
+      return registrationIds.map((id) => ({
+        id,
+        athlete_id: ATHLETE_ID,
+        bodyweight_kg: 67.5,
+        declared_weight_class: declaredWeightClass,
+      }))
+    },
+    updateOfficialWeightClass: async (registrationId, officialWeightClass) => {
+      weightClassCalls.push({ registrationId, officialWeightClass, bodyweightKg: 67.5 })
+      return {
+        id: registrationId,
+        athlete_id: ATHLETE_ID,
+        bodyweight_kg: 67.5,
+        declared_weight_class: '75',
+        official_weight_class: officialWeightClass,
+      }
+    },
+    updateWeighInBodyweight: async (registrationId, weighInBodyweightKg) => {
+      weightClassCalls.push({ registrationId, weighInBodyweightKg })
+      return {
+        id: registrationId,
+        athlete_id: ATHLETE_ID,
+        bodyweight_kg: 67.5,
+        weigh_in_bodyweight_kg: weighInBodyweightKg,
+        declared_weight_class: '75',
+      }
+    },
+    setEventRosterFrozen: async (eventSlug, frozen) => {
+      weightClassCalls.push({ eventSlug, frozen })
+      return {
+        id: 'evt-1',
+        slug: eventSlug,
+        roster_frozen_at: frozen ? '2026-10-21T15:00:00.000Z' : null,
+      }
     },
     setRegistrationStatus: async (registrationId, status, reason, actor) => {
       statusCalls.push({ registrationId, status, reason, actor })
@@ -294,6 +359,220 @@ describe('edición administrativa de atletas (PATCH /api/athletes/admin/:athlete
 
       expect(response.status).toBe(400)
       expect(athleteRepository.updateCalls).toHaveLength(0)
+    } finally {
+      await target.close()
+    }
+  })
+})
+
+const REGISTRATION_ID = '6a4c3e7f-8b2d-4c3e-9f0a-2b3c4d5e6f70'
+
+describe('corrección de categoría (POST /api/athletes/admin/registrations/:id/weight-class)', () => {
+  it('cambia la categoría canónica y deja el peso corporal intacto', async () => {
+    const prisma = createPrismaDouble([await buildAdmin('admin_maximal')])
+    const athleteRepository = createAthleteRepoDouble()
+    const target = listen(createApp({ prisma, athleteRepository, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(
+        `${target.url}/api/athletes/admin/registrations/${REGISTRATION_ID}/weight-class`,
+        {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify({ declaredWeightClass: '82.5' }),
+        },
+      )
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body.registration).toMatchObject({
+        id: REGISTRATION_ID,
+        bodyweight_kg: 67.5,
+        declared_weight_class: '82,5',
+      })
+      expect(athleteRepository.weightClassCalls).toEqual([
+        { registrationId: REGISTRATION_ID, declaredWeightClass: '82,5' },
+      ])
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza una categoría que no corresponde al sexo', async () => {
+    const prisma = createPrismaDouble([await buildAdmin('admin_maximal')])
+    const athleteRepository = createAthleteRepoDouble()
+    const target = listen(createApp({ prisma, athleteRepository, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(
+        `${target.url}/api/athletes/admin/registrations/${REGISTRATION_ID}/weight-class`,
+        {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify({ declaredWeightClass: '44' }),
+        },
+      )
+      const body = await response.json()
+
+      expect(response.status).toBe(422)
+      expect(body.code).toBe('WEIGHT_CLASS_INVALID')
+      expect(athleteRepository.weightClassCalls).toHaveLength(0)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('no cambia la categoría declarada si el padrón está cerrado', async () => {
+    const prisma = createPrismaDouble([await buildAdmin('admin_maximal')])
+    const athleteRepository = createAthleteRepoDouble()
+    athleteRepository.findRegistrationWeightClassContext = async () => ({
+      id: REGISTRATION_ID,
+      bodyweight_kg: 67.5,
+      athlete: { sex: 'Masculino' },
+      event: { slug: 'meet', roster_frozen_at: '2026-10-21T15:00:00.000Z' },
+    })
+    const target = listen(createApp({ prisma, athleteRepository, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(
+        `${target.url}/api/athletes/admin/registrations/${REGISTRATION_ID}/weight-class`,
+        {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify({ declaredWeightClass: '82.5' }),
+        },
+      )
+      const body = await response.json()
+
+      expect(response.status).toBe(409)
+      expect(body.code).toBe('ROSTER_FROZEN')
+      expect(athleteRepository.weightClassCalls).toHaveLength(0)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('guarda la categoría oficial con el padrón cerrado y no toca el peso', async () => {
+    const prisma = createPrismaDouble([await buildAdmin('admin_maximal')])
+    const athleteRepository = createAthleteRepoDouble()
+    athleteRepository.findRegistrationWeightClassContext = async () => ({
+      id: REGISTRATION_ID,
+      bodyweight_kg: 67.5,
+      declared_weight_class: '75',
+      athlete: { sex: 'Masculino' },
+      event: { slug: 'meet', roster_frozen_at: '2026-10-21T15:00:00.000Z' },
+    })
+    const target = listen(createApp({ prisma, athleteRepository, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(
+        `${target.url}/api/athletes/admin/registrations/${REGISTRATION_ID}/official-weight-class`,
+        {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify({ officialWeightClass: '82.5' }),
+        },
+      )
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body.registration).toMatchObject({
+        bodyweight_kg: 67.5,
+        declared_weight_class: '75',
+        official_weight_class: '82,5',
+      })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('guarda el peso del pesaje sin cambiar el peso declarado', async () => {
+    const prisma = createPrismaDouble([await buildAdmin('admin_maximal')])
+    const athleteRepository = createAthleteRepoDouble()
+    const target = listen(createApp({ prisma, athleteRepository, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(
+        `${target.url}/api/athletes/admin/registrations/${REGISTRATION_ID}/weigh-in`,
+        {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify({ weighInBodyweightKg: 80.25 }),
+        },
+      )
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body.registration).toMatchObject({
+        bodyweight_kg: 67.5,
+        weigh_in_bodyweight_kg: 80.25,
+        declared_weight_class: '75',
+      })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('asigna la misma categoría declarada a varias inscripciones', async () => {
+    const prisma = createPrismaDouble([await buildAdmin('admin_maximal')])
+    const athleteRepository = createAthleteRepoDouble()
+    const target = listen(createApp({ prisma, athleteRepository, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(
+        `${target.url}/api/athletes/admin/registrations/weight-class/bulk`,
+        {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify({
+            registrationIds: [REGISTRATION_ID],
+            declaredWeightClass: '90',
+          }),
+        },
+      )
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body.updated).toEqual([
+        expect.objectContaining({ id: REGISTRATION_ID, declared_weight_class: '90', bodyweight_kg: 67.5 }),
+      ])
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza la edición masiva si la categoría no corresponde al sexo', async () => {
+    const prisma = createPrismaDouble([await buildAdmin('admin_maximal')])
+    const athleteRepository = createAthleteRepoDouble()
+    const target = listen(createApp({ prisma, athleteRepository, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(
+        `${target.url}/api/athletes/admin/registrations/weight-class/bulk`,
+        {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify({
+            registrationIds: [REGISTRATION_ID],
+            declaredWeightClass: '44',
+          }),
+        },
+      )
+      const body = await response.json()
+
+      expect(response.status).toBe(422)
+      expect(body.code).toBe('WEIGHT_CLASS_INVALID')
+      expect(body.errors).toEqual([
+        expect.objectContaining({ registrationId: REGISTRATION_ID }),
+      ])
+      expect(athleteRepository.weightClassCalls).toHaveLength(0)
     } finally {
       await target.close()
     }

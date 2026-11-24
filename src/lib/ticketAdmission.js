@@ -44,11 +44,14 @@ export function buildTicketQrUrl(ticket, eventSlug) {
   })
 }
 
-/** Enlace a "Mis entradas" para reenviarle al comprador (el que va en su mail). */
-export function buildBuyerTicketsUrl(reference) {
+/** Enlace a "Mis entradas". Con `openKey`, abre el QR sin pedir el mail. */
+export function buildBuyerTicketsUrl(reference, openKey) {
   if (!reference) return ''
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  return `${origin}${SHORT_TICKETS_PATH}?ref=${encodeURIComponent(reference)}`
+  const url = `${origin}${SHORT_TICKETS_PATH}?ref=${encodeURIComponent(reference)}`
+  const key = String(openKey ?? '').trim()
+  if (!key) return url
+  return `${url}&k=${encodeURIComponent(key)}`
 }
 
 /** Totales de la franja de resumen de "Entradas vendidas". */

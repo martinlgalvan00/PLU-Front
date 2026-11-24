@@ -84,6 +84,15 @@ function memoryRepository() {
       if (Number.isInteger(patch.attempt)) row.attempts_count = patch.attempt
       return row
     },
+    async reopenFailedEmail(id) {
+      const row = [...rows.values()].find((candidate) => candidate.id === id && candidate.status === 'failed')
+      if (!row) return null
+      row.status = 'processing'
+      row.error = null
+      row.error_code = null
+      row.next_retry_at = null
+      return row
+    },
     async findSuppression(email) {
       return suppressions.get(email) ?? null
     },
@@ -327,10 +336,23 @@ describe('plantillas HTML de fallback', () => {
       venue: 'CABA',
       division: 'Open',
       category: '83',
+      memberCode: 'PLU-ARG-2026-014',
+      accountUrl: 'https://plu.example/mi-cuenta?section=qr',
       eventUrl: 'https://plu.example/eventos/1',
     })
+    const credentialMail = renderEmail('event_credential', {
+      name: 'Ana',
+      eventTitle: 'Pitbull',
+      memberCode: 'PLU-ARG-2026-014',
+      accountUrl: 'https://plu.example/mi-cuenta?section=qr',
+    })
     expect(affiliation.htmlContent).toContain('código QR asociado a tu afiliación')
-    expect(registration.htmlContent).toContain('código QR asociado a tu cuenta')
+    expect(registration.htmlContent).toContain('El ingreso usa el QR de tu credencial')
+    expect(registration.htmlContent).toContain('PLU-ARG-2026-014')
+    expect(registration.htmlContent).not.toContain('tok-')
+    expect(credentialMail.htmlContent).toContain('PLU-ARG-2026-014')
+    expect(credentialMail.htmlContent).toContain('Te adjuntamos tu QR')
+    expect(credentialMail.htmlContent).not.toContain('credential_token')
   })
 
   it('agrupa comprobante, afiliación e inscripción en la confirmación del pago', () => {
@@ -540,6 +562,37 @@ describe('dispatcher de emails', () => {
     expect(first.created).toBe(true)
     expect(second.created).toBe(false)
     expect(send).toHaveBeenCalledTimes(1)
+  })
+
+  it('reintenta la credencial que falló y no repite la que ya salió', async () => {
+    const repository = memoryRepository()
+    const send = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('brevo down'), { retryable: true }))
+      .mockResolvedValue({ messageId: 'm-2' })
+    const dispatcher = createEmailDispatcher({
+      repository,
+      brevo: { configured: true, send },
+      env: { APP_URL: 'https://plu.example' },
+    })
+    const input = {
+      to: 'a@example.com',
+      idempotencyKey: 'email:password-reset:retry',
+      params: { resetUrl: 'https://plu.example/reset?token=vivo' },
+    }
+
+    await expect(dispatcher.send('password_reset', input)).rejects.toThrow(/brevo down/)
+    const retried = await dispatcher.send('password_reset', input)
+    const stored = [...repository.rows.values()][0]
+
+    expect(retried.status).toBe('sent')
+    expect(send).toHaveBeenCalledTimes(2)
+    expect(send.mock.calls[1][0].params.resetUrl).toContain('token=vivo')
+    expect(JSON.stringify(stored.payload)).not.toContain('token=vivo')
+
+    const duplicate = await dispatcher.send('password_reset', input)
+    expect(duplicate.created).toBe(false)
+    expect(send).toHaveBeenCalledTimes(2)
   })
 
   it('rechaza el envío si faltan params obligatorios', async () => {
@@ -911,6 +964,43 @@ describe('emails de pago (vía Mercado Pago)', () => {
     // Sin cuenta que guarde el QR, el link tiene que llevar a la recuperación
     // por referencia (TicketOrderLookup), no a la ficha pública del evento.
     expect(calls[0][1].params.ticketUrl).toMatch(/\/entradas\?ref=T1$/)
+  })
+
+  it('firma el enlace al enviar el comprobante y el outbox lo guarda sin la firma', async () => {
+    const repository = memoryRepository()
+    const send = vi.fn().mockResolvedValue({ messageId: 'msg-ticket' })
+    const dispatcher = createEmailDispatcher({
+      repository,
+      brevo: { send, configured: true },
+      env: { NODE_ENV: 'test', VITE_APP_URL: 'https://plu.test' },
+    })
+    const params = buildPaymentConfirmationParams({
+      order: {
+        kind: 'ticket',
+        id: 'o3',
+        concept: 'tickets',
+        reference: 'T1',
+        amount: 1000,
+        event: { title: 'Pitbull', slug: 'pitbull' },
+      },
+      payment: aprobado,
+      result: { tickets: [{ id: 't1' }] },
+      recipientName: 'Ana',
+      appUrl: 'https://plu.test',
+    })
+    await dispatcher.send('payment_confirmation', {
+      to: 'ana@example.com',
+      entityId: 'o3',
+      idempotencyKey: 'pay-ticket-open-link',
+      params,
+    })
+    const live = send.mock.calls[0][0]
+    expect(live.params.ticketUrl).toMatch(/\/entradas\?ref=T1&k=[\w-]+$/)
+    expect(live.htmlContent).toContain('El enlace abre tu QR')
+    expect(live.htmlContent).toContain('k=')
+    const stored = repository.rows.get('pay-ticket-open-link')
+    expect(stored.payload.ticketUrl).toMatch(/\/entradas\?ref=T1$/)
+    expect(stored.payload.ticketUrl).not.toContain('k=')
   })
 
   it('avisa el rechazo y el pendiente sin mandar comprobante', async () => {

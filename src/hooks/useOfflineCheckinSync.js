@@ -1,26 +1,34 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { listPending, listResolvedConflicts } from '../lib/offlineCheckinDb.js'
+import { CHECKIN_SYNC } from '../lib/checkinSyncConfig.js'
+import {
+  getAllowlist,
+  listDoorSyncStatus,
+  listPending,
+  listPendingScanEvents,
+  listResolvedConflicts,
+  reopenExhaustedCheckins,
+} from '../lib/offlineCheckinDb.js'
 import {
   downloadAllowlist as downloadAllowlistRequest,
   syncPendingCheckins,
 } from '../services/offlineCheckinSync.js'
 import { syncPendingScanEvents } from '../services/checkinTelemetry.js'
 
-const SYNC_INTERVAL_MS = 25000
-
 /**
  * useOfflineCheckinSync — PLU ARG
  *
  * Estado de conectividad + cola offline para el scanner de seguridad
- * (CheckInSection.jsx). Sincroniza automáticamente al reconectar y cada
- * ~25s mientras haya pendientes, sin bloquear la fila de entrada al evento.
+ * (CheckInSection.jsx). Sincroniza al entrar, al reconectar y cada ~25s
+ * mientras haya pendientes, sin bloquear la fila de entrada al evento.
  */
 export function useOfflineCheckinSync(eventSlug) {
   const [isOnline, setIsOnline] = useState(
     typeof navigator === 'undefined' ? true : navigator.onLine,
   )
   const [pendingCount, setPendingCount] = useState(0)
+  const [failedCount, setFailedCount] = useState(0)
   const [conflictCount, setConflictCount] = useState(0)
+  const [queueLog, setQueueLog] = useState([])
   const [syncing, setSyncing] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState(null)
   const [lastDownloadedAt, setLastDownloadedAt] = useState(null)
@@ -29,13 +37,34 @@ export function useOfflineCheckinSync(eventSlug) {
   const syncingRef = useRef(false)
 
   const refreshCounts = useCallback(async () => {
-    const [pending, conflicts] = await Promise.all([listPending(), listResolvedConflicts()])
-    setPendingCount(pending.length)
+    const [pending, conflicts, log] = await Promise.all([
+      listPending(),
+      listResolvedConflicts(),
+      listDoorSyncStatus(),
+    ])
+    setPendingCount(pending.filter((item) => item.status !== 'exhausted').length)
+    setFailedCount(pending.filter((item) => item.status === 'exhausted').length)
     setConflictCount(conflicts.length)
+    setQueueLog(log)
+  }, [])
+
+  const noteSnapshot = useCallback((downloadedAt) => {
+    if (downloadedAt) setLastDownloadedAt(downloadedAt)
   }, [])
 
   const syncNow = useCallback(async () => {
     if (syncingRef.current || (typeof navigator !== 'undefined' && !navigator.onLine)) return
+    // Sin cola no hay red: el intervalo y el montaje no tienen que marcar
+    // "sincronizando" ni pegarle al servidor para no hacer nada.
+    try {
+      const pending = await listPending()
+      const waiting = pending.some((item) => item.status !== 'exhausted')
+      const scans = eventSlug ? await listPendingScanEvents() : []
+      const hasScans = scans.some((item) => item.eventSlug === eventSlug)
+      if (!waiting && !hasScans) return
+    } catch {
+      // Si la foto local no se lee, se intenta igual: peor es dejar la cola quieta.
+    }
     syncingRef.current = true
     setSyncing(true)
     try {
@@ -53,14 +82,54 @@ export function useOfflineCheckinSync(eventSlug) {
   }, [eventSlug, refreshCounts])
 
   const downloadAllowlist = useCallback(async () => {
-    if (!eventSlug) return
+    if (!eventSlug) return null
     const data = await downloadAllowlistRequest(eventSlug)
-    setLastDownloadedAt(data.downloadedAt)
+    if (data?.downloadedAt) setLastDownloadedAt(data.downloadedAt)
+    return data
   }, [eventSlug])
 
+  const continueExhausted = useCallback(async () => {
+    const reopened = await reopenExhaustedCheckins()
+    if (reopened > 0) await syncNow()
+    else await refreshCounts()
+  }, [refreshCounts, syncNow])
+
+  const reloadAndSync = useCallback(async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return null
+    let data = null
+    try {
+      data = await downloadAllowlist()
+    } catch {
+      data = null
+    }
+    await syncNow()
+    return data
+  }, [downloadAllowlist, syncNow])
+
   useEffect(() => {
-    refreshCounts()
-  }, [refreshCounts])
+    let live = true
+    refreshCounts().finally(() => {
+      if (!live) return
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+      syncNow()
+    })
+    return () => {
+      live = false
+    }
+  }, [refreshCounts, syncNow])
+
+  useEffect(() => {
+    if (!eventSlug) return undefined
+    let live = true
+    getAllowlist(eventSlug)
+      .then((data) => {
+        if (live && data?.downloadedAt) setLastDownloadedAt(data.downloadedAt)
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [eventSlug])
 
   useEffect(() => {
     function handleOnline() {
@@ -82,20 +151,25 @@ export function useOfflineCheckinSync(eventSlug) {
   useEffect(() => {
     const interval = setInterval(() => {
       if (navigator.onLine) syncNow()
-    }, SYNC_INTERVAL_MS)
+    }, CHECKIN_SYNC.intervalMs)
     return () => clearInterval(interval)
   }, [syncNow])
 
   return {
     isOnline,
     pendingCount,
+    failedCount,
     conflictCount,
+    queueLog,
     syncing,
     syncIssue,
     lastSyncedAt,
     lastDownloadedAt,
     syncNow,
+    continueExhausted,
     downloadAllowlist,
+    reloadAndSync,
     refreshCounts,
+    noteSnapshot,
   }
 }

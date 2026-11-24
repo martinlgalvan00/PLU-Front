@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
+import { openActionMenus } from './support/openActionMenus.js'
 import MembershipsSection from '../src/pages/admin/MembershipsSection.jsx'
 
 /**
@@ -87,6 +88,7 @@ describe('Afiliaciones — recuperar un pago rechazado/cancelado', () => {
   it('ofrece revalidar sin permiso especial, contra la orden vinculada por paymentOrderId', async () => {
     revalidatePaymentOrder.mockResolvedValue({ outcome: 'in_sync', corrected: false })
     renderSection([membership()], { canForceSettle: false })
+    openActionMenus()
 
     fireEvent.click(screen.getByRole('button', { name: 'Revalidar con Mercado Pago' }))
 
@@ -95,6 +97,7 @@ describe('Afiliaciones — recuperar un pago rechazado/cancelado', () => {
 
   it('no ofrece acreditar a mano sin el permiso de Finanzas', () => {
     renderSection([membership()], { canForceSettle: false })
+    openActionMenus()
     expect(screen.queryByRole('button', { name: 'Acreditar a mano' })).toBeNull()
   })
 
@@ -105,6 +108,7 @@ describe('Afiliaciones — recuperar un pago rechazado/cancelado', () => {
       onForceSettlePayment,
       payments: [payment({ paymentProofPath: 'ord-1/comprobante.jpg' })],
     })
+    openActionMenus()
 
     fireEvent.click(screen.getByRole('button', { name: 'Acreditar a mano' }))
     fireEvent.change(screen.getByLabelText('Motivo de la acreditación'), {

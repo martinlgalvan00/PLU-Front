@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import '../styles/pages/admin.css'
 import '../styles/pages/checkin-app.css'
 import {
@@ -21,11 +21,16 @@ import BrandLogo from '../components/ui/BrandLogo.jsx'
 import LanguageToggle from '../components/ui/LanguageToggle.jsx'
 import ThemeToggle from '../components/ui/ThemeToggle.jsx'
 import { useCheckInWorkspace } from '../hooks/useCheckInWorkspace.js'
+import { loadAdminMessagesForStoredLocale } from '../i18n/adminMessages.js'
 import { formatDocumentWithKind } from '../lib/format.js'
 import { downloadCheckinListExcel } from '../services/checkinExport.js'
 import { checkinTypeLabel } from '../services/checkinScanService.js'
-import { formatCheckinRowDay } from '../services/checkinWorkspaceService.js'
+import {
+  formatCheckinRowDay,
+  summarizeTicketControl,
+} from '../services/checkinWorkspaceService.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
+import { openTurnstile, shouldPulseTurnstile } from '../services/turnstileBridge.js'
 
 function CheckinMetric({ label, tone = 'neutral', value }) {
   return (
@@ -38,41 +43,126 @@ function CheckinMetric({ label, tone = 'neutral', value }) {
 
 const DAY_TAB_PREFIX = 'day-'
 
+function useKioskGate({ enabled, scanResult, scanBusy, onAdmit }) {
+  const admitted = useRef('')
+  const pulsed = useRef('')
+  const [gate, setGate] = useState('idle')
+
+  useEffect(() => {
+    if (!enabled || scanBusy) return
+    if (!scanResult || scanResult.outcome !== 'ready' || !scanResult.canCheckIn || scanResult.offline) {
+      if (scanResult?.outcome !== 'ready') admitted.current = ''
+      return
+    }
+    const token = scanResult.qrToken || scanResult.row?.qrToken || ''
+    if (!token || admitted.current === token) return
+    admitted.current = token
+    onAdmit()
+  }, [enabled, onAdmit, scanBusy, scanResult])
+
+  useEffect(() => {
+    if (!enabled || !shouldPulseTurnstile(scanResult?.outcome)) return
+    const token = scanResult.qrToken || scanResult.row?.qrToken || scanResult.row?.id || ''
+    if (!token || pulsed.current === token) return
+    pulsed.current = token
+    setGate('opening')
+    openTurnstile().then((pulse) => setGate(pulse.opened ? 'open' : 'failed'))
+  }, [enabled, scanResult])
+
+  const retryPulse = useCallback(() => {
+    setGate('opening')
+    openTurnstile().then((pulse) => setGate(pulse.opened ? 'open' : 'failed'))
+  }, [])
+
+  return { gate, retryPulse }
+}
+
+function DoorClip({ children }) {
+  const text = children == null || children === '' ? '—' : String(children)
+  return (
+    <span className="checkin-app__clip" title={text}>
+      {text}
+    </span>
+  )
+}
+
 export default function CheckInAppPage({
   athletes,
   canCheckIn,
+  canEnableTickets = false,
+  canForceCheckIn = false,
   eventDays = [],
   eventSlug = 'pitbull-classic-2026',
   eventTitle,
+  onApproveTicketOrder,
   onCheckInRegistration,
   onCheckInTicket,
   onExit,
+  onReauthenticate = null,
   onRedeemTicketAddon,
   onRefreshTickets,
+  onRejectTicketOrder,
   registrations,
   roleLabel,
   /** Puesto asignado a la cuenta: nombre y alcance. Nulo = sin zona. */
   securityZone = null,
   ticketTypes = [],
   tickets,
+  kiosk = false,
 }) {
-  const { locale, t } = useI18n()
+  const { locale, t, messages } = useI18n()
+  const adminReady = Boolean(messages?.admin?.checkinApp?.exit)
   const [tab, setTab] = useState('scan')
+  const handleScanCheckInRef = useRef(null)
+  const admitKiosk = useCallback(() => {
+    handleScanCheckInRef.current?.()
+  }, [])
+
+  // La ruta de la puerta ya espera estos textos. Si esta pantalla se monta
+  // igual sin ellos, se piden una vez y no se pinta ninguna clave.
+  useEffect(() => {
+    if (adminReady) return
+    loadAdminMessagesForStoredLocale().catch(() => {})
+  }, [adminReady])
+
+  const [listScannerOpen, setListScannerOpen] = useState(false)
   const workspace = useCheckInWorkspace({
     athletes,
     canCheckIn,
+    canEnableTickets,
+    canForceCheckIn,
     eventDays,
     eventSlug,
+    onApproveTicketOrder,
     onCheckInRegistration,
     onCheckInTicket,
     onRedeemTicketAddon,
     onRefreshTickets,
+    onRejectTicketOrder,
     registrations,
     securityZone,
     ticketTypes,
     tickets,
   })
   const { setDay, setType, setCheckinStatus, setCredential } = workspace
+  handleScanCheckInRef.current = workspace.handleScanCheckIn
+  const kioskGate = useKioskGate({
+    enabled: kiosk,
+    scanResult: workspace.scanResult,
+    scanBusy: workspace.scanBusy,
+    onAdmit: admitKiosk,
+  })
+
+  useEffect(() => {
+    if (kiosk) setTab('scan')
+  }, [kiosk])
+
+  useEffect(() => {
+    if (tab === 'scan' || !workspace.highlightRowId) return
+    document
+      .querySelector('.checkin-app__list .data-table__row--selected')
+      ?.scrollIntoView({ block: 'nearest' })
+  }, [tab, workspace.highlightRowId])
 
   const eventLabel = useMemo(
     () =>
@@ -108,9 +198,14 @@ export default function CheckInAppPage({
     } else if (tab === 'tickets') {
       setType('espectador')
       setDay('all')
-      setCheckinStatus('ready')
+      setCheckinStatus('all')
     }
   }, [setCheckinStatus, setCredential, setDay, setType, tab])
+
+  const ticketControl = useMemo(
+    () => summarizeTicketControl(workspace.allRows),
+    [workspace.allRows],
+  )
 
   const activeDayLabel = tab.startsWith(DAY_TAB_PREFIX)
     ? tabs.find((item) => item.id === tab)?.label
@@ -135,8 +230,73 @@ export default function CheckInAppPage({
     })
   }, [eventDays, eventSlug, t, workspace.allRows, workspace.offlineSync])
 
+  const queueIsWork =
+    !workspace.offlineSync.isOnline || workspace.offlineSync.pendingCount > 0
+
+  const offlineStatus = (
+    <AdminOfflineSyncStatus
+      compact
+      conflictCount={workspace.offlineSync.conflictCount}
+      downloadAllowlist={handleDownloadAllowlist}
+      failedCount={workspace.offlineSync.failedCount}
+      isOnline={workspace.offlineSync.isOnline}
+      lastDownloadedAt={workspace.offlineSync.lastDownloadedAt}
+      lastSyncedAt={workspace.offlineSync.lastSyncedAt}
+      onReloadAndSync={workspace.reloadAndSync}
+      pendingCount={workspace.offlineSync.pendingCount}
+      queueLog={workspace.offlineSync.queueLog}
+      onReauthenticate={onReauthenticate}
+      onRetryExhausted={workspace.offlineSync.continueExhausted}
+      syncIssue={workspace.offlineSync.syncIssue}
+      syncNow={workspace.offlineSync.syncNow}
+      syncing={workspace.offlineSync.syncing}
+      workList={queueIsWork}
+    />
+  )
+
+  const scanResultPanel = (
+    <CheckInScanResult
+      canCheckIn={canCheckIn}
+      canEnableTickets={canEnableTickets}
+      canForceCheckIn={canForceCheckIn}
+      locale={locale}
+      onDismiss={() => workspace.setScanResult(null)}
+      onEnableTicket={workspace.handleEnableTicket}
+      onForceCheckIn={workspace.handleForceCheckIn}
+      onRedeemAddon={workspace.handleRedeemAddon}
+      onRejectTicket={workspace.handleRejectTicket}
+      onScanCheckIn={workspace.handleScanCheckIn}
+      onSelectMatch={workspace.selectScanMatch}
+      redeemBusyId={workspace.redeemBusyId}
+      redeemError={workspace.redeemError}
+      scanBusy={workspace.scanBusy}
+      scanPersonDoc={workspace.scanPersonDoc}
+      scanPersonName={workspace.scanPersonName}
+      scanResult={workspace.scanResult}
+      scanTicketPaid={workspace.scanTicketPaid}
+      scanVerdict={workspace.scanVerdict}
+      kiosk={kiosk}
+      turnstileGate={kioskGate.gate}
+      onRetryTurnstile={kioskGate.retryPulse}
+    />
+  )
+
+  if (!adminReady) {
+    return (
+      <div className="checkin-app checkin-app--pending" role="status">
+        {locale === 'en' ? 'Loading gate…' : 'Cargando puesto…'}
+      </div>
+    )
+  }
+
+  const verdictOnScan = tab === 'scan' && Boolean(workspace.scanResult)
+
   return (
-    <div className={`checkin-app${tab === 'scan' ? ' checkin-app--scan' : ''}`}>
+    <div
+      className={`checkin-app${tab === 'scan' ? ' checkin-app--scan' : ''}${
+        verdictOnScan ? ' checkin-app--verdict' : ''
+      }${kiosk ? ' checkin-app--kiosk' : ''}`}
+    >
       <header className="checkin-app__top">
         <div className="checkin-app__brand">
           <BrandLogo variant="argentina" height={28} />
@@ -156,7 +316,12 @@ export default function CheckInAppPage({
         <div className="checkin-app__top-actions">
           <LanguageToggle compact />
           <ThemeToggle compact />
-          <button type="button" className="checkin-app__exit" onClick={onExit}>
+          <button
+            type="button"
+            className="checkin-app__exit"
+            aria-label={t('admin.checkinApp.exit')}
+            onClick={onExit}
+          >
             <LogOut size={16} aria-hidden />
             <span>{t('admin.checkinApp.exit')}</span>
           </button>
@@ -189,6 +354,7 @@ export default function CheckInAppPage({
           </div>
         </section>
 
+        {!kiosk && (
         <nav className="checkin-app__tabs" aria-label={t('admin.checkinApp.title')}>
           {tabs.map(({ id, Icon, label, count }) => (
             <button
@@ -204,11 +370,16 @@ export default function CheckInAppPage({
             </button>
           ))}
         </nav>
+        )}
       </div>
 
       <main className="checkin-app__main">
         {tab === 'scan' ? (
-          <div className="checkin-app__scan-layout">
+          <div
+            className={`checkin-app__scan-layout${
+              workspace.scanResult ? ' checkin-app__scan-layout--verdict' : ''
+            }`}
+          >
             <section className="checkin-app__scan-primary">
               <h1 className="visually-hidden">{t('admin.checkinApp.title')}</h1>
               {/* Qué abre este puesto, dicho antes de escanear y no después de
@@ -228,6 +399,10 @@ export default function CheckInAppPage({
                 </p>
               ) : null}
 
+              {queueIsWork ? offlineStatus : null}
+
+              {workspace.scanResult ? scanResultPanel : null}
+
               <AdminQrScanner
                 busy={workspace.scanBusy}
                 compact
@@ -236,39 +411,10 @@ export default function CheckInAppPage({
                 onFeedbackPrefsChange={workspace.persistFeedbackPrefs}
                 onScan={workspace.handleScan}
               />
-
-              <CheckInScanResult
-                canCheckIn={canCheckIn}
-                locale={locale}
-                onDismiss={() => workspace.setScanResult(null)}
-                onRedeemAddon={workspace.handleRedeemAddon}
-                onScanCheckIn={workspace.handleScanCheckIn}
-                onSelectMatch={workspace.selectScanMatch}
-                redeemBusyId={workspace.redeemBusyId}
-                redeemError={workspace.redeemError}
-                scanBusy={workspace.scanBusy}
-                scanPersonDoc={workspace.scanPersonDoc}
-                scanPersonName={workspace.scanPersonName}
-                scanResult={workspace.scanResult}
-                scanTicketPaid={workspace.scanTicketPaid}
-                scanVerdict={workspace.scanVerdict}
-              />
             </section>
 
             <aside className="checkin-app__scan-aside">
-              <AdminOfflineSyncStatus
-                compact
-                conflictCount={workspace.offlineSync.conflictCount}
-                downloadAllowlist={handleDownloadAllowlist}
-                isOnline={workspace.offlineSync.isOnline}
-                realtimeConnected={workspace.realtimeConnected}
-                lastDownloadedAt={workspace.offlineSync.lastDownloadedAt}
-                lastSyncedAt={workspace.offlineSync.lastSyncedAt}
-                pendingCount={workspace.offlineSync.pendingCount}
-                syncIssue={workspace.offlineSync.syncIssue}
-                syncNow={workspace.offlineSync.syncNow}
-                syncing={workspace.offlineSync.syncing}
-              />
+              {queueIsWork ? null : offlineStatus}
 
               <AdminCheckinScanHistory
                 items={workspace.scanHistory.map((item) => ({
@@ -285,6 +431,57 @@ export default function CheckInAppPage({
           </div>
         ) : (
           <section className="checkin-app__list" aria-labelledby="checkin-list-title">
+            <div className="checkin-app__scan-bar">
+              {offlineStatus}
+              <button
+                type="button"
+                className="btn btn--small checkin-app__scan-toggle"
+                aria-expanded={listScannerOpen}
+                onClick={() => setListScannerOpen((open) => !open)}
+              >
+                <ScanLine size={15} aria-hidden />
+                {listScannerOpen
+                  ? t('admin.checkinApp.hideScanOnList')
+                  : t('admin.checkinApp.scanOnList')}
+              </button>
+              {workspace.scanResult ? scanResultPanel : null}
+              {listScannerOpen ? (
+                <AdminQrScanner
+                  busy={workspace.scanBusy}
+                  compact
+                  disabled={!canCheckIn}
+                  feedbackPrefs={workspace.feedbackPrefs}
+                  onFeedbackPrefsChange={workspace.persistFeedbackPrefs}
+                  onScan={workspace.handleScan}
+                />
+              ) : null}
+            </div>
+            {tab === 'tickets' ? (
+              <div className="checkin-app__ticket-control" role="group" aria-label={listTitle}>
+                {[
+                  ['ready', 'ready', ticketControl.ready, 'admin.checkinApp.ticketReady'],
+                  ['done', 'inside', ticketControl.inside, 'admin.checkinApp.ticketInside'],
+                  ['unpaid', 'unpaid', ticketControl.unpaid, 'admin.checkinApp.ticketUnpaid'],
+                  ['blocked', 'blocked', ticketControl.blocked, 'admin.checkinApp.ticketBlocked'],
+                ].map(([status, tone, value, labelKey]) => (
+                  <button
+                    key={status}
+                    type="button"
+                    className={`checkin-app__metric checkin-app__metric--${tone}${
+                      workspace.checkinStatus === status ? ' is-active' : ''
+                    }`}
+                    aria-pressed={workspace.checkinStatus === status}
+                    onClick={() =>
+                      workspace.setCheckinStatus(workspace.checkinStatus === status ? 'all' : status)
+                    }
+                  >
+                    <strong>{value}</strong>
+                    <small>{t(labelKey)}</small>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
             <header className="checkin-app__list-head">
               <div>
                 <h1 id="checkin-list-title">{listTitle}</h1>
@@ -295,7 +492,12 @@ export default function CheckInAppPage({
                 </p>
               </div>
               <span className="checkin-app__result-count">
-                {t('admin.checkinApp.visiblePeople', { count: workspace.rows.length })}
+                {t(
+                  workspace.rows.length === 1
+                    ? 'admin.checkinApp.visiblePerson'
+                    : 'admin.checkinApp.visiblePeople',
+                  { count: workspace.rows.length },
+                )}
               </span>
             </header>
 
@@ -358,6 +560,14 @@ export default function CheckInAppPage({
             <AdminDataTable
               ariaLabel={listTitle}
               layout="table"
+              pageResetKey={[
+                tab,
+                workspace.query,
+                workspace.type,
+                workspace.day,
+                workspace.checkinStatus,
+                workspace.credential,
+              ].join('|')}
               getRowClassName={(row) =>
                 row.id === workspace.highlightRowId ? 'data-table__row--selected' : ''
               }
@@ -371,7 +581,9 @@ export default function CheckInAppPage({
                   render: (row) => (
                     <AdminIdentityCell
                       name={row.name}
-                      sub={formatDocumentWithKind(row.document)}
+                      sub={[formatDocumentWithKind(row.document), row.ticketCode]
+                        .filter(Boolean)
+                        .join(' · ')}
                       subMono
                     />
                   ),
@@ -379,18 +591,54 @@ export default function CheckInAppPage({
                 {
                   key: 'type',
                   label: t('admin.checkin.type'),
+                  className: 'data-table__column--clip',
                   mobile: 'hidden',
                   width: 120,
-                  render: (row) => checkinTypeLabel(row, t),
+                  render: (row) => <DoorClip>{checkinTypeLabel(row, t)}</DoorClip>,
                 },
-                { key: 'meta', label: t('admin.columns.category'), mobile: 'hidden', width: 140 },
+                {
+                  key: 'meta',
+                  label: t('admin.columns.category'),
+                  className: 'data-table__column--clip',
+                  mobile: 'hidden',
+                  width: 180,
+                  render: (row) => <DoorClip>{row.meta}</DoorClip>,
+                },
                 {
                   key: 'day',
                   label: t('admin.checkin.dayLabel'),
+                  className: 'data-table__column--clip',
                   mobile: tab === 'tickets' ? 'default' : 'hidden',
                   width: 140,
-                  render: (row) => formatCheckinRowDay(row, eventDays, t),
+                  render: (row) => <DoorClip>{formatCheckinRowDay(row, eventDays, t)}</DoorClip>,
                 },
+                ...(tab === 'tickets'
+                  ? [
+                      {
+                        key: 'validity',
+                        label: t('admin.checkin.validUntil'),
+                        className: 'data-table__column--clip',
+                        mobile: 'hidden',
+                        width: 140,
+                        render: (row) => (
+                          <DoorClip>
+                            {row.validUntil
+                              ? new Date(row.validUntil).toLocaleString(
+                                  locale === 'en' ? 'en-US' : 'es-AR',
+                                  {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: false,
+                                  },
+                                )
+                              : '—'}
+                          </DoorClip>
+                        ),
+                      },
+                    ]
+                  : []),
                 {
                   key: 'status',
                   label: t('admin.columns.status'),

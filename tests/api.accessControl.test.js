@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { createApp } from '../server/app.js'
 import {
   ACCESS_ROLE_TEMPLATES,
@@ -6,7 +6,9 @@ import {
   PERMISSION_CATALOG,
   ROLE_HIERARCHY,
 } from '../src/lib/permissions.js'
+import { resetSessionCaches } from '../server/lib/sessionCache.js'
 import { hashPassword } from '../server/services/passwordService.js'
+import { hashToken } from '../server/services/sessionService.js'
 
 const ENV = { AUTH_SECRET: 'test-secret-rbac-plu', APP_URL: 'http://localhost:5173' }
 const PASSWORD = 'clave-rbac-123'
@@ -91,6 +93,11 @@ function createPrismaDouble({ actorRole = 'admin_maximal' } = {}) {
     },
     accessRole: {
       findMany: async () => roles,
+      update: async ({ where, data }) => {
+        const role = roles.find((item) => item.id === where.id)
+        Object.assign(role, data)
+        return role
+      },
       findUnique: async ({ where }) =>
         roles.find((role) => role.id === where.id || role.key === where.key) ?? null,
       create: async ({ data }) => {
@@ -147,7 +154,7 @@ function createPrismaDouble({ actorRole = 'admin_maximal' } = {}) {
   }
   prisma.$transaction = async (callback) => callback(prisma)
 
-  return { prisma, users, auditLogs }
+  return { prisma, users, auditLogs, roles, sessions }
 }
 
 async function login(url, prismaState) {
@@ -340,6 +347,94 @@ describe('RBAC jerárquico (/api/access-control/roles)', () => {
       })
 
       expect(response.status).toBe(400)
+    } finally {
+      await target.close()
+    }
+  })
+})
+
+describe('caché de sesiones frente a cambios de rol', () => {
+  beforeEach(() => resetSessionCaches())
+
+  // Un usuario PLU con sesión viva. Comparte el objeto del rol con la base
+  // falsa, igual que una relación: lo que el admin edite lo ve su próxima
+  // lectura de la base, pero no la caché.
+  function addPluUser(state) {
+    const accessRole = state.roles.find(({ key }) => key === 'plu_arg')
+    state.users.push({
+      id: 'usr-plu',
+      email: 'plu@pluarg.test',
+      role: accessRole.baseRole,
+      accessRole,
+      status: 'active',
+      mustChangePassword: false,
+      profile: { displayName: 'PLU' },
+    })
+    const now = Date.now()
+    state.sessions.push({
+      id: 'ses-plu',
+      userId: 'usr-plu',
+      tokenHash: hashToken('token-plu'),
+      revokedAt: null,
+      createdAt: new Date(now),
+      expiresAt: new Date(now + 8 * 60 * 60 * 1000),
+    })
+    return 'plu_session=token-plu'
+  }
+
+  const readSummary = (url, cookie) =>
+    fetch(`${url}/api/launch-interest/summary`, { headers: headers(cookie) })
+
+  it('un recorte de la matriz rige en el próximo request, no cuando vence el TTL', async () => {
+    const state = createPrismaDouble()
+    const pluCookie = addPluUser(state)
+    const target = listen(
+      createApp({
+        prisma: state.prisma,
+        env: ENV,
+        launchInterestRepository: { getSummary: async () => ({ total: 1 }) },
+      }),
+    )
+
+    try {
+      const adminCookie = await login(target.url, state)
+      // Calienta la caché: PLU lee el Dashboard.
+      expect((await readSummary(target.url, pluCookie)).status).toBe(200)
+
+      const cut = await updatePermissions(target.url, adminCookie, 'plu_arg', [
+        'admin.events.read',
+      ])
+      expect(cut.status).toBe(200)
+
+      expect((await readSummary(target.url, pluCookie)).status).toBe(403)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('desactivar un rol corta el acceso de sus cuentas en el próximo request', async () => {
+    const state = createPrismaDouble()
+    const pluCookie = addPluUser(state)
+    const target = listen(
+      createApp({
+        prisma: state.prisma,
+        env: ENV,
+        launchInterestRepository: { getSummary: async () => ({ total: 1 }) },
+      }),
+    )
+
+    try {
+      const adminCookie = await login(target.url, state)
+      expect((await readSummary(target.url, pluCookie)).status).toBe(200)
+
+      const off = await fetch(`${target.url}/api/access-control/roles/plu_arg/status`, {
+        method: 'PATCH',
+        headers: headers(adminCookie),
+        body: JSON.stringify({ active: false }),
+      })
+      expect(off.status).toBe(200)
+
+      expect((await readSummary(target.url, pluCookie)).status).toBe(401)
     } finally {
       await target.close()
     }

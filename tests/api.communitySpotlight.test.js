@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../server/app.js'
 import {
-  abbreviatePublicMemberName,
+  formatPublicMemberName,
   createSupabaseCommunityRepository,
 } from '../server/modules/community/supabaseCommunityRepository.js'
 import { listen } from './integration/helpers/supabaseTestClient.js'
 
 describe('community spotlight', () => {
-  it('abrevia el nombre público sin exponer el apellido completo', () => {
-    expect(abbreviatePublicMemberName('Martina Rivas')).toBe('Martina R.')
-    expect(abbreviatePublicMemberName('Nicolás')).toBe('Nicolás')
-    expect(abbreviatePublicMemberName('')).toBe('Atleta')
+  it('muestra el nombre completo del perfil y no inventa uno vacío', () => {
+    expect(formatPublicMemberName('Martina Rivas')).toBe('Martina Rivas')
+    expect(formatPublicMemberName('  Nicolás   Pérez  ')).toBe('Nicolás Pérez')
+    expect(formatPublicMemberName('')).toBe('Atleta')
   })
 
   it('expone GET /api/community/spotlight sin auth y sin datos sensibles', async () => {
@@ -19,7 +19,7 @@ describe('community spotlight', () => {
         members: [
           {
             id: '11111111-1111-4111-8111-111111111111',
-            name: 'Martina R.',
+            name: 'Martina Rivas',
             gym: 'Maximal Power',
             province: 'Buenos Aires',
             affiliatedAt: '2026-02-01',
@@ -36,7 +36,7 @@ describe('community spotlight', () => {
     expect(response.status).toBe(200)
     expect(communityRepository.getSpotlight).toHaveBeenCalledWith(5)
     expect(body.members[0]).toMatchObject({
-      name: 'Martina R.',
+      name: 'Martina Rivas',
       gym: 'Maximal Power',
       province: 'Buenos Aires',
     })

@@ -262,6 +262,28 @@ export const PERMISSION_CATALOG = [
     sortOrder: 100,
   },
   {
+    // No es `admin.payments.approve`: habilitar una entrada no abre
+    // afiliaciones, inscripciones, tienda ni el libro de caja.
+    key: 'admin.tickets.enable',
+    module: 'checkin',
+    moduleLabel: 'Check-in',
+    action: 'approve',
+    actionLabel: 'Habilitar entradas',
+    description: 'Aprobar o rechazar una orden de entradas pendiente del evento asignado.',
+    sortOrder: 101,
+  },
+  {
+    // Excepción de este ingreso. Dejar una vigencia que siga abriendo pide
+    // además `admin.event_team.write` (coordinador) o `admin.events.write`.
+    key: 'admin.checkin.override',
+    module: 'checkin',
+    moduleLabel: 'Check-in',
+    action: 'override',
+    actionLabel: 'Excepción de ingreso',
+    description: 'Forzar el ingreso de una entrada ya paga fuera de vigencia o de zona.',
+    sortOrder: 102,
+  },
+  {
     key: 'admin.users.read',
     module: 'users',
     moduleLabel: 'Usuarios',
@@ -337,6 +359,20 @@ export const PERMISSION_CATALOG = [
     description: 'Abrir el recorrido de navegación de un atleta puntual.',
     sortOrder: 132,
   },
+  {
+    // Distinto de `admin.users.write` a propósito: ese está reservado a Super
+    // Admin y Administrador y permite crear cualquier cuenta. Este solo habilita
+    // el equipo de puerta DENTRO de un evento asignado (el servidor lo limita).
+    key: 'admin.event_team.write',
+    // Módulo propio: dentro de `events` haría que los roles actuales (que leen y
+    // escriben Eventos) figuraran con acceso parcial a ese módulo.
+    module: 'event_team',
+    moduleLabel: 'Equipo de puerta del evento',
+    action: 'write',
+    actionLabel: 'Gestionar',
+    description: 'Crear y asignar cuentas de seguridad dentro de un evento asignado.',
+    sortOrder: 133,
+  },
 ]
 
 export const PERMISSION_KEYS = Object.freeze(PERMISSION_CATALOG.map(({ key }) => key))
@@ -349,6 +385,46 @@ export const ROLE_HIERARCHY = Object.freeze([
 ])
 
 export const CONFIGURABLE_ROLE_KEYS = Object.freeze(['plu_arg', 'seguridad_plu_arg'])
+
+/**
+ * Alcance de un AccessRole. Fuente de verdad en DB (`AccessRole.scope`); el
+ * fallback por clave cubre bases sin migrar y sujetos que solo traen `roleKey`.
+ */
+export const ACCESS_ROLE_SCOPE = Object.freeze({
+  global: 'global',
+  event: 'event',
+})
+
+/** Claves de roles por evento — respaldo si la sesión todavía no trae `scope`. */
+export const EVENT_SCOPED_ROLE_KEYS = Object.freeze([
+  'organizador_evento',
+  'coordinador_seguridad',
+])
+
+/**
+ * Resuelve el alcance de un rol/sesión: mira `scope` del AccessRole y, si no
+ * hay, la clave conocida. No infiere por permisos: una cuenta por evento sin
+ * grants sigue siendo por evento.
+ */
+export function resolveAccessRoleScope(subject) {
+  if (subject && typeof subject === 'object') {
+    const direct = subject.scope ?? subject.accessRole?.scope ?? null
+    if (direct === ACCESS_ROLE_SCOPE.event || direct === ACCESS_ROLE_SCOPE.global) {
+      return direct
+    }
+  }
+
+  const key =
+    typeof subject === 'string'
+      ? subject
+      : (subject?.roleKey ?? subject?.key ?? subject?.accessRole?.key ?? null)
+
+  return EVENT_SCOPED_ROLE_KEYS.includes(key) ? ACCESS_ROLE_SCOPE.event : ACCESS_ROLE_SCOPE.global
+}
+
+export function isEventScopedRole(subject) {
+  return resolveAccessRoleScope(subject) === ACCESS_ROLE_SCOPE.event
+}
 
 /**
  * Permisos que no se delegan a roles operativos: sólo Super Admin y
@@ -390,7 +466,34 @@ export const DEFAULT_ROLE_PERMISSIONS = Object.freeze({
     'admin.exports.admin',
     'admin.staff_applications.read',
   ],
-  seguridad_plu_arg: ['admin.events.read', 'admin.checkin.execute'],
+  seguridad_plu_arg: [
+    'admin.events.read',
+    'admin.checkin.execute',
+    'admin.tickets.enable',
+    'admin.checkin.override',
+  ],
+  // Rol "por evento": estos permisos valen SOLO sobre los eventos asignados a la
+  // cuenta. El servidor le niega cualquier ruta que no filtre por evento (ver
+  // `requireAuth` y `eventScope`). No hay `admin.users.*`, `admin.pricing.*`,
+  // `admin.events.delete` ni nada global.
+  organizador_evento: [
+    'admin.events.read',
+    'admin.events.write',
+    'admin.registrations.read',
+    'admin.payments.read',
+    'admin.payments.approve',
+    'admin.event_team.write',
+  ],
+  // Puerta de los eventos asignados: equipo, zonas, lista, escaneo,
+  // habilitar entradas de ese evento y forzar un ingreso pago.
+  // Sin cobros de atletas, inscripciones ni edición del evento.
+  coordinador_seguridad: [
+    'admin.events.read',
+    'admin.checkin.execute',
+    'admin.event_team.write',
+    'admin.tickets.enable',
+    'admin.checkin.override',
+  ],
 })
 
 export const ACCESS_ROLE_TEMPLATES = Object.freeze([
@@ -399,6 +502,7 @@ export const ACCESS_ROLE_TEMPLATES = Object.freeze([
     name: 'Super Admin',
     description: 'Control total del panel, roles y permisos.',
     baseRole: 'admin_maximal',
+    scope: ACCESS_ROLE_SCOPE.global,
     isSystem: true,
     isProtected: true,
     assignableByAdmin: false,
@@ -409,6 +513,7 @@ export const ACCESS_ROLE_TEMPLATES = Object.freeze([
     name: 'Administrador',
     description: 'Acceso total y supervisión de permisos para PLU y Seguridad.',
     baseRole: 'admin_plu_arg',
+    scope: ACCESS_ROLE_SCOPE.global,
     isSystem: true,
     isProtected: true,
     assignableByAdmin: false,
@@ -419,6 +524,7 @@ export const ACCESS_ROLE_TEMPLATES = Object.freeze([
     name: 'PLU',
     description: 'Representación operativa de la federación con permisos configurables.',
     baseRole: 'operador_plu_arg',
+    scope: ACCESS_ROLE_SCOPE.global,
     isSystem: true,
     isProtected: false,
     assignableByAdmin: true,
@@ -429,10 +535,35 @@ export const ACCESS_ROLE_TEMPLATES = Object.freeze([
     name: 'Seguridad',
     description: 'Control de acceso y check-in con alcance configurable.',
     baseRole: 'seguridad_plu_arg',
+    scope: ACCESS_ROLE_SCOPE.global,
     isSystem: true,
     isProtected: false,
     assignableByAdmin: true,
     hierarchyLevel: 4,
+  },
+  {
+    key: 'organizador_evento',
+    name: 'Organizador',
+    description: 'Gestiona solo los eventos que se le asignan: ventas, cobros y equipo de puerta.',
+    baseRole: 'operador_plu_arg',
+    scope: ACCESS_ROLE_SCOPE.event,
+    isSystem: true,
+    isProtected: false,
+    assignableByAdmin: true,
+    // Como cualquier rol fuera de la jerarquía fija: nivel operativo.
+    hierarchyLevel: 3,
+  },
+  {
+    key: 'coordinador_seguridad',
+    name: 'Coordinador de seguridad',
+    description:
+      'Coordina la puerta de los eventos que se le asignan: equipo, zonas, quién compró, habilitación de entradas y excepciones de ingreso.',
+    baseRole: 'operador_plu_arg',
+    scope: ACCESS_ROLE_SCOPE.event,
+    isSystem: true,
+    isProtected: false,
+    assignableByAdmin: true,
+    hierarchyLevel: 3,
   },
 ])
 
@@ -534,9 +665,23 @@ export function hasAnyPermission(subject, permissionKeys) {
 
 export function hasEventScopeAccess(subject, { eventId = null, eventSlug = null } = {}) {
   if (!hasPermission(subject, 'admin.checkin.execute')) return false
+  if (!subject || typeof subject !== 'object') return false
 
-  const assignedEventId = subject && typeof subject === 'object' ? subject.eventId : null
-  const assignedEventSlug = subject && typeof subject === 'object' ? subject.eventSlug : null
+  // Cuenta por evento: la lista de grants es la misma que usa el servidor.
+  // Sin eventId/eventSlug en el usuario (el coordinador vive así) no se
+  // interpreta como "cualquier evento".
+  if (subject.eventScoped || isEventScopedRole(subject)) {
+    const access = Array.isArray(subject.eventAccess) ? subject.eventAccess : []
+    if (!eventId && !eventSlug) return false
+    return access.some(
+      (grant) =>
+        (eventId ? grant.eventId === eventId : true) &&
+        (eventSlug ? grant.eventSlug === eventSlug : true),
+    )
+  }
+
+  const assignedEventId = subject.eventId ?? null
+  const assignedEventSlug = subject.eventSlug ?? null
 
   if (!assignedEventId && !assignedEventSlug) return true
   if (assignedEventId && eventId) return assignedEventId === eventId
@@ -549,10 +694,23 @@ export function canAccessSecurityEvent(subject, eventSlug) {
   return hasEventScopeAccess(subject, { eventSlug })
 }
 
+/**
+ * ¿La sesión es de una cuenta por evento (organizador)? Mira el flag que manda el servidor
+ * y, de respaldo, la clave del rol: una cuenta por evento SIN eventos asignados sigue
+ * siéndolo.
+ */
+export function isEventScopedSession(subject) {
+  return subject?.eventScoped === true || isEventScopedRole(subject)
+}
+
 export function getAllowedAdminSections(subject) {
-  return Object.entries(ADMIN_SECTION_PERMISSIONS)
+  const sections = Object.entries(ADMIN_SECTION_PERMISSIONS)
     .filter(([, permissionKeys]) => hasAnyPermission(subject, permissionKeys))
     .map(([section]) => section)
+  // El organizador solo trabaja en Eventos, sobre los suyos. Sus permisos (leer
+  // inscripciones, ver pagos) abrirían Personas, Grilla, Pagos y Finanzas, que traen
+  // datos de TODOS los eventos y el servidor le niega: se recorta acá, en la fuente.
+  return isEventScopedSession(subject) ? sections.filter((section) => section === 'events') : sections
 }
 
 export function getDefaultPermissionsForRole(roleKey) {

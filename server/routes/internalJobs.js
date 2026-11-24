@@ -2,7 +2,9 @@ import { timingSafeEqual } from 'node:crypto'
 import { Router } from 'express'
 import { runDomainMaintenanceJob } from '../jobs/domainMaintenanceJob.js'
 import { runEmailDispatchJob } from '../jobs/emailDispatchJob.js'
+import { runTicketRevealMailJob } from '../jobs/ticketRevealMailJob.js'
 import { runMembershipRenewalJob } from '../jobs/membershipRenewalJob.js'
+import { runMercadoPagoOAuthRefreshJob } from '../jobs/mercadoPagoOAuthRefreshJob.js'
 import { runPaymentOrderExpiryJob } from '../jobs/paymentOrderExpiryJob.js'
 import { runPaymentRecoveryJob } from '../jobs/paymentRecoveryJob.js'
 import { runPaymentRevalidationJob } from '../jobs/paymentRevalidationJob.js'
@@ -10,6 +12,7 @@ import { runPaymentProofRetentionJob } from '../jobs/paymentProofRetentionJob.js
 import { runSecurityUserLifecycleJob } from '../jobs/securityUserLifecycleJob.js'
 import { runShopOrderExpiryJob } from '../jobs/shopOrderExpiryJob.js'
 import { HttpError } from '../lib/errors.js'
+import { isPaymentProofRetentionJobEnabled } from '../modules/payments/paymentProofRetention.js'
 
 function hasValidCronAuthorization(request, secret) {
   const expected = Buffer.from(`Bearer ${secret}`)
@@ -27,7 +30,9 @@ export function createInternalJobRoutes({
   const run = {
     domainMaintenance: runners.domainMaintenance ?? runDomainMaintenanceJob,
     emailDispatch: runners.emailDispatch ?? runEmailDispatchJob,
+    ticketReveal: runners.ticketReveal ?? runTicketRevealMailJob,
     membershipRenewal: runners.membershipRenewal ?? runMembershipRenewalJob,
+    mercadoPagoOAuthRefresh: runners.mercadoPagoOAuthRefresh ?? runMercadoPagoOAuthRefreshJob,
     paymentOrderExpiry: runners.paymentOrderExpiry ?? runPaymentOrderExpiryJob,
     paymentRecovery: runners.paymentRecovery ?? runPaymentRecoveryJob,
     paymentRevalidation: runners.paymentRevalidation ?? runPaymentRevalidationJob,
@@ -64,10 +69,12 @@ export function createInternalJobRoutes({
     res.json({ status: 'completed', job: 'payment-revalidation', result })
   })
 
-  // Borra de Storage los comprobantes de órdenes ya aprobadas/rechazadas
-  // pasada la retención (PROOF_RETENTION_HOURS, default 24). No toca pendientes.
+  // Mueve a la papelera los comprobantes de órdenes ya aprobadas/rechazadas
+  // según la política que el staff define en Cobros (default: conservar todo),
+  // purga de Storage lo que pasó el período de gracia en la papelera y registra
+  // los archivos huérfanos. No toca pendientes.
   router.get('/jobs/payment-proof-retention', async (_req, res) => {
-    if (env.PAYMENT_PROOF_RETENTION_JOB_ENABLED === 'false') {
+    if (!isPaymentProofRetentionJobEnabled(env)) {
       res.json({ status: 'disabled', job: 'payment-proof-retention' })
       return
     }
@@ -84,6 +91,17 @@ export function createInternalJobRoutes({
     }
     const result = await run.emailDispatch({ client: getSupabaseAdmin?.(), env })
     res.json({ status: 'completed', job: 'email-dispatch', result })
+  })
+
+  // Habilita el mail con QR de las entradas cuya ventana de visualización
+  // ya abrió. El sitio las muestra en hora; este envío es el aviso.
+  router.get('/jobs/ticket-reveal', async (_req, res) => {
+    if (env.TICKET_REVEAL_JOB_ENABLED === 'false') {
+      res.json({ status: 'disabled', job: 'ticket-reveal' })
+      return
+    }
+    const result = await run.ticketReveal({ client: getSupabaseAdmin?.(), env })
+    res.json({ status: 'completed', job: 'ticket-reveal', result })
   })
 
   router.get('/jobs/membership-renewal', async (_req, res) => {
@@ -140,6 +158,17 @@ export function createInternalJobRoutes({
     }
     const result = await run.domainMaintenance({ client: getSupabaseAdmin?.(), env })
     res.json({ status: 'completed', job: 'domain-maintenance', result })
+  })
+
+  // Renueva los tokens de las cuentas de Mercado Pago vinculadas por OAuth que
+  // vencen en los próximos 30 días. Sin la vinculación configurada, no hace nada.
+  router.get('/jobs/mercado-pago-oauth-refresh', async (_req, res) => {
+    const result = await run.mercadoPagoOAuthRefresh({ client: getSupabaseAdmin?.(), env })
+    res.json({
+      status: result?.status === 'disabled' ? 'disabled' : 'completed',
+      job: 'mercado-pago-oauth-refresh',
+      result,
+    })
   })
 
   return router

@@ -57,7 +57,7 @@ export default function StandardsPage({ onNavigate }) {
           </section>
         </Reveal>
 
-        <section className="standards-grid" aria-labelledby="standards-grid-title">
+        <Reveal as="section" variant="fade" className="standards-grid" aria-labelledby="standards-grid-title">
           <header className="institutional-section-head">
             <p className="institutional-kicker">02 / {t('pages.standards.gridEyebrow')}</p>
             <div>
@@ -95,9 +95,9 @@ export default function StandardsPage({ onNavigate }) {
           </div>
 
           <p className="standards-grid__disclaimer">{t('pages.standards.disclaimer')}</p>
-        </section>
+        </Reveal>
 
-        <section className="standards-lookup" aria-labelledby="standards-lookup-title">
+        <Reveal as="section" variant="fade" className="standards-lookup" aria-labelledby="standards-lookup-title">
           <header className="institutional-section-head">
             <p className="institutional-kicker">03 / {t('pages.standards.lookupEyebrow')}</p>
             <div>
@@ -138,7 +138,7 @@ export default function StandardsPage({ onNavigate }) {
               <p className="standards-lookup__hint">{t('pages.standards.lookupHint')}</p>
             )}
           </div>
-        </section>
+        </Reveal>
 
         <Reveal delay={40}>
           <section className="institutional-closing" aria-labelledby="standards-close-title">

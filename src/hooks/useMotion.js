@@ -298,8 +298,15 @@ export function useHeaderScroll(
       rafId = null
       const y = window.scrollY
       const linear = Math.min(1, Math.max(0, y / range))
+      const nextScrolled = resolveHeaderScrolled(y, {
+        wasScrolled: lastScrolled,
+        enterAt,
+        exitAt,
+      })
+      // Con movimiento reducido el corte es uno solo: el mismo umbral que
+      // la clase compacta, no un fade a mitad de rango.
       const eased = reducedMotionQuery.matches
-        ? linear >= 0.5
+        ? nextScrolled
           ? 1
           : 0
         : easeHeaderScrollProgress(linear)
@@ -319,11 +326,6 @@ export function useHeaderScroll(
         shell.toggleAttribute('data-morphing', morphing)
       }
 
-      const nextScrolled = resolveHeaderScrolled(y, {
-        wasScrolled: lastScrolled,
-        enterAt,
-        exitAt,
-      })
       if (nextScrolled !== lastScrolled) {
         lastScrolled = nextScrolled
         setScrolled(nextScrolled)

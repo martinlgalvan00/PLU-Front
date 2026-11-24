@@ -21,6 +21,7 @@ import { createRegistrationAccessRoutes } from './routes/registrationAccess.js'
 import { createAdminQueueRoutes } from './routes/adminQueue.js'
 import { createPlatformSettingsRoutes } from './routes/platformSettings.js'
 import { createFinanceRoutes } from './routes/finance.js'
+import { createPaymentProofRoutes } from './routes/paymentProofs.js'
 import { createCommunityRoutes } from './routes/community.js'
 import { createLaunchInterestRoutes } from './routes/launchInterest.js'
 import { createContactRoutes } from './routes/contact.js'
@@ -77,7 +78,16 @@ export function createApp(deps = {}) {
   // -- incluido el stack de una falla de cobro -- queda atado al mismo
   // requestId, que ademas viaja al cliente en `X-Request-Id`.
   app.use(requestContext)
-  app.use(express.json({ limit: '100kb' }))
+  // El resto de la API sigue en 100kb. La planilla de un meet, con los tres
+  // intentos de cada levantamiento, no entra en ese techo.
+  const jsonParser = express.json({ limit: '100kb' })
+  const resultsImportParser = express.json({ limit: '1mb' })
+  app.use((req, res, next) => {
+    const resultsImport =
+      req.method === 'POST' &&
+      /^\/api\/events\/[a-z0-9]+(?:-[a-z0-9]+)*\/results\/import$/.test(req.path)
+    return (resultsImport ? resultsImportParser : jsonParser)(req, res, next)
+  })
   app.use(cookieParser())
   app.use(requireTrustedMutation)
   const healthRoutes = () =>
@@ -199,6 +209,7 @@ export function createApp(deps = {}) {
       incidentRepository: deps.checkinIncidentRepository,
       athleteRepository: deps.athleteRepository,
       platformSettingsRepository: deps.platformSettingsRepository,
+      notificationRepository: deps.notificationRepository,
       env: deps.env ?? process.env,
       brevo: deps.brevo,
     }),
@@ -232,6 +243,8 @@ export function createApp(deps = {}) {
     createPaymentProfileRoutes({
       getPrisma: () => deps.prisma ?? getPrisma(),
       getSupabaseAdmin: resolveSupabaseAdmin,
+      env: deps.env ?? process.env,
+      fetchImpl: deps.mercadoPagoOAuthFetch,
     }),
   )
   app.use(
@@ -240,6 +253,13 @@ export function createApp(deps = {}) {
       getPrisma: () => deps.prisma ?? getPrisma(),
       getSupabaseAdmin: resolveSupabaseAdmin,
       env: deps.env ?? process.env,
+    }),
+  )
+  app.use(
+    '/api/payment-proofs',
+    createPaymentProofRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
     }),
   )
   app.use(

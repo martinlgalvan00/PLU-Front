@@ -27,7 +27,7 @@ const STEP_KEYS = [1, 2, 3]
  * va a encontrar en su panel. Un solo CTA: no compite con la oferta de
  * afiliación/inscripción, que ya vive en el estado vacío de la credencial.
  */
-export default function RegisterProfileWelcome({ athleteName, onNavigate }) {
+export default function RegisterProfileWelcome({ athleteName, onNavigate, resumeEventTitle = null }) {
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
   const firstName = athleteName?.trim().split(' ')[0] || ''
@@ -85,9 +85,13 @@ export default function RegisterProfileWelcome({ athleteName, onNavigate }) {
         <button
           type="button"
           className="register-confirmation__cta register-confirmation__cta--primary"
+          // Con una inscripción pendiente, `navigate('profile')` la retoma
+          // (App: pendingAthleteDestination): el botón tiene que decirlo.
           onClick={() => onNavigate?.('profile')}
         >
-          {t('pages.register.profileWelcomeCta')}
+          {resumeEventTitle
+            ? t('pages.register.profileWelcomeCtaResume', { event: resumeEventTitle })
+            : t('pages.register.profileWelcomeCta')}
           <ArrowRight size={14} aria-hidden />
         </button>
       </Block>

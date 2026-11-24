@@ -6,6 +6,7 @@ import DocumentMetaSync from './components/layout/DocumentMetaSync.jsx'
 import PageTransition from './components/layout/PageTransition.jsx'
 import PageErrorBoundary from './components/layout/PageErrorBoundary.jsx'
 import lazyWithRetry from './lib/lazyWithRetry.js'
+import { loadAdminMessagesForStoredLocale } from './i18n/adminMessages.js'
 import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
 import HelpLayer from './components/ui/HelpLayer.jsx'
 import { useAppData } from './hooks/useAppData.js'
@@ -17,6 +18,10 @@ import {
   matchEventPageRoute,
   pushEventPageRoute,
 } from './lib/eventPageRoute.js'
+import {
+  matchRegistrationCheckoutRoute,
+  pushRegistrationCheckoutRoute,
+} from './lib/registrationCheckoutRoute.js'
 import { matchAdminEventRoute } from './lib/adminEventRoute.js'
 import { isCanonicalPathname, resolvePathnamePublicView } from './lib/canonicalPaths.js'
 import {
@@ -26,12 +31,14 @@ import {
   pushPublicViewPath,
 } from './lib/publicViewPaths.js'
 import { readPasswordResetToken } from './lib/passwordResetRoute.js'
-import { matchSecurityGateRoute } from './lib/securityGateRoute.js'
+import { buildSecurityGatePath, matchSecurityGateRoute } from './lib/securityGateRoute.js'
+import { resolveCheckinEvent } from './lib/checkinEvent.js'
 import {
   clearStaffEmailChangeToken,
   readStaffEmailChangeToken,
 } from './lib/staffEmailChangeRoute.js'
 import { clearStaffInvitationToken, readStaffInvitationToken } from './lib/staffInvitationRoute.js'
+import { previewStaffInvitationRequest } from './lib/api.js'
 import EmailVerificationNotice from './components/ui/EmailVerificationNotice.jsx'
 import SessionNotice from './components/ui/SessionNotice.jsx'
 import PaymentsMockBanner from './components/ui/PaymentsMockBanner.jsx'
@@ -44,10 +51,23 @@ import {
 } from './lib/ticketsRoute.js'
 import { resolveEventPricing } from './lib/eventPricing.js'
 import {
+  getCompetitionNavEvents,
   getFeaturedEvent,
   getNextUpcomingEvent,
   getPublicCatalogEvents,
+  getUnderConstructionEvents,
+  isUnderConstructionEvent,
+  findRegistrableEvent,
+  PITBULL_CLASSIC_SLUG,
 } from './lib/eventNavigation.js'
+import { isEventRegistrationOpen } from './lib/eventPublicActions.js'
+import {
+  eventHasBuilderLanding,
+  eventHasEditorialLanding,
+  eventHasSubmissionLanding,
+  eventLandingSeo,
+  eventSubmissionLandingInPreparation,
+} from './lib/eventLanding.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { reconcileMercadoPagoReturn } from './services/paymentService.js'
 import {
@@ -59,9 +79,12 @@ import {
   getTransitionDirection,
   resolveAfterLoginDestination,
   resolveMembershipCheckout,
+  scrollWindowTo,
 } from './lib/navigation.js'
 import {
   canCheckIn,
+  canEnableTicketOrders,
+  canOverrideCheckIn,
   canDeleteAthletes,
   canDeleteEvents,
   canDeleteMemberships,
@@ -71,11 +94,16 @@ import {
   canViewAdmin,
   canViewScanReport,
   getRoleLabel,
+  hasAccountSession,
   isCheckinOnly,
   isPluUsaPartner,
   isStaffSession,
 } from './lib/roles.js'
-import { getAllowedAdminSections } from './lib/permissions.js'
+import {
+  getAllowedAdminSections,
+  hasPermission,
+  isEventScopedSession,
+} from './lib/permissions.js'
 import { hasUnreadProfileNotice, visibleProfileNotice } from './lib/athleteProfile.js'
 
 function currentAthleteRecord(app) {
@@ -98,6 +126,8 @@ const AdminPage = lazyWithRetry(async () => {
   const [{ default: Page }, { AppConfigProvider }] = await Promise.all([
     import('./pages/AdminPage.jsx'),
     import('./providers/AppConfigProvider.jsx'),
+    // Textos del panel: fuera del bundle público (ver i18n/adminMessages.js).
+    loadAdminMessagesForStoredLocale(),
   ])
   return {
     default: (props) => (
@@ -111,6 +141,8 @@ const CheckInAppPage = lazyWithRetry(async () => {
   const [{ default: Page }, { AppConfigProvider }] = await Promise.all([
     import('./pages/CheckInAppPage.jsx'),
     import('./providers/AppConfigProvider.jsx'),
+    // Textos del panel: fuera del bundle público (ver i18n/adminMessages.js).
+    loadAdminMessagesForStoredLocale(),
   ])
   return {
     default: (props) => (
@@ -120,7 +152,30 @@ const CheckInAppPage = lazyWithRetry(async () => {
     ),
   }
 })
-const SecurityGatePage = lazyWithRetry(() => import('./pages/SecurityGatePage.jsx'))
+const OrganizerAppPage = lazyWithRetry(async () => {
+  const [{ default: Page }, { AppConfigProvider }] = await Promise.all([
+    import('./pages/OrganizerAppPage.jsx'),
+    import('./providers/AppConfigProvider.jsx'),
+    // Textos del panel: fuera del bundle público (ver i18n/adminMessages.js).
+    loadAdminMessagesForStoredLocale(),
+  ])
+  return {
+    default: (props) => (
+      <AppConfigProvider>
+        <Page {...props} />
+      </AppConfigProvider>
+    ),
+  }
+})
+const SecurityGatePage = lazyWithRetry(async () => {
+  const [{ default: Page }] = await Promise.all([
+    import('./pages/SecurityGatePage.jsx'),
+    // La puerta monta CheckInAppPage directo: sin esto el scanner muestra
+    // claves crudas (admin.checkin.*), porque esos textos no van en el bundle público.
+    loadAdminMessagesForStoredLocale(),
+  ])
+  return { default: Page }
+})
 const HomePage = lazyWithRetry(() => import('./pages/HomePage.jsx'))
 const AthleteProfilePage = lazyWithRetry(() => import('./pages/AthleteProfilePage.jsx'))
 const CommunityPage = lazyWithRetry(() => import('./pages/CommunityPage.jsx'))
@@ -132,6 +187,10 @@ const LoginPage = lazyWithRetry(() => import('./pages/LoginPage.jsx'))
 const MembersPage = lazyWithRetry(() => import('./pages/MembersPage.jsx'))
 const NotFoundPage = lazyWithRetry(() => import('./pages/NotFoundPage.jsx'))
 const PitbullPage = lazyWithRetry(() => import('./pages/PitbullPage.jsx'))
+const EventLandingEditorial = lazyWithRetry(() => import('./pages/EventLandingEditorial.jsx'))
+const SubmissionLandingPage = lazyWithRetry(() => import('./pages/SubmissionLandingPage.jsx'))
+const EventBuilderLandingPage = lazyWithRetry(() => import('./pages/EventBuilderLandingPage.jsx'))
+const EventUnderConstructionPage = lazyWithRetry(() => import('./pages/EventUnderConstructionPage.jsx'))
 const RecordsPage = lazyWithRetry(() => import('./pages/RecordsPage.jsx'))
 const RegisterPage = lazyWithRetry(() => import('./pages/RegisterPage.jsx'))
 const ResourcesPage = lazyWithRetry(() => import('./pages/ResourcesPage.jsx'))
@@ -143,6 +202,20 @@ const StaffApplicationPage = lazyWithRetry(() => import('./pages/StaffApplicatio
 const StaffEmailChangePage = lazyWithRetry(() => import('./pages/StaffEmailChangePage.jsx'))
 const StaffInvitationPage = lazyWithRetry(() => import('./pages/StaffInvitationPage.jsx'))
 const StaffPasswordChangePage = lazyWithRetry(() => import('./pages/StaffPasswordChangePage.jsx'))
+const MercadoPagoLinkResultPage = lazyWithRetry(async () => {
+  const [module] = await Promise.all([
+    import('./pages/MercadoPagoLinkResultPage.jsx'),
+    loadAdminMessagesForStoredLocale(),
+  ])
+  return module
+})
+
+function isMercadoPagoLinkResultRoute() {
+  return (
+    typeof window !== 'undefined' &&
+    /^\/admin\/mercado-pago\/vinculacion\/?$/.test(window.location.pathname)
+  )
+}
 const StandardsPage = lazyWithRetry(() => import('./pages/StandardsPage.jsx'))
 const TeamPage = lazyWithRetry(() => import('./pages/TeamPage.jsx'))
 const TicketsPage = lazyWithRetry(() => import('./pages/TicketsPage.jsx'))
@@ -182,11 +255,21 @@ export default function App() {
     matchAdminEventRoute()?.eventSlug ?? null,
   )
   const [transitionDirection, setTransitionDirection] = useState('forward')
+  // De qué vista se llegó a la actual: el aviso de "en construcción" vuelve a
+  // la portada si se abrió desde su carril, no siempre al calendario.
+  const [viewTrail, setViewTrail] = useState({ current: view, previous: null })
+  if (viewTrail.current !== view) setViewTrail({ current: view, previous: viewTrail.current })
   const [selectedEvent, setSelectedEvent] = useState(UPCOMING_EVENTS[0])
   const [pendingAthleteDestination, setPendingAthleteDestination] = useState(null)
   // Intent liviano al abrir el checkout desde Pagos / Torneos: p.ej. abrir
   // directo el selector de medio (“Elegir otro medio”) sin inventar un RPC.
   const [checkoutIntent, setCheckoutIntent] = useState(null)
+  // La intención dura lo que dura el checkout, no hasta el primer render que la
+  // usa: la pantalla de inscripción puede montarse dos veces al entrar y, si la
+  // primera la consumía, la segunda abría el cobro en vez del selector de medio.
+  useEffect(() => {
+    if (view !== 'competition') setCheckoutIntent(null)
+  }, [view])
   // `?section=` llega en los emails de pago; sin leerlo, "revisá el estado de
   // tu pago" abría la cuenta en la credencial.
   const [profileTab, setProfileTab] = useState(
@@ -198,6 +281,11 @@ export default function App() {
   )
   const [eventPageSlug, setEventPageSlug] = useState(() =>
     matchTicketsRoute() ? null : (matchEventPageRoute()?.eventSlug ?? null),
+  )
+  // Evento del checkout según la URL (/evento/:slug/inscripcion): con esto un
+  // recargo o un link compartido vuelve al mismo checkout y no a la portada.
+  const [checkoutRouteSlug, setCheckoutRouteSlug] = useState(
+    () => matchRegistrationCheckoutRoute()?.eventSlug ?? null,
   )
   const paymentReturnInFlightRef = useRef(null)
   const app = useAppData()
@@ -217,6 +305,22 @@ export default function App() {
   )
   const nextEvent = getNextUpcomingEvent(publicEvents) ?? UPCOMING_EVENTS[0]
   const featuredEvent = getFeaturedEvent(publicEvents) ?? UPCOMING_EVENTS[0]
+  const catalogNavEvents = getCompetitionNavEvents(publicEvents)
+  // Landings con el interruptor apagado: el menú las muestra y al tocarlas dice
+  // "Plataforma en construcción". No entran a listados ni countdowns.
+  const underConstructionEvents = getUnderConstructionEvents(app.adminEvents).map((event) =>
+    withPublicEventStatus(event, new Date(), {
+      registrationEnabled: app.checkoutAvailability?.registrationEnabled !== false,
+    }),
+  )
+  const baseNavEvents =
+    catalogNavEvents.length > 0 ? catalogNavEvents : [featuredEvent].filter((event) => event?.slug)
+  const navEvents = [
+    ...baseNavEvents,
+    ...underConstructionEvents.filter(
+      (event) => !baseNavEvents.some((item) => item.slug === event.slug),
+    ),
+  ]
 
   useEffect(() => {
     setSelectedEvent((current) => {
@@ -236,20 +340,71 @@ export default function App() {
 
     let cancelled = false
     void app.enterAthleteContext().catch((error) => {
-      if (!cancelled) {
-        console.warn('No se pudo abrir el contexto de atleta tras restaurar la sesión.', error)
-      }
+      if (cancelled) return
+      console.warn('No se pudo abrir el contexto de atleta tras restaurar la sesión.', error)
+      if (error?.status !== 401) return
+      app.clearInvalidSession()
+      if (buildPublicViewPath('login')) pushPublicViewPath('login')
+      setView('login')
     })
     return () => {
       cancelled = true
     }
-  }, [app.enterAthleteContext, app.session, app.sessionPending, view])
+  }, [app.clearInvalidSession, app.enterAthleteContext, app.session, app.sessionPending, view])
+
+  // Calendario → página de un evento (y de un evento a otro) es la misma vista
+  // `events`: con la vista sola como clave no había transición ni vuelta al
+  // tope, y entrar a un evento desde el footer dejaba la pantalla en el footer.
+  const routeKey = view === 'events' && eventPageSlug ? `events:${eventPageSlug}` : view
+  const routeKeyRef = useRef(routeKey)
+  const scrollMemoryRef = useRef(new Map())
+  const navKindRef = useRef('push')
+  const ignoreScrollSaveRef = useRef(false)
+  routeKeyRef.current = routeKey
 
   useEffect(() => {
-    // Sin behavior explícito: hereda `scroll-behavior` de CSS, que ya
-    // respeta prefers-reduced-motion.
-    window.scrollTo({ top: 0 })
-  }, [view])
+    const previous = window.history.scrollRestoration
+    window.history.scrollRestoration = 'manual'
+    return () => {
+      window.history.scrollRestoration = previous
+    }
+  }, [])
+
+  useEffect(() => {
+    const remember = () => {
+      if (ignoreScrollSaveRef.current) return
+      scrollMemoryRef.current.set(routeKeyRef.current, window.scrollY)
+    }
+    // El foco del ítem de la barra, si está fijo arriba, sube el scroll antes
+    // del click. `pointerdown` alcanza a guardar la posición real; los dos
+    // frames siguientes ignoran ese salto para no pisarla.
+    const rememberBeforeFocus = (event) => {
+      if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return
+      remember()
+      ignoreScrollSaveRef.current = true
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          ignoreScrollSaveRef.current = false
+        })
+      })
+    }
+    window.addEventListener('scroll', remember, { passive: true })
+    window.addEventListener('pointerdown', rememberBeforeFocus, true)
+    window.addEventListener('keydown', rememberBeforeFocus, true)
+    return () => {
+      window.removeEventListener('scroll', remember)
+      window.removeEventListener('pointerdown', rememberBeforeFocus, true)
+      window.removeEventListener('keydown', rememberBeforeFocus, true)
+    }
+  }, [])
+
+  useEffect(() => {
+    const top = navKindRef.current === 'pop' ? (scrollMemoryRef.current.get(routeKey) ?? 0) : 0
+    navKindRef.current = 'push'
+    ignoreScrollSaveRef.current = true
+    scrollWindowTo(top)
+    ignoreScrollSaveRef.current = false
+  }, [routeKey])
 
   useEffect(() => {
     if (import.meta.env.DEV) window.__pluNav = setView
@@ -351,6 +506,15 @@ export default function App() {
 
   useEffect(() => {
     function onPopState() {
+      navKindRef.current = 'pop'
+      setTransitionDirection('back')
+      const checkoutMatch = matchRegistrationCheckoutRoute()
+      if (checkoutMatch) {
+        setCheckoutRouteSlug(checkoutMatch.eventSlug)
+        setView('competition')
+        return
+      }
+      setCheckoutRouteSlug(null)
       if (matchTicketsRoute()) {
         setTicketEventSlug(getTicketsRouteEventSlug())
         setView('tickets')
@@ -391,6 +555,8 @@ export default function App() {
       setView((current) => {
         if (current === 'tickets') return 'pitbull'
         if (current === 'events') return 'home'
+        // El checkout tiene URL propia: volver a `/` es volver a la portada.
+        if (current === 'competition') return 'home'
         if (current === 'notFound') return 'home'
         if (matchPublicViewPath() == null && buildPublicViewPath(current)) return 'home'
         return current
@@ -423,6 +589,15 @@ export default function App() {
           currentRole = currentSession?.role
         } catch (error) {
           console.warn('No se pudo abrir el contexto de atleta para el staff.', error)
+          // 401: la cookie de staff ya no existe. El avatar no puede seguir.
+          // Otro error: el staff sigue adentro; no se lo manda al login.
+          if (error?.status === 401) {
+            app.clearInvalidSession()
+            currentSession = null
+            currentRole = undefined
+          } else {
+            return
+          }
         }
       }
 
@@ -446,10 +621,32 @@ export default function App() {
       const membershipCheckout = !blocked
         ? resolveMembershipCheckout(requestedView, requestedOptions)
         : { view: requestedView, options: requestedOptions }
-      const resolvedView = blocked ? 'login' : membershipCheckout.view
-      const resolvedOptions = blocked ? requestedOptions : membershipCheckout.options
+      let resolvedView = blocked ? 'login' : membershipCheckout.view
+      let resolvedOptions = blocked ? requestedOptions : membershipCheckout.options
+
+      // openTickets en pitbull: ir a la página completa de entradas
+      if (resolvedView === 'pitbull' && resolvedOptions.openTickets) {
+        pushTicketsRoute(resolvedOptions.eventSlug)
+        setTicketEventSlug(resolvedOptions.eventSlug ?? null)
+        setTransitionDirection(getTransitionDirection(view, 'tickets'))
+        navKindRef.current = 'push'
+        setView('tickets')
+        return
+      }
+
+      // Alias deprecado `/pitbull` → ficha canónica por slug (plantilla editorial).
+      if (resolvedView === 'pitbull') {
+        resolvedView = 'events'
+        resolvedOptions = {
+          ...resolvedOptions,
+          eventSlug: resolvedOptions.eventSlug || PITBULL_CLASSIC_SLUG,
+        }
+      }
 
       if (blocked && athleteRequired) {
+        if (!isStaffSession(currentSession) && !hasAccountSession(currentSession)) {
+          app.clearInvalidSession()
+        }
         setPendingAthleteDestination({ view: requestedView, options: requestedOptions })
       } else if (resumedAthleteDestination || (view === 'login' && resolvedView !== 'login')) {
         setPendingAthleteDestination(null)
@@ -470,13 +667,23 @@ export default function App() {
         setEventPageSlug(null)
         pushPublicViewPath('events')
       } else if (view === 'events' && resolvedView !== 'events') {
-        clearEventPageRoute()
+        // Si el destino tiene URL propia la empuja él. Limpiar antes dejaba una
+        // entrada "/" intermedia: desde el evento, "Inscribirme" llevaba a
+        // /crear-cuenta y "Atrás" caía en la portada en vez de volver al evento.
+        if (!buildPublicViewPath(resolvedView) && resolvedView !== 'competition') {
+          clearEventPageRoute()
+        }
         setEventPageSlug(null)
       }
 
       if (buildPublicViewPath(resolvedView) && !(resolvedView === 'events')) {
         pushPublicViewPath(resolvedView)
-      } else if (matchPublicViewPath() && resolvedView !== 'tickets' && resolvedView !== 'events') {
+      } else if (
+        matchPublicViewPath() &&
+        resolvedView !== 'tickets' &&
+        resolvedView !== 'events' &&
+        resolvedView !== 'competition'
+      ) {
         clearPublicViewPath()
       }
 
@@ -485,15 +692,6 @@ export default function App() {
           const nextPath = buildPublicViewPath(resolvedView) ?? '/'
           window.history.pushState({ view: resolvedView }, '', nextPath)
         }
-      }
-
-      // openTickets en pitbull: ir a la página completa de entradas
-      if (resolvedView === 'pitbull' && resolvedOptions.openTickets) {
-        pushTicketsRoute(resolvedOptions.eventSlug)
-        setTicketEventSlug(resolvedOptions.eventSlug ?? null)
-        setTransitionDirection(getTransitionDirection(view, 'tickets'))
-        setView('tickets')
-        return
       }
 
       if (resolvedView === 'profile') {
@@ -505,22 +703,40 @@ export default function App() {
         // cualquier atleta normal queda vacío y este lookup nunca encontraba
         // nada, así que `selectedEvent` se quedaba con lo que hubiera antes
         // (otro torneo, o el de arranque) y la navegación por código secreto
-        // terminaba en el checkout equivocado. `publicEvents` es el catálogo
-        // público, sin permiso de por medio, y ya es lo que usa el resto de
-        // la app para mostrar/elegir eventos.
-        const promotionEvent = publicEvents.find(
-          (event) => event.slug === resolvedOptions.eventSlug,
+        // terminaba en el checkout equivocado. `findRegistrableEvent` busca en
+        // el catálogo público (más las landings en construcción que venden),
+        // sin permiso de por medio.
+        const promotionEvent = findRegistrableEvent(
+          resolvedOptions.eventSlug,
+          publicEvents,
+          underConstructionEvents,
         )
         if (promotionEvent) setSelectedEvent(promotionEvent)
+        pushRegistrationCheckoutRoute(resolvedOptions.eventSlug)
+        setCheckoutRouteSlug(resolvedOptions.eventSlug)
+      } else if (resolvedView !== 'competition' && matchRegistrationCheckoutRoute()) {
+        // Salir del checkout a una vista sin URL propia (portada, perfil por
+        // estado…): la barra no puede seguir diciendo /inscripcion.
+        window.history.pushState({ view: resolvedView }, '', '/')
+        setCheckoutRouteSlug(null)
       }
 
       setTransitionDirection(getTransitionDirection(view, resolvedView))
+      navKindRef.current = 'push'
       setView(resolvedView)
     },
-    [publicEvents, getSession, pendingAthleteDestination, view, app.enterAthleteContext, app.returnToStaffContext],
+    [publicEvents, underConstructionEvents, getSession, pendingAthleteDestination, view, app.enterAthleteContext, app.returnToStaffContext, app.clearInvalidSession],
   )
 
+  // Alias deprecado: `/pitbull` → `/evento/pitbull-classic-2026`.
+  useEffect(() => {
+    if (view !== 'pitbull') return
+    navigate('events', { eventSlug: PITBULL_CLASSIC_SLUG })
+  }, [view, navigate])
+
   async function selectEvent(event, options = {}) {
+    // El slug viaja a la URL del checkout (/evento/:slug/inscripcion).
+    const checkoutOptions = event?.slug ? { eventSlug: event.slug } : {}
     setSelectedEvent(event)
     setCheckoutIntent(options.checkoutIntent ?? null)
     if (app.checkoutAvailability?.registrationEnabled === false) {
@@ -531,17 +747,68 @@ export default function App() {
     if (current?.role !== 'athlete_plu') {
       if (isStaffSession(current)) {
         // Staff: puente a atleta e inscripción directa, sin /crear-cuenta.
-        navigate('competition')
+        navigate('competition', checkoutOptions)
         return
       }
       // Conserva el evento elegido mientras la persona crea su ficha. Al
       // terminar el alta, `navigate('profile')` retoma automáticamente la
       // inscripción en vez de mandarla a empezar de nuevo desde el calendario.
-      setPendingAthleteDestination({ view: 'competition', options: {} })
+      setPendingAthleteDestination({ view: 'competition', options: checkoutOptions })
       navigate('register')
       return
     }
-    navigate('competition')
+    navigate('competition', checkoutOptions)
+  }
+
+  // Checkout abierto por URL (recargo, link compartido, atrás/adelante): se
+  // resuelve el evento cuando hay sesión y catálogo. Sin cuenta de atleta pasa
+  // por el mismo camino que "Inscribirme" (alta o puente de staff).
+  useEffect(() => {
+    if (view !== 'competition' || !checkoutRouteSlug || app.sessionPending) return
+    const isAthlete = app.session?.role === 'athlete_plu'
+    if (isAthlete && selectedEvent?.slug === checkoutRouteSlug) return
+    const routeEvent = findRegistrableEvent(
+      checkoutRouteSlug,
+      publicEvents,
+      underConstructionEvents,
+    )
+    if (!routeEvent) {
+      if (app.publicCatalogSettled) navigate('events', { eventSlug: checkoutRouteSlug })
+      return
+    }
+    if (isAthlete) {
+      setSelectedEvent(routeEvent)
+      return
+    }
+    // Sin cuenta de atleta, un link a la inscripción de un evento que no vende
+    // (cerrado, agotado, finalizado) mandaba igual a crear la ficha "para
+    // seguir con tu inscripción". El atleta logueado sí entra: puede tener una
+    // orden pendiente que pagar o retomar en ese checkout.
+    const registrationEnabled = app.checkoutAvailability?.registrationEnabled !== false
+    if (
+      !isStaffSession(app.session) &&
+      !isEventRegistrationOpen(routeEvent, { registrationEnabled })
+    ) {
+      navigate('events', { eventSlug: checkoutRouteSlug })
+      return
+    }
+    void selectEvent(routeEvent)
+    // `selectEvent` se recrea en cada render; lo que decide son estos datos.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    view,
+    checkoutRouteSlug,
+    app.sessionPending,
+    app.session?.role,
+    app.publicCatalogSettled,
+    app.checkoutAvailability?.registrationEnabled,
+    selectedEvent?.slug,
+    publicEvents,
+    underConstructionEvents,
+  ])
+
+  async function reauthenticateKeepingQueue() {
+    await app.logout({ notify: false, preserveOfflineQueue: true })
   }
 
   async function exitSecurityRoute() {
@@ -556,6 +823,16 @@ export default function App() {
     setView(canViewAdmin(app.session) ? 'admin' : 'home')
   }
 
+  // Vuelta de la vinculación con Mercado Pago: corre en la ventana aparte que
+  // abrió el panel, antes de cualquier decisión de vista o sesión.
+  if (isMercadoPagoLinkResultRoute()) {
+    return (
+      <Suspense fallback={<PageLoadFallback />}>
+        <MercadoPagoLinkResultPage />
+      </Suspense>
+    )
+  }
+
   const securityRoute = matchSecurityGateRoute()
   if (securityRoute) {
     return (
@@ -563,14 +840,19 @@ export default function App() {
         <SecurityGatePage
           adminEvents={app.adminEvents}
           athletes={app.athletes}
+          canEnableTickets={canEnableTicketOrders(app.session)}
+          canForceCheckIn={canOverrideCheckIn(app.session)}
           eventSlug={securityRoute.eventSlug}
+          onApproveTicketOrder={app.approveTicketPurchase}
           onCheckInRegistration={app.checkInRegistrationAction}
           onCheckInTicket={app.checkInTicketAction}
           onExit={exitSecurityRoute}
           onLogin={app.login}
           onLoginWithToken={app.loginWithGateToken}
+          onReauthenticate={reauthenticateKeepingQueue}
           onRedeemTicketAddon={app.redeemTicketAddonAction}
           onRefreshTickets={app.refreshTickets}
+          onRejectTicketOrder={app.rejectTicketPurchase}
           registrations={app.registrations}
           session={app.session}
           tickets={app.tickets}
@@ -603,6 +885,7 @@ export default function App() {
       <Suspense fallback={<PageLoadFallback />}>
         <StaffInvitationPage
           token={staffInvitationToken}
+          onLoadInvitation={previewStaffInvitationRequest}
           onAccept={async (payload) => {
             await app.acceptStaffInvitationAction(payload)
             clearStaffInvitationToken()
@@ -651,19 +934,88 @@ export default function App() {
 
   if (view === 'admin' && canViewAdmin(app.session)) {
     if (isCheckinOnly(app.session)) {
+      const checkinEvent = resolveCheckinEvent(app.session, app.adminEvents)
       return (
         <Suspense fallback={<PageLoadFallback />}>
           <CheckInAppPage
             athletes={app.athletes}
             canCheckIn={canCheckIn(app.session)}
+            canEnableTickets={canEnableTicketOrders(app.session)}
+            canForceCheckIn={canOverrideCheckIn(app.session)}
+            eventDays={checkinEvent?.eventDays ?? []}
+            eventSlug={checkinEvent?.slug}
+            eventTitle={checkinEvent?.title}
+            ticketTypes={checkinEvent?.ticketTypes ?? []}
+            onApproveTicketOrder={app.approveTicketPurchase}
             onCheckInRegistration={app.checkInRegistrationAction}
             onCheckInTicket={app.checkInTicketAction}
             onExit={() => navigate('home')}
+            onReauthenticate={reauthenticateKeepingQueue}
             onRedeemTicketAddon={app.redeemTicketAddonAction}
             onRefreshTickets={app.refreshTickets}
+            onRejectTicketOrder={app.rejectTicketPurchase}
             registrations={app.registrations}
             roleLabel={getRoleLabel(app.session)}
             securityZone={app.session?.securityZone ?? null}
+            tickets={app.tickets}
+          />
+        </Suspense>
+      )
+    }
+
+    if (isEventScopedSession(app.session)) {
+      return (
+        <Suspense fallback={<PageLoadFallback />}>
+          <OrganizerAppPage
+            adminEvents={app.adminEvents}
+            adminEventsError={app.adminEventsError}
+            adminEventsLoading={app.adminEventsLoading}
+            adminEventWorkspaceSlug={adminEventWorkspaceSlug}
+            athletes={app.athletes}
+            authorization={app.session}
+            gatePendingIds={app.gatePendingIds}
+            onApprovePayment={app.handleApprovePayment}
+            onApproveTicketOrder={app.approveTicketPurchase}
+            onAssignSecurityZone={app.assignSecurityZoneAction}
+            onClearEventPriceSchedule={app.clearEventRegistrationPriceSchedule}
+            onCreateSecurityAccessLink={app.createSecurityAccessLinkAction}
+            onCreateSecurityUser={app.createSecurityUserAction}
+            onCreateSecurityUsersBulk={app.createSecurityUsersBulkAction}
+            onCreateSecurityZone={app.createSecurityZoneAction}
+            onDeactivateAllSecurityUsers={app.deactivateAllSecurityUsersAction}
+            onDeleteSecurityZone={app.deleteSecurityZoneAction}
+            onExit={() => navigate('home')}
+            onGetEventScanReport={app.getEventScanReportAction}
+            onListSecurityUsers={app.listSecurityUsersForEventAction}
+            onListSecurityZones={app.listSecurityZonesAction}
+            onManageCheckin={
+              hasPermission(app.session, 'admin.checkin.execute')
+                ? (event) => {
+                    if (!event?.slug) return
+                    window.open(
+                      buildSecurityGatePath(event.slug),
+                      '_blank',
+                      'noopener,noreferrer',
+                    )
+                  }
+                : undefined
+            }
+            onPresetSecurityZones={app.presetSecurityZonesAction}
+            onRefreshAdminEvents={app.refreshAdminEvents}
+            onRefreshPayments={app.refreshPendingTicketOrders}
+            onRejectPayment={app.handleRejectPayment}
+            onRejectTicketOrder={app.rejectTicketPurchase}
+            onSaveEvent={app.saveAdminEvent}
+            onSetEventLogo={app.setAdminEventLogo}
+            onSetEventRegistrationPrice={app.setEventRegistrationPrice}
+            onSetRegistrationStatus={app.setRegistrationStatusAction}
+            onSetTicketAccessOverride={app.setTicketAccessOverrideAction}
+            onUpdateSecurityUserStatus={app.updateSecurityUserStatusAction}
+            onUpdateSecurityZone={app.updateSecurityZoneAction}
+            payments={app.payments}
+            pendingTicketOrders={app.pendingTicketOrders}
+            registrations={app.registrations}
+            roleLabel={getRoleLabel(app.session)}
             tickets={app.tickets}
           />
         </Suspense>
@@ -711,6 +1063,8 @@ export default function App() {
           onNotifyRegistrations={app.notifyRegistrationsAction}
           onPreviewRegistrationNotification={app.previewRegistrationNotificationAction}
           onApproveTicketPurchase={app.approveTicketPurchase}
+          onReopenTicketOrder={app.reopenTicketPurchase}
+          onSettleTicketOrder={app.settleCancelledTicketPurchase}
           onRejectTicketOrder={app.rejectTicketPurchase}
           onCreateManualTicketOrder={app.createManualTicketSale}
           onCheckInRegistration={app.checkInRegistrationAction}
@@ -777,6 +1131,8 @@ export default function App() {
           onCreateRole={app.createAccessRoleAction}
           onExportAdmin={app.exportAdminCsv}
           onExportPluUsa={app.exportPluUsaCsv}
+          onExportLifters={app.exportLiftersXls}
+          onFetchLiftersReadiness={app.fetchLiftersReadiness}
           onSaveEvent={app.saveAdminEvent}
           onDeleteEvent={app.deleteAdminEvent}
           onFetchEventDeleteImpact={app.fetchAdminEventDeleteImpact}
@@ -785,7 +1141,9 @@ export default function App() {
           onScheduleAssigned={app.handleScheduleAssigned}
           onSetFilters={app.setFilters}
           onUpdateUserRole={app.updateUserRoleAction}
+          onBulkUpdateUserRole={app.bulkUpdateUserRoleAction}
           onUpdateUserStatus={app.updateUserStatusAction}
+          onSetUserEventAccess={app.setUserEventAccessAction}
           onUpdateRolePermissions={app.updateAccessRolePermissionsAction}
           onUpdateRoleStatus={app.updateAccessRoleStatusAction}
           payments={app.payments}
@@ -803,12 +1161,49 @@ export default function App() {
           isPluUsaPartner={isPluUsaPartner(app.session)}
           isCheckinOnly={false}
           onExit={() => navigate('home')}
+          onReauthenticate={reauthenticateKeepingQueue}
         />
       </Suspense>
     )
   }
 
-  const Page = PUBLIC_VIEWS[view] || NotFoundPage
+  const eventPageEvent = eventPageSlug
+    ? (publicEvents.find((event) => event.slug === eventPageSlug) ??
+      underConstructionEvents.find((event) => event.slug === eventPageSlug) ??
+      null)
+    : null
+  const showUnderConstruction =
+    view === 'events' &&
+    Boolean(eventPageEvent) &&
+    (isUnderConstructionEvent(eventPageEvent) ||
+      eventSubmissionLandingInPreparation(eventPageEvent))
+  const eventPageLandingSeo = eventPageEvent ? eventLandingSeo(eventPageEvent) : null
+  const showEditorialLanding =
+    !showUnderConstruction &&
+    ((view === 'events' && eventPageEvent && eventHasEditorialLanding(eventPageEvent)) ||
+      view === 'pitbull')
+  const showSubmissionLanding =
+    !showUnderConstruction &&
+    view === 'events' &&
+    eventPageEvent &&
+    eventHasSubmissionLanding(eventPageEvent)
+  const showBuilderLanding =
+    !showUnderConstruction &&
+    view === 'events' &&
+    Boolean(eventPageEvent) &&
+    eventHasBuilderLanding(eventPageEvent)
+  const Page = showUnderConstruction
+    ? EventUnderConstructionPage
+    : showBuilderLanding
+    ? EventBuilderLandingPage
+    : showSubmissionLanding
+    ? SubmissionLandingPage
+    : showEditorialLanding
+      ? EventLandingEditorial
+      : view === 'competition'
+        ? // Checkout por URL mientras se resuelve la sesión: espera, no 404.
+          PageLoadFallback
+        : PUBLIC_VIEWS[view] || NotFoundPage
 
   // Quien compra entradas con la sesión abierta compra "como sí mismo": sus
   // datos precargan el checkout y la compra termina en Mis entradas (el
@@ -826,13 +1221,44 @@ export default function App() {
         })()
       : null
 
-  const pageProps =
-    view === 'register'
+  const editorialPageProps = {
+    onNavigate: navigate,
+    onSelectEvent: selectEvent,
+    events: publicEvents,
+    eventSlug: view === 'pitbull' ? PITBULL_CLASSIC_SLUG : eventPageSlug,
+    session: app.session,
+    memberships: app.memberships,
+    registrations: app.registrations,
+    checkoutAvailability: app.checkoutAvailability,
+  }
+
+  const pageProps = showUnderConstruction
+    ? {
+        event: eventPageEvent,
+        backView: viewTrail.previous === 'home' ? 'home' : 'events',
+        onNavigate: navigate,
+        onSelectEvent: selectEvent,
+        registrationEnabled: app.checkoutAvailability?.registrationEnabled !== false,
+      }
+    : showBuilderLanding || showSubmissionLanding
+    ? {
+        onNavigate: navigate,
+        onSelectEvent: selectEvent,
+        events: publicEvents,
+        eventSlug: eventPageSlug,
+        checkoutAvailability: app.checkoutAvailability,
+      }
+    : showEditorialLanding
+    ? editorialPageProps
+    : view === 'register'
       ? {
           createdOrder: app.createdOrder,
           form: app.form,
           onApprovePayment: app.handleApprovePayment,
           flow: 'profile',
+          // El alta que viene de "Inscribirme" dice a qué torneo vuelve.
+          resumeEventTitle:
+            pendingAthleteDestination?.view === 'competition' ? (selectedEvent?.title ?? null) : null,
           onNavigate: navigate,
           onSubmit: app.registerAthlete,
           onUpdateForm: app.updateForm,
@@ -846,6 +1272,7 @@ export default function App() {
               onNavigate: navigate,
               onSelectEvent: selectEvent,
               events: publicEvents,
+              underConstructionEvents,
               initialEventSlug: eventPageSlug,
               session: app.session,
               memberships: app.memberships,
@@ -857,24 +1284,14 @@ export default function App() {
                 onNavigate: navigate,
                 onSelectEvent: selectEvent,
                 events: publicEvents,
+                underConstructionEvents,
                 session: app.session,
                 memberships: app.memberships,
                 registrations: app.registrations,
                 checkoutAvailability: app.checkoutAvailability,
               }
             : view === 'pitbull'
-              ? {
-                  onNavigate: navigate,
-                  onSelectEvent: selectEvent,
-                  events: publicEvents,
-                  session: app.session,
-                  memberships: app.memberships,
-                  // Sin esto la página del meet no podía saber que quien la
-                  // mira ya está inscripto: ofrecía "Inscribirme" a alguien
-                  // que había pagado, mientras su perfil decía lo contrario.
-                  registrations: app.registrations,
-                  checkoutAvailability: app.checkoutAvailability,
-                }
+              ? editorialPageProps
               : view === 'shop'
                 ? { onNavigate: navigate, events: publicEvents }
                 : view === 'tickets'
@@ -889,6 +1306,7 @@ export default function App() {
                       onSubmitTicketPurchase: app.submitTicketPurchase,
                       onUploadPaymentProof: app.uploadTicketPaymentProofAction,
                       onLookupTicketOrder: app.lookupTicketOrderAction,
+                      session: app.session,
                     }
                   : view === 'results'
                     ? { onNavigate: navigate, events: publicEvents }
@@ -920,6 +1338,7 @@ export default function App() {
         navigate={navigate}
         transitionDirection={transitionDirection}
         helpEvent={featuredEvent}
+        navEvents={navEvents}
         onSelectEvent={selectEvent}
       >
         <Suspense fallback={<PageLoadFallback />}>
@@ -935,6 +1354,8 @@ export default function App() {
             onSelectEvent={selectEvent}
             onUpdateProfile={app.updateAthleteProfileAction}
             onUpdatePhoto={app.updateAthletePhotoAction}
+            onUploadDocument={app.uploadAthleteDocumentAction}
+            onSaveMembershipFile={app.saveMembershipFileAction}
             onRemovePhoto={app.removeAthletePhotoAction}
             onReadProfileNotice={app.markAthleteProfileNoticeReadAction}
             onDismissProfileNotice={app.dismissAthleteProfileNoticeAction}
@@ -953,8 +1374,11 @@ export default function App() {
 
   if (view === 'competition' && app.session?.role === 'athlete_plu') {
     const athlete = app.athletes.find((item) => item.id === app.session.athleteId)
+    // Con una landing en construcción que vende, el evento no está en el
+    // catálogo: sin buscarlo ahí el checkout caía en el destacado y la persona
+    // terminaba pagando otro torneo.
     const competitionEvent =
-      publicEvents.find((event) => event.slug === selectedEvent?.slug) ??
+      findRegistrableEvent(selectedEvent?.slug, publicEvents, underConstructionEvents) ??
       featuredEvent ??
       selectedEvent
     return (
@@ -964,6 +1388,7 @@ export default function App() {
         navigate={navigate}
         transitionDirection={transitionDirection}
         helpEvent={competitionEvent}
+        navEvents={navEvents}
         onSelectEvent={selectEvent}
       >
         <Suspense fallback={<PageLoadFallback />}>
@@ -977,6 +1402,7 @@ export default function App() {
             onApprovePayment={app.handleApprovePayment}
             onClearCreatedOrder={app.clearCreatedOrder}
             onNavigate={navigate}
+            onUploadDocument={app.uploadAthleteDocumentAction}
             onSubmit={app.submitCompetition}
             onUpdateForm={app.updateForm}
             // Con qué reconstruir la orden abierta después de una recarga: sin
@@ -986,7 +1412,6 @@ export default function App() {
             registrations={app.registrations}
             checkoutAvailability={app.checkoutAvailability}
             checkoutIntent={checkoutIntent}
-            onCheckoutIntentConsumed={() => setCheckoutIntent(null)}
             // El precio de la inscripción sale del evento: la RPC cobra
             // `events.price`, así que la constante fija mostraba un total que no
             // era el que se iba a cobrar apenas el panel tocaba el precio.
@@ -1008,18 +1433,28 @@ export default function App() {
       <CookieConsent />
       <DocumentMetaSync
         view={view}
-        eventSlug={view === 'events' ? eventPageSlug : null}
+        eventSlug={view === 'events' || showEditorialLanding || showSubmissionLanding || showBuilderLanding ? eventPageSlug : null}
         eventTitle={
-          view === 'events' && eventPageSlug
-            ? publicEvents.find((event) => event.slug === eventPageSlug)?.title
+          (view === 'events' || showEditorialLanding || showSubmissionLanding || showBuilderLanding) && eventPageSlug
+            ? eventPageEvent?.title
             : null
         }
+        metaTitle={
+          eventPageLandingSeo?.hasCustomTitle ? eventPageLandingSeo.title : null
+        }
+        metaDescription={
+          eventPageLandingSeo?.hasCustomDescription
+            ? eventPageLandingSeo.description
+            : null
+        }
+        metaImage={eventPageEvent?.heroImageUrl || null}
       />
       <AnalyticsTracker view={view} />
       <NavbarPublic
         activeEventSlug={eventPageSlug}
         activeView={view}
         latestEvent={featuredEvent}
+        navEvents={navEvents}
         memberships={app.memberships}
         onLogout={app.logout}
         onNavigate={navigate}
@@ -1030,18 +1465,20 @@ export default function App() {
         onReadProfileNotice={app.markAthleteProfileNoticeReadAction}
       />
       <PageTransition
-        viewKey={view}
+        viewKey={routeKey}
         direction={transitionDirection}
         id="main-content"
         tabIndex={-1}
       >
-        <PageErrorBoundary onGoHome={() => navigate('home')} resetKey={view}>
+        <PageErrorBoundary onGoHome={() => navigate('home')} resetKey={routeKey}>
           <Suspense fallback={<PageLoadFallback />}>
             <Page {...pageProps} />
           </Suspense>
         </PageErrorBoundary>
       </PageTransition>
-      {!['login', 'register'].includes(view) && <Footer onNavigate={navigate} />}
+      {!['login', 'register'].includes(view) && (
+        <Footer onNavigate={navigate} navEvents={navEvents} />
+      )}
       {/* Fuera de PageTransition: el botón de ayuda no se desmonta al cambiar
           de pantalla, así que sigue estando donde la persona lo dejó. */}
       <HelpLayer
@@ -1064,6 +1501,7 @@ function PrivateLayout({
   view,
   transitionDirection,
   helpEvent = null,
+  navEvents = [],
   onSelectEvent,
 }) {
   return (
@@ -1080,6 +1518,7 @@ function PrivateLayout({
           getFeaturedEvent(app.adminEvents.filter((event) => event.published !== false)) ??
           UPCOMING_EVENTS[0]
         }
+        navEvents={navEvents}
         memberships={app.memberships}
         onLogout={async () => {
           await app.logout()
@@ -1102,7 +1541,11 @@ function PrivateLayout({
           <Suspense fallback={<PageLoadFallback />}>{children}</Suspense>
         </PageErrorBoundary>
       </PageTransition>
-      <Footer onNavigate={navigate} />
+      <Footer
+        onNavigate={navigate}
+        navEvents={navEvents}
+        checkoutFocus={view === 'competition'}
+      />
       <HelpLayer
         event={helpEvent}
         memberships={app.memberships}

@@ -50,9 +50,9 @@ describe('perfil reutilizable para inscripción', () => {
   })
 
   it('el backend revisa el perfil antes de crear inscripción o combo', () => {
-    expect(
-      routes.match(/assertCompetitionProfileComplete\(await repo\(\)\.findCompetitionProfile/g),
-    ).toHaveLength(2)
+    expect(routes.match(/await assertCompetitionProfileComplete\(competitionProfile\)/g)).toHaveLength(
+      2,
+    )
     expect(routes).toContain("code: 'ATHLETE_PROFILE_INCOMPLETE'")
   })
 })

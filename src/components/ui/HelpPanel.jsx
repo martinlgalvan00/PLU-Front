@@ -1,8 +1,8 @@
+import { AnimatePresence, m } from 'motion/react'
 import {
   ArrowRight,
   Check,
   ChevronDown,
-  CircleHelp,
   Compass,
   MapPin,
   MessageCircle,
@@ -15,6 +15,12 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useAssist } from '../../providers/AssistProvider.jsx'
 import { formatShortDate } from '../../lib/format.js'
 import { JOURNEY_STATES } from '../../lib/athleteJourney.js'
+import { useMotionConfig } from '../../motion/MotionProvider.tsx'
+import {
+  overlayPanelTransition,
+  overlayScrimTransition,
+  resolveOverlayVariants,
+} from '../../motion/variants.ts'
 
 const { DONE, TODO, BLOCKED, PENDING, CLOSED, UNAVAILABLE } = JOURNEY_STATES
 
@@ -37,6 +43,12 @@ const ACTION_LABEL_KEY = Object.freeze({
   credential: 'help.actionCredential',
   events: 'help.actionEvents',
 })
+
+/** El párrafo explica el paso que toca ahora, el que está trabado o el pago
+ *  que falta. Hecho, cerrado y sin fecha se leen en una línea. */
+function stepShowsDetail(state) {
+  return state === TODO || state === BLOCKED || state === PENDING
+}
 
 function stepTitle(step, journey, t) {
   if (step.id !== 'registration') return t(`help.steps.${step.id}.title`)
@@ -98,7 +110,7 @@ function stepDetail(step, journey, t, locale) {
  * `HelpLayer` ejecuta la acción con las mismas funciones que usan los CTA de
  * cada pantalla.
  */
-export default function HelpPanel({
+function HelpPanelBody({
   journey,
   view = null,
   atDestination = false,
@@ -177,26 +189,16 @@ export default function HelpPanel({
   }
 
   return (
-    <div className="help-panel__scrim" role="presentation" onMouseDown={onClose}>
-      <section
-        ref={panelRef}
-        className="help-panel"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="help-panel-title"
-        aria-describedby="help-panel-lead"
-        onMouseDown={(event_) => event_.stopPropagation()}
-      >
+    <div ref={panelRef} className="help-panel__dialog">
         <header className="help-panel__head">
           <p className="help-panel__identity">
-            <span className="help-panel__avatar" aria-hidden>
-              <CircleHelp size={16} strokeWidth={2} />
-            </span>
             <span className="help-panel__eyebrow">{t('help.assistantName')}</span>
           </p>
           <h2 className="help-panel__title" id="help-panel-title">
             {t(journey.complete ? 'help.titleComplete' : 'help.title')}
           </h2>
+          {/* El lead sigue describiendo el diálogo, pero no ocupa un tercer
+              renglón: el título ya dice de qué se trata. */}
           <p className="help-panel__lead" id="help-panel-lead">
             {t(journey.complete ? 'help.leadComplete' : 'help.lead')}
           </p>
@@ -269,7 +271,11 @@ export default function HelpPanel({
                         {t(STATE_LABEL_KEY[step.state])}
                       </span>
                     </p>
-                    <p className="help-panel__step-detail">{stepDetail(step, journey, t, locale)}</p>
+                    {stepShowsDetail(step.state) ? (
+                      <p className="help-panel__step-detail">
+                        {stepDetail(step, journey, t, locale)}
+                      </p>
+                    ) : null}
                   </div>
                 </li>
               ))}
@@ -338,9 +344,7 @@ export default function HelpPanel({
                   {t('help.locationLabel')} <strong>{viewName}</strong>
                 </span>
               </p>
-            ) : (
-              <span />
-            )}
+            ) : null}
             <button
               type="button"
               className="help-panel__assist"
@@ -360,7 +364,55 @@ export default function HelpPanel({
             {t(assist ? 'help.assist.activeHint' : 'help.assist.hint')}
           </p>
         </footer>
-      </section>
     </div>
   )
+}
+
+/**
+ * El velo y la hoja son hijos directos de `AnimatePresence`: al cerrar, cada
+ * uno sale por donde entró (el velo se disuelve, la hoja desaparece en
+ * el lugar) en vez de desaparecer de un corte.
+ */
+export function HelpPanelPresence({ open, onClose, ...panelProps }) {
+  const { reducedMotion } = useMotionConfig()
+  const scrimVariants = resolveOverlayVariants(overlayScrimTransition, reducedMotion)
+  const panelVariants = resolveOverlayVariants(overlayPanelTransition, reducedMotion)
+
+  return (
+    <AnimatePresence>
+      {open ? (
+        <m.div
+          key="help-scrim"
+          className="help-panel__scrim"
+          role="presentation"
+          variants={scrimVariants}
+          initial={reducedMotion ? false : 'hidden'}
+          animate="visible"
+          exit="exit"
+          onMouseDown={onClose}
+        />
+      ) : null}
+      {open ? (
+        <m.section
+          key="help-panel"
+          className="help-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="help-panel-title"
+          aria-describedby="help-panel-lead"
+          variants={panelVariants}
+          initial={reducedMotion ? false : 'hidden'}
+          animate="visible"
+          exit="exit"
+          onMouseDown={(event_) => event_.stopPropagation()}
+        >
+          <HelpPanelBody onClose={onClose} {...panelProps} />
+        </m.section>
+      ) : null}
+    </AnimatePresence>
+  )
+}
+
+export default function HelpPanel(props) {
+  return <HelpPanelPresence open {...props} />
 }

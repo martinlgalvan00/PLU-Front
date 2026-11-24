@@ -1,7 +1,7 @@
 import { TriangleAlert } from 'lucide-react'
 import { presentAuditEvent } from '../../lib/auditPresentation.js'
 import { AdminMonoCell } from './AdminTableCells.jsx'
-import es from '../../i18n/locales/es.js'
+import es from '../../i18n/locales/esFull.js'
 import { translate } from '../../i18n/translate.js'
 
 function formatTimestamp(value) {

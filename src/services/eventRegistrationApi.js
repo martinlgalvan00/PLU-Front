@@ -1,5 +1,6 @@
-import { apiGet, apiPost } from '../lib/api.js'
-import { toCamelEventSchedule } from '../lib/eventSchedule.js'
+import { apiDelete, apiGet, apiPost } from '../lib/api.js'
+import { toCamelEventPlatform, toCamelEventSchedule } from '../lib/eventSchedule.js'
+import { normalizePublicSchedule } from '../lib/publicSchedule.js'
 
 /**
  * Summary público de cupos de inscripción de atletas + recientes sanitizados.
@@ -55,6 +56,59 @@ export async function saveEventSessions(eventSlug, sessions) {
 }
 
 /**
+ * Reemplaza el set de tablados del evento. Los que traen `id` se renombran; los
+ * que no, se crean; los que faltan se quitan y sus tandas quedan sin tablado.
+ */
+export async function saveEventPlatforms(eventSlug, platforms) {
+  const { schedule } = await apiPost(`/api/events/${encodeURIComponent(eventSlug)}/platforms`, {
+    platforms,
+  })
+  return toCamelEventSchedule(schedule)
+}
+
+/** Plantillas de grilla de la organización (cualquier evento las ve). */
+export async function fetchGridTemplates(eventSlug) {
+  const { templates } = await apiGet(`/api/events/${encodeURIComponent(eventSlug)}/grid-templates`)
+  return Array.isArray(templates) ? templates : []
+}
+
+/** Guarda una plantilla; con un nombre existente la pisa. Devuelve la lista. */
+export async function saveGridTemplate(eventSlug, { name, config }) {
+  const { templates } = await apiPost(
+    `/api/events/${encodeURIComponent(eventSlug)}/grid-templates`,
+    { name, config },
+  )
+  return Array.isArray(templates) ? templates : []
+}
+
+export async function deleteGridTemplate(eventSlug, templateId) {
+  const { templates } = await apiDelete(
+    `/api/events/${encodeURIComponent(eventSlug)}/grid-templates/${encodeURIComponent(templateId)}`,
+  )
+  return Array.isArray(templates) ? templates : []
+}
+
+/**
+ * Grilla publicada del evento, sin sesión. Apagada o con el evento sin publicar
+ * llega `enabled: false` y no hay nada que mostrar.
+ */
+export async function fetchPublicEventSchedule(eventSlug) {
+  const { schedule } = await apiGet(`/api/events/${encodeURIComponent(eventSlug)}/schedule-public`)
+  return normalizePublicSchedule(schedule)
+}
+
+/**
+ * Publica o retira la grilla del sitio oficial. Devuelve el estado resultante.
+ * Requiere `admin.events.write`.
+ */
+export async function setEventSchedulePublic(eventSlug, isPublic) {
+  const result = await apiPost(`/api/events/${encodeURIComponent(eventSlug)}/schedule-public`, {
+    public: Boolean(isPublic),
+  })
+  return Boolean(result?.schedulePublic)
+}
+
+/**
  * Asigna día/tanda a un lote de inscripciones. Con `dayIndex` y `sessionId` en
  * null la asignación se limpia y vuelven a "a confirmar".
  *
@@ -77,6 +131,18 @@ export async function assignRegistrationSchedule(
   }
 }
 
+function optionalBoardKg(value) {
+  if (value === null || value === undefined || value === '') return null
+  const number = Number(value)
+  return Number.isFinite(number) ? number : null
+}
+
+function optionalBoardFirstMeet(value) {
+  if (value === true) return true
+  if (value === false) return false
+  return null
+}
+
 /** Fila de atleta en el tablero de armado de grilla. */
 function toCamelBoardAthlete(row) {
   return {
@@ -87,7 +153,14 @@ function toCamelBoardAthlete(row) {
     division: row.division ?? '',
     category: row.category ?? '',
     bodyweightKg: row.bodyweightKg ?? row.bodyweight_kg ?? null,
+    isFirstMeet: optionalBoardFirstMeet(row.isFirstMeet ?? row.is_first_meet),
+    competitionBestTotalKg: optionalBoardKg(
+      row.competitionBestTotalKg ?? row.competition_best_total_kg,
+    ),
+    trainingBestTotalKg: optionalBoardKg(row.trainingBestTotalKg ?? row.training_best_total_kg),
     sex: row.sex ?? null,
+    // Edad al día que arranca el evento; null si el atleta no cargó nacimiento.
+    age: row.age === null || row.age === undefined ? null : Number(row.age),
     status: row.status,
     checkedIn: Boolean(row.checkedIn ?? row.checked_in),
   }
@@ -98,6 +171,7 @@ function toCamelBoardSession(row) {
     id: row.id,
     name: row.name ?? '',
     platform: row.platform ?? '',
+    platformId: row.platformId ?? row.platform_id ?? null,
     weighInAt: row.weighInAt ?? row.weigh_in_at ?? null,
     startsAt: row.startsAt ?? row.starts_at ?? null,
     sortOrder: row.sortOrder ?? row.sort_order ?? 0,
@@ -108,6 +182,8 @@ function toCamelBoardSession(row) {
 export function toCamelEventBoard(payload) {
   return {
     event: payload?.event ?? null,
+    schedulePublic: Boolean(payload?.schedulePublic),
+    platforms: (payload?.platforms ?? []).map(toCamelEventPlatform),
     totals: {
       registered: Number(payload?.totals?.registered ?? 0),
       assigned: Number(payload?.totals?.assigned ?? 0),

@@ -115,9 +115,15 @@ test.describe('Entradas: medios de pago y QR', () => {
     await page.getByRole('button', { name: /^Confirmar pago$/i }).click()
     expect((await paymentResponse).ok()).toBeTruthy()
     // Al aprobar, el checkout embebido se desmonta y la confirmación canónica
-    // repinta el pase como pagado. El sello intermedio puede no llegar a un
-    // frame visible, por eso la aserción estable es el estado de la orden.
-    await expect(page.locator('.ticket-purchase--confirmation')).toContainText('Aprobado')
+    // pasa al sello "Compra confirmada" (ConfirmationSeal) con el pase ya
+    // dibujado: etiqueta del tipo y el mismo QR que quedó retenido mientras
+    // la orden estaba pendiente.
+    await expect(page.locator('.ticket-purchase--confirmation')).toContainText(
+      /Compra confirmada/i,
+      { timeout: 20_000 },
+    )
+    const [shownToken] = await assertPassesOnConfirmation(page, { labels: ['Público general'] })
+    expect(shownToken).toBe(token)
 
     await expect.poll(async () => purchaseRow(dni)).not.toBeNull()
     await expect.poll(async () => (await purchaseRow(dni))?.order.status).toBe('aprobado')

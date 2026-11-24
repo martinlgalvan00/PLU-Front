@@ -6,6 +6,7 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  ChevronDown,
   Mail,
   Lock,
 } from 'lucide-react'
@@ -21,6 +22,7 @@ import authVisualPhotoWebp800 from '../assets/DSC00286-display-800.webp'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
+import { pushAdminEventRoute } from '../lib/adminEventRoute.js'
 import { clearPasswordResetToken, readPasswordResetToken } from '../lib/passwordResetRoute.js'
 import { usePluOAuth } from '../providers/oauthContext.js'
 import { forgotAthletePassword, resetAthletePassword } from '../services/athleteApi.js'
@@ -124,8 +126,13 @@ export default function LoginPage({ onLogin, onNavigate }) {
     else if (normalized.includes('@') && !EMAIL_RE.test(normalized))
       next.email = t('login.errorEmailInvalid')
     if (!password) next.password = t('login.errorPasswordRequired')
-    else if (password.length < 3) next.password = t('login.errorPasswordRequired')
+    // Escrita pero corta: decir "ingresá tu contraseña" a quien ya la escribió confundía.
+    else if (password.length < 3) next.password = t('login.errorPasswordTooShort')
     setFieldErrors(next)
+    // El foco va al primer campo con error: el lector de pantalla lee el
+    // mensaje asociado (aria-describedby) y el teclado queda donde hay que corregir.
+    const firstInvalid = next.email ? 'login-email' : next.password ? 'login-password' : null
+    if (firstInvalid) document.getElementById(firstInvalid)?.focus()
     return Object.keys(next).length === 0
   }
 
@@ -150,7 +157,16 @@ export default function LoginPage({ onLogin, onNavigate }) {
 
   async function enter(credentialsOrType) {
     const session = await onLogin(credentialsOrType)
-    onNavigate(session.role === 'athlete_plu' ? 'profile' : 'admin')
+    if (session.role === 'athlete_plu') {
+      onNavigate('profile')
+      return
+    }
+    // Organizador con un solo evento: entra directo a su workspace.
+    const grants = Array.isArray(session.eventAccess) ? session.eventAccess : []
+    if (session.eventScoped && grants.length === 1 && grants[0]?.eventSlug) {
+      pushAdminEventRoute(grants[0].eventSlug)
+    }
+    onNavigate('admin')
   }
 
   async function handleLoginSubmit(event) {
@@ -291,7 +307,10 @@ export default function LoginPage({ onLogin, onNavigate }) {
               {t('login.visualSlogan')}{' '}
               <span className="auth-layout__slogan-line">{t('login.visualSloganAccent')}</span>
             </h2>
-            <p className="auth-layout__lead">{t('login.visualLead')}</p>
+            <p className="auth-layout__lead">
+              {t('login.visualLead')}
+              <span className="auth-layout__lead-close">{t('login.visualLeadClose')}</span>
+            </p>
           </div>
           <p className="auth-layout__meta">{t('login.visualMeta')}</p>
         </div>
@@ -329,6 +348,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
                 swapKey={mode}
               >
                 {mode === 'login' && (
+                  <>
                   <form className="login-form" onSubmit={handleLoginSubmit} noValidate>
                     <label className={`login-field${fieldErrors.email ? ' is-invalid' : ''}`}>
                       <span className="login-field__label">{t('login.email')}</span>
@@ -349,11 +369,12 @@ export default function LoginPage({ onLogin, onNavigate }) {
                           enterKeyHint="next"
                           autoFocus
                           aria-invalid={Boolean(fieldErrors.email)}
+                          aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
                           required
                         />
                       </span>
                       {fieldErrors.email ? (
-                        <span className="login-field__error" role="alert">
+                        <span className="login-field__error" id="login-email-error">
                           <AlertCircle size={14} className="error-icon" />
                           <span>{fieldErrors.email}</span>
                         </span>
@@ -386,6 +407,9 @@ export default function LoginPage({ onLogin, onNavigate }) {
                           autoComplete="current-password"
                           enterKeyHint="go"
                           aria-invalid={Boolean(fieldErrors.password)}
+                          aria-describedby={
+                            fieldErrors.password ? 'login-password-error' : undefined
+                          }
                           required
                         />
                         <button
@@ -402,29 +426,44 @@ export default function LoginPage({ onLogin, onNavigate }) {
                       </span>
                       {capsLockHint}
                       {fieldErrors.password ? (
-                        <span className="login-field__error" role="alert">
+                        <span className="login-field__error" id="login-password-error">
                           <AlertCircle size={14} className="error-icon" />
                           <span>{fieldErrors.password}</span>
                         </span>
                       ) : null}
                     </div>
 
-                    <label className="login-remember" title={t('login.rememberHint')}>
+                    <label className="login-remember" htmlFor="login-remember">
                       <span className="login-remember__control">
                         <input
+                          id="login-remember"
                           type="checkbox"
                           name="remember"
                           className="login-remember__input"
                           checked={rememberMe}
                           onChange={(event) => setRememberMe(event.target.checked)}
+                          aria-describedby="login-remember-hint"
                         />
                         <span className="login-remember__box" aria-hidden="true">
-                          <Check size={12} strokeWidth={3} />
+                          <Check size={11} strokeWidth={2.75} />
                         </span>
                       </span>
-                      <span className="login-remember__label">{t('login.remember')}</span>
-                      <span className="login-remember__hint">{t('login.rememberHint')}</span>
+                      <span className="login-remember__copy">
+                        <span className="login-remember__label">{t('login.remember')}</span>
+                        <span id="login-remember-hint" className="login-remember__hint">
+                          {t('login.rememberHint')}
+                        </span>
+                      </span>
                     </label>
+
+                    {/* El error del envío va antes del botón: es lo que se lee
+                        justo antes de volver a intentar. */}
+                    {submitError ? (
+                      <p className="form-submit-error" role="alert">
+                        <AlertCircle size={14} className="error-icon" />
+                        <span>{submitError}</span>
+                      </p>
+                    ) : null}
 
                     <AuthSubmit
                       busy={isSubmitting}
@@ -435,12 +474,6 @@ export default function LoginPage({ onLogin, onNavigate }) {
                     {recoverMessage ? (
                       <p className="login-form__notice" role="status">
                         {recoverMessage}
-                      </p>
-                    ) : null}
-                    {submitError ? (
-                      <p className="form-submit-error" role="alert">
-                        <AlertCircle size={14} className="error-icon" />
-                        <span>{submitError}</span>
                       </p>
                     ) : null}
 
@@ -468,6 +501,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
                       </>
                     ) : null}
 
+                    {/* Una sola secundaria: afiliarse. Recuperar acceso ya vive
+                        junto a Contraseña (“¿Olvidaste…?”). */}
                     <div className="login-form__footer">
                       <p className="login-join">
                         <span className="login-join__prompt">{t('login.joinPrompt')}</span>
@@ -479,17 +514,40 @@ export default function LoginPage({ onLogin, onNavigate }) {
                           {t('login.joinLink')}
                         </button>
                       </p>
-                      <p className="login-join login-join--service">
-                        <button
-                          type="button"
-                          className="login-join__link login-join__link--service"
-                          onClick={openRecover}
-                        >
-                          {t('login.howToStep2Action')}
-                        </button>
-                      </p>
                     </div>
                   </form>
+
+                  {/* Tres caminos reales, cerrados: no compiten con Ingresar
+                      ni duplican el enlace Afiliate del pie. */}
+                  <details className="login-howto">
+                    <summary className="login-howto__toggle">
+                      {t('login.howToToggle')}
+                      <ChevronDown
+                        size={14}
+                        strokeWidth={1.75}
+                        className="login-howto__chevron"
+                        aria-hidden
+                      />
+                    </summary>
+                    <ul className="login-howto__panel" aria-label={t('login.howToTitle')}>
+                      <li>
+                        <p className="login-howto__step">{t('login.howToStep1Title')}</p>
+                        <p className="login-howto__copy">{t('login.howToStep1Body')}</p>
+                      </li>
+                      <li>
+                        <p className="login-howto__step">{t('login.howToStep2Title')}</p>
+                        <p className="login-howto__copy">{t('login.howToStep2Body')}</p>
+                        <button type="button" className="login-howto__action" onClick={openRecover}>
+                          {t('login.howToStep2Action')}
+                        </button>
+                      </li>
+                      <li>
+                        <p className="login-howto__step">{t('login.howToStep3Title')}</p>
+                        <p className="login-howto__copy">{t('login.howToStep3Body')}</p>
+                      </li>
+                    </ul>
+                  </details>
+                  </>
                 )}
 
                 {mode === 'recover' && (
@@ -507,11 +565,12 @@ export default function LoginPage({ onLogin, onNavigate }) {
                           autoComplete="email"
                           autoFocus
                           aria-invalid={Boolean(fieldErrors.email)}
+                          aria-describedby={fieldErrors.email ? 'recover-email-error' : undefined}
                           required
                         />
                       </span>
                       {fieldErrors.email ? (
-                        <span className="login-field__error" role="alert">
+                        <span className="login-field__error" id="recover-email-error">
                           <AlertCircle size={14} className="error-icon" />
                           <span>{fieldErrors.email}</span>
                         </span>

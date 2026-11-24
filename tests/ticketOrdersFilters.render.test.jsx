@@ -14,8 +14,20 @@ const listTicketOrders = vi.fn()
 
 vi.mock('../src/services/ticketApi.js', async (importOriginal) => {
   const actual = await importOriginal()
-  return { ...actual, listTicketOrders: (...args) => listTicketOrders(...args) }
+  return {
+    ...actual,
+    listTicketOrders: (...args) => listTicketOrders(...args),
+    // El diálogo del comprobante pide su URL: acá no hay red.
+    getTicketPaymentProofUrl: vi.fn(async () => '/api/tickets/orders/ord-1/proof'),
+  }
 })
+
+// La baja del comprobante pega al servidor: se fija qué se pide y qué recarga la sección.
+const trashOrderProof = vi.fn()
+vi.mock('../src/services/paymentProofsAdminService.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  trashOrderProof: (...args) => trashOrderProof(...args),
+}))
 
 const TicketOrdersSection = (await import('../src/pages/admin/TicketOrdersSection.jsx')).default
 
@@ -39,6 +51,7 @@ beforeAll(() => {
 afterEach(() => {
   cleanup()
   listTicketOrders.mockReset()
+  trashOrderProof.mockReset()
 })
 
 function order(overrides = {}) {
@@ -88,7 +101,10 @@ describe('TicketOrdersSection · filtros', () => {
 
     await waitFor(() => expect(listTicketOrders).toHaveBeenCalledTimes(1))
     const [params] = listTicketOrders.mock.calls[0]
-    expect(params.statuses).toEqual(['creado', 'pendiente'])
+    // "Por validar" no filtra por estado: pide las abiertas Y las retenidas
+    // con comprobante (canceladas por el cron con el archivo adjunto).
+    expect(params.statuses).toBeUndefined()
+    expect(params.includeHeldProof).toBe(true)
     expect(params.channel).toBeUndefined()
     expect(params.sort).toBe('aging')
     expect(params.withCounts).toBe(true)
@@ -124,7 +140,8 @@ describe('TicketOrdersSection · filtros', () => {
     await waitFor(() => expect(listTicketOrders).toHaveBeenCalledTimes(2))
     const [firstParams] = listTicketOrders.mock.calls[0]
     const [secondParams] = listTicketOrders.mock.calls[1]
-    expect(firstParams.statuses).toEqual(['creado', 'pendiente'])
+    expect(firstParams.statuses).toBeUndefined()
+    expect(firstParams.includeHeldProof).toBe(true)
     expect(secondParams.statuses).toBeUndefined() // "Todas" no manda filtro de estado
   })
 
@@ -167,6 +184,17 @@ describe('TicketOrdersSection · filtros', () => {
 
     await waitFor(() => expect(listTicketOrders).toHaveBeenCalledTimes(2))
     expect(listTicketOrders.mock.calls.at(-1)[0].channel).toBe('cash_pitbull')
+  })
+
+  it('el scope por evento manda eventSlug al servidor (filtro duro)', async () => {
+    listTicketOrders.mockResolvedValue({ orders: [order()], counts: countsFixture() })
+    renderSection({
+      eventSlugFilter: 'pitbull-classic-2026',
+      events: [{ slug: 'pitbull-classic-2026', title: 'Pitbull Classic 2026' }],
+    })
+
+    await waitFor(() => expect(listTicketOrders).toHaveBeenCalledTimes(1))
+    expect(listTicketOrders.mock.calls[0][0].eventSlug).toBe('pitbull-classic-2026')
   })
 
   it('la búsqueda filtra localmente por referencia, evento, asistente o email sin volver a pedir al servidor', async () => {
@@ -216,5 +244,61 @@ describe('TicketOrdersSection · filtros', () => {
     const [params] = listTicketOrders.mock.calls.at(-1)
     expect(params.statuses).toBeUndefined()
     expect(params.channel).toBeUndefined()
+  })
+})
+
+describe('TicketOrdersSection · baja del comprobante', () => {
+  const withProof = (overrides = {}) =>
+    order({
+      paymentProofPath: 'ord-1/a.png',
+      paymentProofUploadedAt: '2026-03-01T13:00:00.000Z',
+      ...overrides,
+    })
+  const openProof = async () =>
+    fireEvent.click(await waitFor(() => {
+      const button = document.querySelector('button.admin-orders-block__proof')
+      if (!button) throw new Error('todavía no hay comprobante en la tabla')
+      return button
+    }))
+  const trashButton = () => screen.queryByRole('button', { name: 'Mover a la papelera' })
+
+  it('una orden aprobada con comprobante lo manda a la papelera y recarga la lista', async () => {
+    trashOrderProof.mockResolvedValue({ trashed: true })
+    listTicketOrders.mockResolvedValue({
+      orders: [withProof({ status: 'aprobado' })],
+      counts: countsFixture({ pending: 0, aprobado: 1 }),
+    })
+    renderSection()
+    await openProof()
+    fireEvent.click(await screen.findByRole('button', { name: 'Mover a la papelera' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, mover' }))
+
+    await waitFor(() =>
+      expect(trashOrderProof).toHaveBeenCalledWith({ source: 'ticket', orderId: 'ord-1' }),
+    )
+    await waitFor(() => expect(listTicketOrders.mock.calls.length).toBeGreaterThanOrEqual(2))
+    await waitFor(() => expect(trashButton()).toBeNull())
+  })
+
+  it('mientras la orden espera decisión no se ofrece', async () => {
+    listTicketOrders.mockResolvedValue({
+      orders: [withProof({ status: 'pendiente' })],
+      counts: countsFixture(),
+    })
+    renderSection()
+    await openProof()
+    await screen.findByRole('dialog')
+    expect(trashButton()).toBeNull()
+  })
+
+  it('sin permiso de aprobar pagos no se ofrece', async () => {
+    listTicketOrders.mockResolvedValue({
+      orders: [withProof({ status: 'aprobado' })],
+      counts: countsFixture({ pending: 0, aprobado: 1 }),
+    })
+    renderSection({ canEdit: false })
+    await openProof()
+    await screen.findByRole('dialog')
+    expect(trashButton()).toBeNull()
   })
 })

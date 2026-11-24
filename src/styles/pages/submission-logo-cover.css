@@ -1,0 +1,38 @@
+/* Portada de entrada: el logo del evento tapa la landing y viaja al hero.
+   Solo transform y opacity. El velo usa el canvas de la página. */
+
+.submission-landing--logo-cover .submission-landing__logo {
+  visibility: hidden;
+}
+
+.submission-logo-cover {
+  align-items: center;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  inset: 0;
+  justify-items: center;
+  place-items: center;
+  position: fixed;
+  z-index: calc(var(--z-modal, 400) + 50);
+}
+
+.submission-logo-cover[data-phase='exit'] {
+  cursor: default;
+  pointer-events: none;
+}
+
+.submission-logo-cover__veil {
+  background: var(--color-bg-primary);
+  inset: 0;
+  position: absolute;
+}
+
+.submission-logo-cover__logo {
+  height: min(28vh, 220px);
+  max-width: min(72vw, 420px);
+  object-fit: contain;
+  position: relative;
+  width: auto;
+  z-index: 1;
+}

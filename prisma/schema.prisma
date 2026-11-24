@@ -370,24 +370,52 @@ model OrganizationMember {
   @@index([userId, status])
 }
 
+enum AccessRoleScope {
+  global
+  event
+}
+
 model AccessRole {
-  id                String   @id
-  key               String   @unique
+  id                String          @id
+  key               String          @unique
   name              String
   description       String?
   baseRole          UserRole
-  isSystem          Boolean  @default(false)
-  isProtected       Boolean  @default(false)
-  assignableByAdmin Boolean  @default(true)
-  active            Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  /// Alcance operativo: `global` (panel entero) o `event` (solo UserEventAccess).
+  /// Fuente de verdad; el fallback por clave `organizador_evento` queda en JS
+  /// solo para bases sin migrar.
+  scope             AccessRoleScope @default(global)
+  isSystem          Boolean         @default(false)
+  isProtected       Boolean         @default(false)
+  assignableByAdmin Boolean         @default(true)
+  active            Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   users       User[]
   permissions AccessRolePermission[]
 
   @@index([active, name])
   @@index([baseRole])
+  @@index([scope])
+}
+
+// Evento al que una cuenta de rol "por evento" tiene acceso. eventId referencia
+// public.events de Supabase (uuid), igual que User.eventId: no hay FK porque esa
+// tabla vive en otra base. eventSlug se guarda desnormalizado para resolver las
+// rutas que identifican el evento por slug sin una consulta extra.
+model UserEventAccess {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String
+  eventSlug String
+  grantedBy String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([eventId])
 }
 
 model AccessPermission {
@@ -444,6 +472,15 @@ model User {
   // Zona del evento a la que está asignada esta cuenta de seguridad. Nulo en
   // cuentas de staff y en cuentas de seguridad todavía sin asignar.
   securityZoneId String?
+  // Credencial vigente del puesto. El código XXX-XXX es el que va en el QR
+  // corto. La versión sube solo al regenerar: un HMAC viejo sin `ver` sigue
+  // valiendo mientras esta cuenta no haya rotado (versión 0).
+  securityAccessCode      String?
+  securityAccessExpiresAt DateTime?
+  securityAccessVersion   Int       @default(0)
+
+  // Eventos que una cuenta de rol "por evento" (organizador) puede gestionar.
+  eventAccess UserEventAccess[]
 
   profile                 UserProfile?
   accessRole              AccessRole?                   @relation(fields: [accessRoleId], references: [id], onDelete: Restrict)
@@ -464,6 +501,7 @@ model User {
 
   @@index([role, status])
   @@index([accessRoleId, status])
+  @@unique([eventId, securityAccessCode])
   @@index([eventId])
   @@index([securityZoneId])
 }
@@ -1064,6 +1102,10 @@ model TicketOrder {
   buyerName              String?
   buyerEmail             String?
   buyerPhone             String?
+  // Dueño de la compra cuando se hizo con sesión. El camino real es Supabase
+  // (buyer_athlete_id / buyer_staff_user_id); acá el modelo no miente.
+  buyerAthleteId         String?
+  buyerStaffUserId       String?
   totalAmount            Int
   currency               String            @default("ARS")
   provider               PaymentProvider   @default(mercado_pago)
@@ -1084,6 +1126,8 @@ model TicketOrder {
   @@index([organizationId, status, createdAt])
   @@index([eventId, status])
   @@index([paymentOrderId])
+  @@index([buyerAthleteId])
+  @@index([buyerStaffUserId])
 }
 
 model Ticket {
@@ -1347,6 +1391,7 @@ model LiftingResult {
   bodyweightKg   Decimal?  @db.Decimal(6, 2)
   weightClassKg  Decimal?  @db.Decimal(6, 2)
   equipment      String?
+  teamName       String?
   squat1Kg       Decimal?  @db.Decimal(6, 2)
   squat2Kg       Decimal?  @db.Decimal(6, 2)
   squat3Kg       Decimal?  @db.Decimal(6, 2)

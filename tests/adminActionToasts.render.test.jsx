@@ -82,3 +82,35 @@ describe('skeleton de tabla', () => {
     expect(visible).toEqual([])
   })
 })
+
+describe('toasts: avisos y tiempo de lectura', () => {
+  it('un aviso ("se guardó, pero…") tiene su propia variante, sin ser un error', async () => {
+    const { notifyWarning } = await import('../src/lib/adminToast.js')
+    render(wrap(<AdminActionToasts />))
+    emit(notifyWarning, 'Se guardó, pero falta el alias')
+    const toast = screen.getByRole('status')
+    expect(toast.className).toContain('admin-toasts__item--warning')
+  })
+
+  it('al sacar el mouse retoma con el tiempo que le quedaba, no desde cero', async () => {
+    const { vi } = await import('vitest')
+    vi.useFakeTimers()
+    try {
+      render(wrap(<AdminActionToasts />))
+      emit(notifySuccess, 'Pago aprobado')
+      const toast = screen.getByRole('status')
+
+      act(() => vi.advanceTimersByTime(3000))
+      fireEvent.mouseEnter(toast)
+      act(() => vi.advanceTimersByTime(20_000))
+      expect(screen.getByText('Pago aprobado')).toBeTruthy()
+
+      fireEvent.mouseLeave(toast)
+      // Quedaban ~2 s de los 5: antes volvía a 5 s.
+      act(() => vi.advanceTimersByTime(2500))
+      expect(screen.queryByText('Pago aprobado')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})

@@ -1,8 +1,8 @@
 /* =============================================
    AYUDA GUIADA PÚBLICA — botón persistente + panel del trámite
 
-   Colores del chip: tokens semánticos, así light y dark quedan al mismo
-   nivel. El tema claro sólo refuerza la sombra al final del archivo.
+   El lanzador y la hoja usan la misma superficie sólida en los dos temas.
+   Sin blur ni brillo interior: el oro queda para el paso que toca y el CTA.
 
    Escala de apilamiento: el botón queda por DEBAJO de los diálogos públicos
    (200) y del navbar, para no flotar encima de un checkout abierto; el panel
@@ -17,11 +17,8 @@
      equivalentes lógicos) fijan la esquina al viewport aunque `.app-shell`
      tenga overflow/isolation. Los colores salen de tokens semánticos para
      que el chip siga light y dark, no un grafito permanente. */
-  --help-dock-bg: var(--color-bg-elevated);
-  --help-dock-bg-hover: color-mix(in srgb, var(--color-text-primary) 8%, var(--color-bg-elevated));
-  --help-dock-border: var(--color-border);
+  --help-dock-bg-hover: color-mix(in srgb, var(--color-text-primary) 6%, var(--color-bg-surface));
   --help-dock-ink: var(--color-text-primary);
-  --help-dock-shadow: var(--elevation-md);
   bottom: calc(
     var(--space-lg) + env(safe-area-inset-bottom, 0px) + var(--sticky-cta-clearance, 0px)
   );
@@ -37,14 +34,15 @@
   z-index: 120;
 }
 
-/* Rectángulo sólido con un solo ícono: sin texto visible, filete ni halo. */
+/* Cuadrado de 44px, misma superficie que la hoja. El punto de oro es el
+   único acento, y solo cuando hay un paso pendiente. */
 .help-dock__button {
   align-items: center;
   animation: help-dock-in var(--motion-slow) var(--ease-standard) both;
-  background: var(--help-dock-bg);
-  border: 1px solid var(--help-dock-border);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-md);
-  box-shadow: var(--help-dock-shadow);
+  box-shadow: none;
   color: var(--help-dock-ink);
   cursor: pointer;
   display: inline-flex;
@@ -56,9 +54,8 @@
   transition:
     background var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard),
-    color var(--motion-fast) var(--ease-standard),
     transform var(--motion-fast) var(--ease-standard);
-  width: 48px;
+  width: 44px;
 }
 
 .help-dock__icon {
@@ -81,7 +78,7 @@
 .help-dock__pending {
   background: var(--color-brand-gold);
   border-radius: 999px;
-  box-shadow: 0 0 0 2px var(--help-dock-bg);
+  box-shadow: 0 0 0 2px var(--color-bg-surface);
   height: 7px;
   position: absolute;
   right: 7px;
@@ -92,9 +89,12 @@
 @media (hover: hover) and (pointer: fine) {
   .help-dock__button:hover {
     background: var(--help-dock-bg-hover);
-    color: var(--color-brand-celeste);
-    transform: translateY(-1px);
+    border-color: var(--color-border-strong);
   }
+}
+
+.help-dock__button:active {
+  transform: scale(0.97);
 }
 
 .help-dock__button:focus-visible {
@@ -103,9 +103,9 @@
 }
 
 .help-dock__button.is-open {
-  background: var(--help-dock-bg-hover);
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 42%, var(--help-dock-border));
-  color: var(--color-brand-celeste);
+  background: var(--color-bg-surface);
+  border-color: var(--color-border-strong);
+  color: var(--help-dock-ink);
 }
 
 @keyframes help-dock-in {
@@ -126,38 +126,38 @@
    Mobile: hoja inferior (ver media query). */
 
 .help-panel__scrim {
-  align-items: flex-end;
-  animation: help-scrim-in var(--motion-fast) var(--ease-standard) both;
-  background: rgba(5, 6, 10, 0.32);
-  display: flex;
+  background: color-mix(in srgb, #0d0e12 36%, transparent);
   inset: 0;
-  justify-content: flex-end;
-  padding:
-    max(var(--space-lg), env(safe-area-inset-top, 0px))
-    calc(var(--space-lg) + env(safe-area-inset-right, 0px))
-    calc(var(--space-lg) + 44px + var(--space-sm) + env(safe-area-inset-bottom, 0px))
-    max(var(--space-lg), env(safe-area-inset-left, 0px));
   position: fixed;
   z-index: 880;
 }
 
 .help-panel {
-  animation: help-panel-in var(--motion-base) var(--ease-standard) both;
   background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-lg);
-  box-shadow: var(--elevation-lg);
+  box-shadow: var(--elevation-md);
   display: flex;
   flex-direction: column;
   gap: 0;
-  max-height: min(680px, 100%);
-  max-width: 400px;
+  inset-block-end: calc(
+    var(--space-lg) + 44px + var(--space-sm) + env(safe-area-inset-bottom, 0px)
+  );
+  inset-inline-end: calc(var(--space-lg) + env(safe-area-inset-right, 0px));
+  max-height: min(640px, calc(100dvh - var(--space-2xl) - 44px));
+  max-width: 380px;
   overflow: hidden;
   padding: 0;
-  position: relative;
+  position: fixed;
   transform-origin: bottom right;
-  width: min(400px, 100%);
+  width: min(380px, calc(100vw - var(--space-xl)));
   z-index: 881;
+}
+
+/* El foco y el scroll siguen en la hoja. `contents` deja header, cuerpo y
+   pie como hijos flex de `.help-panel`, sin una caja extra. */
+.help-panel__dialog {
+  display: contents;
 }
 
 /* Con el asistente abierto el botón queda encima del velo: es el mismo
@@ -168,60 +168,25 @@
   }
 }
 
-@keyframes help-panel-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes help-scrim-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 .help-panel__head {
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border);
   display: grid;
   flex: none;
-  gap: 8px;
-  padding: var(--space-lg) var(--space-lg) var(--space-md);
-  padding-right: calc(var(--space-lg) + 28px);
+  gap: 2px;
+  padding: 14px 20px 12px;
+  padding-right: calc(20px + 36px);
   position: relative;
 }
 
 .help-panel__identity {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-  margin: 0 0 4px;
-}
-
-.help-panel__avatar {
-  align-items: center;
-  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
-  border-radius: var(--border-radius-sm);
-  color: var(--color-brand-celeste);
-  display: inline-flex;
-  flex: none;
-  height: 28px;
-  justify-content: center;
-  width: 28px;
+  margin: 0;
 }
 
 .help-panel__eyebrow {
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   margin: 0;
   text-transform: uppercase;
 }
@@ -236,35 +201,55 @@
   margin: 0;
 }
 
+/* Sigue en el DOM para aria-describedby del diálogo. No suma un renglón. */
 .help-panel__lead {
-  color: var(--color-text-secondary);
-  font-size: 13.5px;
-  line-height: 1.5;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
   margin: 0;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .help-panel__close {
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--border-radius-md);
   color: var(--color-text-muted);
   cursor: pointer;
   display: inline-flex;
-  height: 44px;
+  height: 32px;
   justify-content: center;
   position: absolute;
-  right: 6px;
-  top: 6px;
+  right: 12px;
+  top: 12px;
   transition:
-    background var(--transition-fast),
-    color var(--transition-fast);
+    background-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+  width: 32px;
+}
+
+.help-panel__close::before {
+  content: '';
+  height: 44px;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
   width: 44px;
 }
 
 .help-panel__close:hover {
-  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
   color: var(--color-text-primary);
+}
+
+.help-panel__close:active {
+  transform: scale(0.96);
 }
 
 .help-panel__close:focus-visible {
@@ -276,12 +261,12 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: var(--space-lg);
+  gap: 18px;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--space-md) var(--space-lg) var(--space-lg);
+  padding: 14px 20px 16px;
 }
 
 .help-panel__section {
@@ -292,27 +277,40 @@
 .help-panel__section-title {
   color: var(--color-text-muted);
   font-family: var(--font-family);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
   margin: 0;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
+/* Una línea, y solo cuando el interruptor tiene foco o acaba de usarse.
+   El texto completo sigue en el árbol para el nombre accesible. */
 .help-panel__assist-hint {
   color: var(--color-text-muted);
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.4;
   margin: 0;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.help-panel__settings:focus-within .help-panel__assist-hint {
+  margin-bottom: 6px;
+  max-height: 1.4em;
+  opacity: 1;
 }
 
 .help-panel__settings {
-  background: var(--color-bg-surface);
-  border-top: 1px solid var(--color-border-subtle);
+  background: transparent;
+  border-top: 1px solid var(--color-border);
   display: grid;
   flex: none;
-  gap: 2px;
-  padding: 6px var(--space-lg) calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
+  gap: 0;
+  padding: 4px 20px calc(8px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ── Los tres pasos ──────────────────────────── */
@@ -330,6 +328,12 @@
   grid-template-columns: 26px 1fr;
   padding: 11px 10px;
   position: relative;
+}
+
+.help-panel__step.is-done,
+.help-panel__step.is-closed,
+.help-panel__step.is-unavailable {
+  padding-block: 8px;
 }
 
 /* Riel que conecta los marcadores: lista editorial, no tres cards apiladas. */
@@ -363,34 +367,23 @@
   color: var(--color-bg-surface);
 }
 
-/* El único paso que puede estar en `todo` es el que toca: celeste pleno. */
-.help-panel__step.is-todo,
-.help-panel__step.is-pending {
-  background: color-mix(in srgb, var(--color-brand-celeste) 9%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 22%, transparent);
-  border-radius: 10px;
-  margin-block: 2px;
-}
-
-.help-panel__step.is-todo::before,
-.help-panel__step.is-pending::before {
-  display: none;
-}
+/* El paso que toca se lee por el marcador y la etiqueta, no por una caja
+   adentro del panel. */
 
 .help-panel__step.is-todo .help-panel__marker {
-  background: var(--color-brand-celeste);
+  background: var(--color-brand-action);
   border-color: transparent;
-  color: #0d0e12;
+  color: var(--color-brand-action-text);
 }
 
 .help-panel__step.is-pending .help-panel__marker {
-  background: color-mix(in srgb, var(--color-brand-gold) 82%, #ffffff);
-  border-color: transparent;
-  color: #1a1400;
+  background: transparent;
+  border-color: var(--color-brand-gold-ink);
+  color: var(--color-brand-gold-ink);
 }
 
 .help-panel__step.is-pending .help-panel__step-state {
-  color: var(--color-brand-gold);
+  color: var(--color-text-primary);
 }
 
 .help-panel__step.is-blocked .help-panel__marker,
@@ -424,14 +417,14 @@
 .help-panel__step-state {
   color: var(--color-text-muted);
   flex: none;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .help-panel__step.is-todo .help-panel__step-state {
-  color: var(--color-brand-celeste);
+  color: var(--color-text-primary);
 }
 
 .help-panel__step-detail {
@@ -462,11 +455,11 @@
 
 .help-panel__action-eyebrow {
   color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
   margin: 0;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .help-panel__cta {
@@ -488,15 +481,27 @@
   padding: 0 18px 0 20px;
   text-align: left;
   transition:
-    background var(--transition-fast),
-    transform var(--transition-fast);
+    background-color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+
+.help-panel__cta svg {
+  flex: none;
+  transition: transform var(--motion-fast) var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .help-panel__cta:hover {
     background: var(--color-brand-action-hover);
-    transform: translateY(-1px);
   }
+
+  .help-panel__cta:hover svg {
+    transform: translateX(3px);
+  }
+}
+
+.help-panel__cta:active {
+  transform: scale(0.98);
 }
 
 .help-panel__cta:focus-visible {
@@ -540,12 +545,18 @@
 
 .help-panel__link-arrow {
   color: var(--color-text-muted);
-  transition: transform var(--transition-fast);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.help-panel__door-link svg {
+  flex: none;
+  transition: transform var(--motion-fast) var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .help-panel__link:hover .help-panel__link-arrow {
-    transform: translateX(2px);
+  .help-panel__link:hover .help-panel__link-arrow,
+  .help-panel__door-link:hover svg {
+    transform: translateX(3px);
   }
 }
 
@@ -634,12 +645,9 @@
   line-height: 1.4;
 }
 
-.help-panel__link:hover {
-  color: var(--color-brand-celeste);
-}
-
+.help-panel__link:hover,
 .help-panel__link:hover .help-panel__link-label {
-  color: var(--color-brand-celeste);
+  color: var(--color-text-primary);
 }
 
 .help-panel__link--quiet .help-panel__link-label {
@@ -650,6 +658,12 @@
 /* ── Mobile: hoja inferior ───────────────────── */
 
 @media (max-width: 640px) {
+  /* La hoja ocupa el borde inferior. El lanzador se esconde para no
+     tapar el pie; se cierra con la X, Escape o el velo. */
+  .help-dock.is-open {
+    visibility: hidden;
+  }
+
   .help-dock {
     bottom: calc(
       var(--space-md) + env(safe-area-inset-bottom, 0px) + var(--sticky-cta-clearance, 0px)
@@ -659,20 +673,22 @@
   }
 
   .help-panel__scrim {
-    align-items: flex-end;
-    background: rgba(5, 6, 10, 0.56);
-    padding: 0;
+    background: color-mix(in srgb, #0d0e12 48%, transparent);
   }
 
   .help-panel {
+    border-bottom: 0;
     border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
-    max-height: min(90vh, 100%);
+    inset-block-end: 0;
+    inset-inline: 0;
+    max-height: min(90dvh, 100%);
     max-width: none;
+    transform-origin: bottom center;
     width: 100%;
   }
 
   .help-panel__head {
-    padding: var(--space-lg) var(--space-md) var(--space-md);
+    padding: 14px var(--space-md) 12px;
     padding-right: calc(var(--space-md) + 28px);
   }
 
@@ -690,21 +706,25 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .help-dock__button,
-  .help-panel,
-  .help-panel__scrim {
+  .help-dock__button {
     animation: none;
   }
 
   .help-dock__button,
   .help-panel__cta,
+  .help-panel__cta svg,
+  .help-panel__close,
   .help-panel__link-arrow,
+  .help-panel__door-link svg,
   .help-panel__faq-chevron {
     transition: none;
   }
 
-  .help-dock__button:hover,
-  .help-panel__cta:hover {
+  .help-dock__button:active,
+  .help-panel__cta:active,
+  .help-panel__close:active,
+  .help-panel__cta:hover svg,
+  .help-panel__door-link:hover svg {
     transform: none;
   }
 }
@@ -720,30 +740,10 @@
   }
 }
 
-/* ── Tema claro ────────────────────────────────
-   El chip hereda tokens semánticos; acá sólo se refuerza la sombra para
-   que no se funda con el canvas claro. */
-
-[data-theme='light'] .help-dock {
-  --help-dock-shadow: 0 10px 28px color-mix(in srgb, #000 16%, transparent);
-}
-
-[data-theme='light'] .help-dock__pending {
-  box-shadow: 0 0 0 2px var(--help-dock-bg);
-}
-
-[data-theme='light'] .help-panel__scrim {
-  background: rgba(15, 17, 23, 0.38);
-}
-
+/* El marcador cerrado es tinta plena. En claro el tilde tiene que seguir
+   siendo claro sobre ese fondo, igual que en oscuro. */
 [data-theme='light'] .help-panel__step.is-done .help-panel__marker {
-  color: #ffffff;
-}
-
-@media (max-width: 640px) {
-  [data-theme='light'] .help-panel__scrim {
-    background: rgba(15, 17, 23, 0.42);
-  }
+  color: var(--color-bg-surface);
 }
 
 /* Cuando la acción principal es el recorrido (ya estamos en la pantalla del
@@ -778,7 +778,7 @@
 }
 
 .help-panel__switch.is-on {
-  background: var(--color-brand-celeste);
+  background: var(--color-brand-action);
 }
 
 .help-panel__switch.is-on .help-panel__switch-knob {
@@ -799,10 +799,10 @@
   align-items: center;
   column-gap: var(--space-md);
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: space-between;
-  padding-block: 7px;
-  row-gap: 4px;
+  min-height: 44px;
+  padding-block: 4px;
 }
 
 /* "Estás en Crear tu cuenta": orientación básica para quien abre la ayuda
@@ -811,10 +811,18 @@
   align-items: center;
   color: var(--color-text-muted);
   display: flex;
+  flex: 1 1 auto;
   font-size: 12.5px;
   gap: 8px;
   margin: 0;
   min-width: 0;
+}
+
+.help-panel__location span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .help-panel__assist {
@@ -827,7 +835,8 @@
   flex: none;
   font-family: var(--font-family);
   gap: 8px;
-  min-height: 40px;
+  margin-inline-start: auto;
+  min-height: 44px;
   padding: 0;
 }
 
@@ -847,7 +856,7 @@
 }
 
 .help-panel__location svg {
-  color: var(--color-brand-celeste);
+  color: var(--color-text-muted);
   flex: none;
 }
 
@@ -872,7 +881,7 @@
   align-items: center;
   background: transparent;
   border: 0;
-  color: var(--color-brand-celeste);
+  color: var(--color-text-primary);
   cursor: pointer;
   display: inline-flex;
   font-family: var(--font-family);
@@ -882,12 +891,13 @@
   min-height: 32px;
   padding: 0;
   text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, currentColor 42%, transparent);
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
 
 .help-panel__door-link:hover {
-  color: var(--color-text-primary);
+  text-decoration-color: currentColor;
 }
 
 .help-panel__door-link:focus-visible {

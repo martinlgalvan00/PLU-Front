@@ -1,0 +1,352 @@
+/* Importación de la planilla de inscripciones. Reusa el material de
+   `.admin-status-dialog` (admin.css) y solo agrega lo propio: zona de
+   archivo, resumen y la lista de cambios. Theme-native: sale de tokens. */
+
+.admin-sheet-import__panel {
+  --sheet-pad: clamp(18px, 3vw, 24px);
+  max-height: min(86dvh, 760px);
+  width: min(100%, 720px);
+}
+
+/* Con muchas filas el panel scrollea: las acciones quedan siempre a mano. */
+.admin-sheet-import__panel > .admin-status-dialog__actions {
+  background: var(--color-bg-elevated);
+  border-top: 1px solid var(--color-border-subtle);
+  bottom: calc(-1 * var(--sheet-pad));
+  margin: 0 calc(-1 * var(--sheet-pad)) calc(-1 * var(--sheet-pad));
+  padding: var(--space-md) var(--sheet-pad) var(--sheet-pad);
+  position: sticky;
+  z-index: 1;
+}
+
+.admin-sheet-import__sr {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.admin-sheet-import__pick {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.admin-sheet-import__drop {
+  align-items: center;
+  background: var(--color-bg-surface, transparent);
+  border: 1px dashed var(--color-border-light, var(--color-border-subtle));
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  min-height: 132px;
+  padding: var(--space-lg) var(--space-md);
+  text-align: center;
+  transition:
+    border-color var(--motion-fast, 140ms) var(--ease-out, ease),
+    background-color var(--motion-fast, 140ms) var(--ease-out, ease);
+}
+
+.admin-sheet-import__drop:hover,
+.admin-sheet-import__drop.is-dragging {
+  background: color-mix(in srgb, var(--color-brand-celeste) 6%, transparent);
+  border-color: var(--color-brand-celeste);
+}
+
+.admin-sheet-import__drop svg {
+  color: var(--color-brand-celeste);
+}
+
+.admin-sheet-import__drop-cta {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.admin-sheet-import__drop-hint {
+  font-size: 12.5px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* El input queda accesible por teclado (Tab) y el foco se ve en la zona. */
+.admin-sheet-import__input {
+  height: 1px;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.admin-sheet-import__pick:has(.admin-sheet-import__input:focus-visible) .admin-sheet-import__drop {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-sheet-import__progress {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 13px;
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.admin-sheet-import__review {
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.admin-sheet-import__file {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 12.5px;
+  gap: 6px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-sheet-import__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-md);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-sheet-import__summary li {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (min-width: 561px) {
+  .admin-sheet-import__summary li + li::before {
+    color: var(--color-text-muted);
+    content: '·';
+    margin-right: var(--space-md);
+  }
+}
+
+.admin-sheet-import__summary .is-changed {
+  color: var(--color-text-primary);
+}
+
+.admin-sheet-import__summary .is-invalid {
+  color: var(--color-danger-text);
+}
+
+.admin-sheet-import__section {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding-top: var(--space-md);
+}
+
+.admin-sheet-import__section h3 {
+  align-items: baseline;
+  display: flex;
+  font-size: 13px;
+  font-weight: 700;
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.admin-sheet-import__section h3 span {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.admin-sheet-import__table-wrap {
+  max-height: 320px;
+  overflow: auto;
+}
+
+.admin-sheet-import__table {
+  border-collapse: collapse;
+  font-size: 13px;
+  width: 100%;
+}
+
+.admin-sheet-import__table thead th {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  padding: 0 var(--space-sm) var(--space-xs) 0;
+  position: sticky;
+  text-align: left;
+  text-transform: uppercase;
+  top: 0;
+}
+
+.admin-sheet-import__table tbody tr {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.admin-sheet-import__table tbody th,
+.admin-sheet-import__table tbody td {
+  padding: var(--space-sm) var(--space-sm) var(--space-sm) 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-sheet-import__table tbody th {
+  display: grid;
+  font-weight: 600;
+  gap: 2px;
+  min-width: 9rem;
+}
+
+.admin-sheet-import__table tbody th small {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.admin-sheet-import__row-num {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.admin-sheet-import__changes {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-sheet-import__changes li {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+
+.admin-sheet-import__changes svg {
+  color: var(--color-text-muted);
+  flex: none;
+}
+
+.admin-sheet-import__field {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  margin-right: 2px;
+}
+
+.admin-sheet-import__from {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--color-text-muted) 60%, transparent);
+}
+
+.admin-sheet-import__to {
+  font-weight: 650;
+}
+
+.admin-sheet-import__changes .admin-sheet-import__warning {
+  color: var(--color-warning-text, var(--color-text-secondary));
+  font-size: 12px;
+}
+
+.admin-sheet-import__empty {
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  margin: 0;
+  padding-top: var(--space-md);
+}
+
+.admin-sheet-import__problems {
+  display: grid;
+  gap: var(--space-xs);
+  list-style: none;
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 0;
+}
+
+.admin-sheet-import__problems li {
+  display: grid;
+  font-size: 13px;
+  gap: var(--space-sm);
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+}
+
+.admin-sheet-import__problem-body {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-sheet-import__section--errors .admin-sheet-import__problem-body span {
+  color: var(--color-danger-text);
+}
+
+.admin-sheet-import__done {
+  align-items: start;
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.admin-sheet-import__done > svg {
+  color: var(--color-success-text, var(--color-brand-celeste));
+}
+
+.admin-sheet-import__done strong {
+  font-size: 15px;
+}
+
+.admin-sheet-import__done p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+
+.admin-sheet-import__done .admin-sheet-import__failed {
+  color: var(--color-danger-text);
+  font-weight: 600;
+  margin-top: var(--space-sm);
+}
+
+@media (max-width: 560px) {
+  .admin-sheet-import__table thead {
+    display: none;
+  }
+
+  .admin-sheet-import__table tbody tr {
+    display: grid;
+    gap: 2px;
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: var(--space-sm) 0;
+  }
+
+  .admin-sheet-import__table tbody th,
+  .admin-sheet-import__table tbody td {
+    padding: 0 var(--space-sm) 0 0;
+  }
+
+  .admin-sheet-import__table tbody td:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-sheet-import__drop {
+    transition: none;
+  }
+}

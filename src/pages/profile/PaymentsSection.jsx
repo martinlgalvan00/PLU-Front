@@ -1,4 +1,4 @@
-import { ArrowRight, CircleAlert, Receipt } from 'lucide-react'
+import { ArrowRight, CircleAlert } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import Pill from '../../components/ui/Pill.jsx'
 import { money } from '../../lib/format.js'
@@ -131,10 +131,7 @@ export default function PaymentsSection({
 
   return (
     <section id="account-payments" className="account-section account-section--neutral">
-      <div className="account-section__heading">
-        <div className="account-section__icon account-section__icon--neutral">
-          <Receipt size={21} />
-        </div>
+      <div className="account-section__heading account-section__heading--simple">
         <div>
           <span>{t('account.payments.eyebrow')}</span>
           <h2>{t('account.payments.title')}</h2>
@@ -143,26 +140,16 @@ export default function PaymentsSection({
 
       {rows.length ? (
         <>
-          <p className="account-section__lead">{t('account.payments.lead')}</p>
-
-          {actionableCount > 0 ? (
-            <div className="account-inline-alert account-inline-alert--danger" role="alert">
-              <div className="account-inline-alert__icon">
-                <CircleAlert size={18} aria-hidden />
-              </div>
-              <div className="account-inline-alert__body">
-                <strong>
-                  {t(
-                    actionableCount === 1
-                      ? 'account.payments.alertTitle_one'
-                      : 'account.payments.alertTitle_other',
-                    { count: actionableCount },
-                  )}
-                </strong>
-                <p>{t('account.payments.alertBody')}</p>
-              </div>
-            </div>
-          ) : null}
+          <p className="account-section__lead">
+            {actionableCount > 0
+              ? t(
+                  actionableCount === 1
+                    ? 'account.payments.alertTitle_one'
+                    : 'account.payments.alertTitle_other',
+                  { count: actionableCount },
+                )
+              : t('account.payments.lead')}
+          </p>
 
           <ul className="account-payments-list">
             {rows.map((payment) => {

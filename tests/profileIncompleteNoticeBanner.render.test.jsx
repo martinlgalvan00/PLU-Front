@@ -34,7 +34,9 @@ describe('ProfileIncompleteNoticeBanner', () => {
     )
 
     expect(screen.getByText('Datos pendientes')).toBeTruthy()
-    expect(screen.getByText(/Para inscribirte a un evento oficial faltan: Teléfono, Gimnasio o equipo/)).toBeTruthy()
+    expect(
+      screen.getByText(/Para competir y armar la planilla oficial faltan: Teléfono, Gimnasio o equipo/),
+    ).toBeTruthy()
     expect(screen.getByText('Completá el teléfono y el gimnasio.')).toBeTruthy()
     expect(onRead).toHaveBeenCalledWith('notice-1')
 

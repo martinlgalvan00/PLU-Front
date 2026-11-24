@@ -119,11 +119,21 @@ const ATHLETE = {
   documentId: '30111222',
   email: 'ana@plu.test',
   emailVerifiedAt: '2026-01-02T00:00:00.000Z',
+  birthDate: '1994-04-12',
+  sex: 'Femenino',
+  phone: '1112345678',
+  country: 'Argentina',
+  province: 'Buenos Aires',
+  city: 'La Plata',
+  gym: 'PLU Test',
   division: 'Open',
   category: 'Raw',
+  declaredWeightClass: '67,5',
   estimatedWeight: 72,
+  bestTotalKg: 500,
   photoUrl: null,
   credentialToken: 'a4f1c0de-0000-4000-8000-000000000001',
+  documents: [{ kind: 'dni_front' }, { kind: 'dni_back' }],
 }
 
 /** Un código-paquete tal como lo devuelve `athlete_list_offer_unlocks`. */

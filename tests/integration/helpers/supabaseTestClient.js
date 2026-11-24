@@ -35,7 +35,7 @@ export function listen(app) {
  */
 export async function markTicketReadyForCheckin(supabaseAdmin, ticketId) {
   const now = Date.now()
-  const { error } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from('tickets')
     .update({
       status: 'pagada',
@@ -44,5 +44,8 @@ export async function markTicketReadyForCheckin(supabaseAdmin, ticketId) {
       access_override_valid_until: new Date(now + 86_400_000).toISOString(),
     })
     .eq('id', ticketId)
-  return error
+    .select('id')
+  if (error) return error
+  if (!data?.length) return { message: 'La entrada no quedó marcada para el check-in.' }
+  return null
 }

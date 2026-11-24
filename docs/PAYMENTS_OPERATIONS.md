@@ -143,13 +143,15 @@ en cuentas personales sin acceso al deployment.
 
 ## Perfil de cobro por evento (Fase A + B1)
 
-La matriz `platform_payment_channels` sigue siendo el techo global. Cada evento
-puede **restringir** canales de inscripción y entradas (no reabrir lo que la
-plataforma cerró) y definir o reutilizar datos bancarios.
+La matriz `platform_payment_channels` es el **valor por defecto**, no el techo.
+Cada evento decide por su cuenta qué medios recibe en inscripción y en entradas:
+puede **cerrar** un canal que la plataforma tiene abierto y **abrir** uno que la
+plataforma tiene cerrado (por ejemplo transferencia o efectivo solo para ese
+meet). También define o reutiliza datos bancarios.
 
 | Pieza | Semántica |
 |-------|-----------|
-| `events.payment_channel_overrides` | JSONB opcional. `NULL` = heredar plataforma. |
+| `events.payment_channel_overrides` | JSONB opcional `{registration:{canal:v}, ticket:{canal:v}}`. `NULL` = heredar plataforma. `v`: `false` cierra, `'open'` abre, sin clave hereda. El `true` heredado del panel anterior significa «sin opinión» (no abre nada). |
 | `events.bank_transfer_*` | Fallback Fase A (alias/CBU/titular en la fila del evento). |
 | `payment_profiles` | Catálogo reutilizable. `bank_transfer` (B1) y `mercado_pago` (B3). |
 | `events.bank_transfer_profile_id` | FK al perfil bancario. Si está set, manda sobre las columnas del evento. |
@@ -172,8 +174,39 @@ webhook → prueba firmas contra env + todos los perfiles MP activos;
 recovery diferido → GET /payments contra cada cuenta conocida hasta encontrar el pago
 ```
 
-Canales: `abierto = plataforma[concepto][canal] AND (override[canal] ?? true)`.
-Membership no se personaliza por evento (sigue usando la cuenta global).
+Canales: `abierto = override[concepto][canal]` si el evento decidió (`false` /
+`'open'`), si no `plataforma[concepto][canal]`. El panel guarda solo lo que
+*difiere* de la plataforma, así una celda sin tocar sigue lo que Finanzas cambie
+después. Lo que **no** abre un evento: el maestro de cobros (`checkout`), el alta
+del concepto (`registration` / `ticket`) y las pausas de validación; tampoco el
+plazo de 72 h de los canales manuales de entradas. Ese plazo cierra solo
+transferencia y Wise (esperan comprobante y aprobación); el efectivo en el lugar
+(`cash_pitbull`) se cobra en la sede y se acredita en el momento, así que sigue
+abierto hasta el cierre de la venta, igual que Mercado Pago
+(`MANUAL_TICKET_DEADLINE_CHANNELS` en `src/lib/eventPaymentChannels.js`). Dónde se
+paga el efectivo se carga por evento en Ventas → Cobro (`cash_payment_place` /
+`cash_payment_notes`); vacío, es la sede del evento. Un canal que el evento cierra
+no se reabre con un cupón. Membership no se personaliza por evento (sigue usando
+la cuenta global).
+
+Antes de publicar, el panel avisa (sin bloquear) si el evento quedaría sin ningún
+medio de pago, con la transferencia abierta y sin alias/perfil propio, con
+entradas habilitadas sin tipo vendible, o con Mercado Pago abierto y destino
+poco claro (`src/lib/eventPublishChecks.js`):
+
+| Código | Significado |
+|--------|-------------|
+| `mpUsingPlatformDefault` | MP abierto y `mercado_pago_profile_id` vacío → cobra la cuenta global PLU (`MERCADO_PAGO_*` / `VITE_MERCADO_PAGO_PUBLIC_KEY`). Es válido y frecuente: se muestra en la ficha, **no** pide confirmación al publicar (`resolveEventPublishConfirmChecks`). |
+| `mpProfileNeedsReconnect` | Perfil OAuth vinculado en `needs_reconnect`: hay que reconectar antes de cobrar. Sí pide confirmación. |
+| `mpProfileMissing` | El id apunta a un perfil inexistente o archivado. Sí pide confirmación. |
+
+El listado admin de eventos adjunta `mercado_pago_readiness` (destino, nombre,
+`connectionStatus`) y muestra un chip «MP · cuenta PLU» / nombre del perfil /
+«reconectar». En **Acceso y habilitación → Cuentas de cobro**, las cuentas
+`needs_reconnect` aparecen arriba con los eventos que las usan y un CTA de
+reconexión. El diagnóstico server-side vive en
+`resolveEventMercadoPagoReadiness` / `checkEventMercadoPagoReady`
+(`server/modules/payments/eventPaymentProfile.js`).
 
 API admin: `GET/POST /api/payment-profiles`, `PATCH /api/payment-profiles/:id`
 (`kind=bank_transfer|mercado_pago`). Crear MP exige `config.publicKey` +
@@ -182,8 +215,79 @@ Editor: pestaña Ventas → perfil bancario y/o perfil MP.
 Checkout: requirements y tickets availability devuelven `bankTransfer` y
 `mercadoPagoPublicKey` ya resueltos.
 
-**Fuera de alcance (post-B3):** OAuth Marketplace de MP, eventos gratis
-(`price = 0`).
+### Intención de venta y semáforo (Paso A)
+
+`rules.salesIntent` (`charge` | `announce`), merge post-upsert
+`staff_merge_event_sales_intent`:
+
+| Valor | Efecto |
+|-------|--------|
+| `charge` (default) | El meet vende; aplican avisos de medios y destino MP. |
+| `announce` | Soft-launch: se puede publicar sin exigir medios de inscripción. **No** es inscripción gratis (`price = 0`). |
+
+Semáforo en la lista admin (`resolveEventSalesReadiness`):
+
+- **Verde** — listo para cobrar, o modo anuncio sin rojos.
+- **Amarillo** — cobro incompleto (`noRegistrationChannel`, transferencia sin destino).
+- **Rojo** — no puede cobrar (perfil MP faltante/a reconectar, entradas sin medio/tipo).
+
+**Fuera de alcance:** comisión de la plataforma (`marketplace_fee`), eventos
+gratis con checkout a `price = 0` (el modo anuncio cubre el soft-launch sin
+abrir medios).
+
+### Cuentas de Mercado Pago vinculadas por OAuth (B4)
+
+El staff vincula una cuenta con un clic desde **Acceso y habilitación → Cuentas
+de cobro** o desde el editor del evento (Ventas → Cobro → «Conectar cuenta de
+Mercado Pago»). Inicia sesión en MP con la cuenta que va a cobrar, autoriza la
+app de PLU y la cuenta queda como `payment_profiles` `kind=mercado_pago` con
+`config.connection='oauth'`. Los pagos creados con ese token se acreditan en esa
+cuenta; PLU no cobra comisión.
+
+Configuración (una vez por entorno, app TEST en DEV y app PROD en producción):
+
+1. `MERCADO_PAGO_CLIENT_ID` y `MERCADO_PAGO_CLIENT_SECRET` de la app (Tus
+   integraciones → Credenciales). Requiere `PAYMENT_PROFILE_SECRETS_KEY`.
+2. En la app de MP, «URLs de redireccionamiento»: dar de alta, idéntica y en
+   HTTPS, `https://www.powerliftingunited.ar/api/payment-profiles/mercado-pago/oauth/callback`
+   (o el valor de `MERCADO_PAGO_OAUTH_REDIRECT_URI`). Con el apex sin `www` MP
+   recibe un 308 y la vinculación falla.
+3. Si la app tiene PKCE activado: `MERCADO_PAGO_OAUTH_PKCE=true`.
+4. El webhook de los pagos de cuentas vinculadas lo firma **la app de PLU**: su
+   secreto tiene que estar en `MERCADO_PAGO_WEBHOOK_SECRET` (acepta lista
+   separada por comas si la app OAuth no es la misma que la cuenta global).
+
+| Pieza | Semántica |
+|-------|-----------|
+| `POST /api/payment-profiles/mercado-pago/oauth/start` | Devuelve la URL de autorización. `profileId` reconecta esa cuenta. Permiso `admin.events.write`. |
+| `GET /api/payment-profiles/mercado-pago/oauth/callback` | Vuelta de MP, sin sesión: la autoriza el `state` (cifrado con `PAYMENT_PROFILE_SECRETS_KEY`, vence a los 20 min). Canjea el `code`, guarda la cuenta y redirige a `/admin/mercado-pago/vinculacion?status=…`. |
+| `POST /api/payment-profiles/:id/refresh` | Renovación manual del token. |
+| `DELETE /api/payment-profiles/:id` | Baja definitiva solo sin referencias (eventos, tienda, órdenes fijadas); si no, 409 `PAYMENT_PROFILE_IN_USE` y se archiva. No revoca la autorización en MP (no hay API): el titular la quita desde su cuenta. |
+| `PATCH … {active:false}` | Archivar. 409 `PAYMENT_PROFILE_IN_USE_LIVE_EVENTS` si un evento no terminado la usa. |
+| `GET /api/payment-profiles?includeUsage=true` | Suma `usage: {events, shop, pinnedOrders}` por cuenta. |
+| Índice `payment_profiles_mp_oauth_collector_key` | Una cuenta OAuth por usuario de MP: reconectar la misma cuenta renueva su perfil, no lo duplica. Reconectar un perfil con **otra** cuenta de MP se rechaza (`MP_OAUTH_ACCOUNT_MISMATCH`). |
+
+Tokens: duran 180 días y el refresh token **rota** en cada renovación. El job
+`mercado-pago-oauth-refresh` (cron diario 04:00 UTC + loop residente cada 12 h)
+renueva las cuentas que vencen en ≤30 días con escritura condicional al
+ciphertext leído, para que dos renovaciones concurrentes no dejen guardado un
+refresh token ya invalidado. `invalid_grant` deja la cuenta en
+`config.status='needs_reconnect'` y el panel pide reconectarla.
+
+Webhook: el `user_id` del body es el vendedor. `resolveMercadoPagoNotificationCredentials`
+elige con él la cuenta vinculada aunque la firma matchee el secreto global; sin
+`user_id` (o sin cuenta que coincida) manda la credencial que firmó, como antes.
+El recovery diferido prueba también las cuentas OAuth (`listMercadoPagoAccountCredentials`).
+
+### Cuenta fija por orden
+
+`athlete_payment_orders` y `ticket_orders` guardan `mercado_pago_profile_id` +
+`mercado_pago_account_pinned_at` la primera vez que se abre el cobro (preferencia
+o pago embebido). Desde ahí el retorno y los reintentos de esa orden usan esa
+cuenta aunque el staff le cambie la cuenta al evento. `pinned_at` con perfil
+`NULL` = fijada a la cuenta global; `pinned_at NULL` = sin fijar (sigue la cuenta
+actual del evento). FK `on delete restrict`: una cuenta con órdenes fijadas no se
+borra, se archiva.
 
 ## Tienda (pedidos y cobro)
 
@@ -228,8 +332,10 @@ Mercado Pago (se devuelve desde Mercado Pago).
 **Permisos.** `admin.shop.read` ve pedidos y configuración; `admin.shop.write` acredita, entrega,
 cancela y configura el cobro. Cada acción queda en `domain_audit_logs` (`shop.*`).
 
-**Comprobantes.** Los ve el staff con una URL firmada de 2 minutos; no están cubiertos por el job de
-retención de comprobantes de entradas y atletas (otro bucket).
+**Comprobantes.** Los ve el staff con una URL firmada de 2 minutos. No entran a la política de
+retención ni al ZIP de Cobros (otro bucket, otro vocabulario de estados), pero sí al registro de
+archivos y a la papelera: un comprobante reemplazado o huérfano pasa por ahí y se purga tras el período
+de gracia (ver "Retencion de comprobantes").
 
 ## Wise (pagos del exterior)
 
@@ -279,7 +385,7 @@ combo y entradas Pitbull.
 2. Confirmar con `npm run payments:trace -- <orderId>` que una orden de prueba en
    `wise_transfer` queda con `currency=USD` y el monto esperado.
 3. Recién entonces abrir la celda de Wise, por concepto, en Administración >
-   Acceso y habilitación. Entradas no ofrece "Efectivo en Pitbull" pero sí Wise.
+   Acceso y habilitación. Entradas no ofrece "Efectivo en el lugar" pero sí Wise.
 
 **Aprobación:** misma cola que la transferencia local
 (`AthletePaymentOrdersSection` / `TicketOrdersSection`). Por defecto el
@@ -319,11 +425,72 @@ que para Mercado Pago.
   sobra frente a una ventana de días (recordatorio ~2 días antes, aviso final
   a los 5), así que ya no hace falta un workflow externo que lo complemente
   cada hora.
-- `PAYMENT_PROOF_RETENTION_JOB_ENABLED` (default on): borra de Storage los
-  comprobantes de ordenes ya `aprobado`/`rechazado` pasadas
-  `PROOF_RETENTION_HOURS` (default 24). No toca pendientes. Cron
-  `/api/internal/jobs/payment-proof-retention`. La orden conserva
-  `payment_proof_uploaded_at` + `payment_proof_purged_at` como registro.
+- Retencion de comprobantes: la politica la define el staff en **Cobros >
+  Comprobantes** (`payment_proof_settings`), no una variable de entorno. Por
+  defecto se **conserva todo**. Modos: `keep` (conservar), `after_export`
+  (a la papelera N dias despues de que el staff lo descargo a su equipo) y
+  `after_days` (a la papelera N dias despues de aprobar/rechazar, se haya
+  descargado o no). Nunca toca ordenes pendientes.
+  **Borrado logico en dos etapas.** Ningun modo borra de Storage directamente:
+  el comprobante pasa primero a la **papelera** (`payment_proof_files.deleted_at`,
+  restaurable desde Cobros) y recien pasado el **periodo de la papelera**
+  (`payment_proof_settings.trash_grace_days`, 30 dias por defecto, 1-3650) el job
+  borra el objeto del bucket y marca `purged_at`. Esa segunda etapa no tiene
+  vuelta atras. Llegan a la papelera: lo que vence la politica, la baja manual
+  (`POST /api/payment-proofs/orders/:source/:orderId/trash`, solo ordenes ya
+  resueltas; en el panel, "Mover a la papelera" en el dialogo del comprobante de
+  Finanzas y de Entradas, con confirmacion, y solo con `admin.payments.approve`),
+  el comprobante que reemplaza otro subido despues, los de un atleta
+  eliminado y los archivos huerfanos (objetos del bucket que ninguna orden
+  conoce, con mas de 24 h). `payment_proof_files` es el registro de cada archivo
+  subido (atletas, entradas **y tienda**); un trigger lo mantiene solo.
+  La tienda (`shop-payment-proofs`) entra a la papelera y a su purga, pero no a
+  la politica de retencion ni al ZIP.
+  Una corrida del job (cron diario 03:30, `/api/internal/jobs/payment-proof-retention`)
+  hace tres etapas independientes: vencidos -> papelera (`proof_retention_trash`),
+  papelera -> purga fisica y huerfanos -> papelera. La purga y el barrido corren
+  **tambien con `keep`**: la papelera se alimenta de mas cosas que la politica.
+  Si falla una etapa las otras siguen, y cada corrida con movimiento deja un
+  asiento `payment_proofs.retention_run` en `operational_event_logs`.
+  `PAYMENT_PROOF_RETENTION_JOB_ENABLED=false` es un interruptor de emergencia:
+  apaga el job entero aunque el panel pida mover o purgar.
+  Un archivo cuyo periodo ya vencio no se puede restaurar (`proof_restore`
+  responde 409): es candidato a la purga y restaurarlo abriria una carrera con el
+  job. Se puede seguir viendo y descargando hasta que se elimina.
+  Papelera en el panel: `GET /api/payment-proofs/trash`, ver el archivo
+  (`/trash/:id/file`), restaurar (`POST /trash/:id/restore`), eliminar ahora
+  (`DELETE /trash/:id`) y vaciar (`POST /trash/empty` con `{"confirm": true}`).
+  Ver y listar piden `admin.payments.read`; restaurar, eliminar, vaciar y la baja
+  manual piden `admin.payments.approve`, y cada una queda auditada
+  (`payment_proofs.restored|purged|trash_emptied|trashed`).
+  La orden conserva `payment_proof_uploaded_at`, `payment_proof_exported_at`,
+  `payment_proof_trashed_at` y `payment_proof_purged_at` como registro; mientras
+  el comprobante esta en la papelera `payment_proof_path` es `null`.
+  La retencion y el respaldo cubren las dos tablas con comprobantes: atletas
+  (`athlete_payment_orders`) y entradas (`ticket_orders`). El ZIP de descarga
+  (hasta 100 archivos o 120 MB por tanda) trae `comprobantes/atletas/`,
+  `comprobantes/entradas/` y un `indice.csv`, y marca como descargado solo lo
+  que entro. El indice CSV (`/api/payment-proofs/index.csv`) lee todas las
+  transferencias, sin tope de filas.
+  Aviso previo: `GET /api/payment-proofs/summary` calcula en una sola consulta a
+  la base (`payment_proof_overview`) el resumen, un `forecast` con lo que va a la
+  papelera en los proximos 7 dias y cuanto de eso no tiene copia
+  (`notDownloaded`), y el estado de la `trash`; `GET /api/payment-proofs/forecast?mode=&days=`
+  calcula lo mismo para una politica todavia sin guardar. Al guardar una politica
+  que mueve archivos, la auditoria (`payment_proofs.retention_updated`) registra
+  en `atStake` cuantos comprobantes quedaban en juego.
+  Un comprobante nuevo nace sin marca de descargado, accedido ni purgado
+  (trigger `reset_proof_state_on_new_file`): el reemplazo no hereda el "ya lo
+  descargue" del archivo anterior.
+  Migraciones (en orden): `20261213100000_payment_proof_archive`,
+  `20261214100000_payment_proof_integrity`, `20261214110000_payment_proof_files`.
+  Sin ellas `/summary` responde 500 (funcion o columna ausente), a proposito:
+  indica una migracion sin aplicar. `20261214100000` ya se habia aplicado cuando se
+  sumaron `payment_proof_trashed_at` y el bypass de restauracion del trigger, asi
+  que ese complemento vive al principio de `20261214110000` (idempotente) y no en
+  la primera: una migracion aplicada no se edita.
+  Antes de este cambio la purga corria sola a las 24 h: las transferencias
+  aprobadas hasta entonces ya no tienen archivo y no se pueden recuperar.
 
 En Vercel, un scheduler invoca por `GET` los endpoints
 `/api/internal/jobs/payment-recovery`,

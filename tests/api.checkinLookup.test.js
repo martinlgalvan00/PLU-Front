@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../server/app.js'
+import { createSupabaseTicketRepository } from '../server/modules/ticketing/supabaseTicketRepository.js'
 import {
   authHeaders,
   buildStaffUser,
@@ -69,22 +70,6 @@ describe('POST /api/tickets/checkin/lookup', () => {
       expect(repo.lookupCheckinCredentials).toHaveBeenCalledWith(EVENT_ID, {
         ticketCode: 'TCK-00000412',
         dni: null,
-        doorCode: null,
-      })
-    })
-  })
-
-  it('busca por código de puerta de 6 dígitos', async () => {
-    await withApp(async ({ post, repo }) => {
-      const response = await post('/api/tickets/checkin/lookup', {
-        eventSlug: 'pitbull-classic-2026',
-        doorCode: '482 913',
-      })
-      expect(response.status).toBe(200)
-      expect(repo.lookupCheckinCredentials).toHaveBeenCalledWith(EVENT_ID, {
-        ticketCode: null,
-        dni: null,
-        doorCode: '482913',
       })
     })
   })
@@ -99,7 +84,6 @@ describe('POST /api/tickets/checkin/lookup', () => {
       expect(repo.lookupCheckinCredentials).toHaveBeenCalledWith(EVENT_ID, {
         ticketCode: null,
         dni: '30111222',
-        doorCode: null,
       })
     })
   })
@@ -112,11 +96,6 @@ describe('POST /api/tickets/checkin/lookup', () => {
     ],
     ['un código mal formado', { eventSlug: 'pitbull-classic-2026', ticketCode: '412' }],
     ['un DNI corto', { eventSlug: 'pitbull-classic-2026', dni: '123' }],
-    ['un código de puerta de 5 dígitos', { eventSlug: 'pitbull-classic-2026', doorCode: '48291' }],
-    [
-      'código de puerta y DNI a la vez',
-      { eventSlug: 'pitbull-classic-2026', doorCode: '482913', dni: '30111222' },
-    ],
   ])('rechaza %s sin consultar la base', async (_label, body) => {
     await withApp(async ({ post, repo }) => {
       const response = await post('/api/tickets/checkin/lookup', body)
@@ -140,15 +119,14 @@ describe('POST /api/tickets/checkin/lookup', () => {
   })
 })
 
-describe('forma del token del QR', () => {
-  it('un código que no es UUID es "no encontrada", no "sin servicio"', async () => {
-    await withApp(async ({ post, repo, server }) => {
-      const verify = await fetch(`${server.url}/api/tickets/verify/TCK-00000412`)
-      expect(verify.status).toBe(404)
-      const checkin = await post('/api/tickets/checkin/TCK-00000412')
-      expect(checkin.status).toBe(404)
-      expect(repo.verify).not.toHaveBeenCalled()
-      expect(repo.checkIn).not.toHaveBeenCalled()
-    })
+describe('forma del token del QR (repositorio)', () => {
+  it('un código que no es UUID es "no encontrada" y no llega a la base', async () => {
+    const rpc = vi.fn()
+    const from = vi.fn()
+    const repo = createSupabaseTicketRepository({ rpc, from })
+    await expect(repo.verify('TCK-00000412')).rejects.toMatchObject({ status: 404 })
+    expect(await repo.locateTicketForCheckIn('30111222')).toBeNull()
+    expect(rpc).not.toHaveBeenCalled()
+    expect(from).not.toHaveBeenCalled()
   })
 })

@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { applyTheme, persistTheme, resolveTheme, THEME_STORAGE_KEY, THEMES } from '../lib/theme.js'
 
 const ThemeContext = createContext(null)
@@ -15,8 +16,28 @@ const TRANSITION_ATTR = 'data-theme-transition'
 /** Debe cubrir la transición CSS más larga de la capa (--transition-theme). */
 const CSS_TRANSITION_MS = 320
 
+/**
+ * Marca en `<html>` que la View Transition en curso es un revelado circular:
+ * base.css apaga el fundido por defecto de `::view-transition-*(root)` para
+ * que la única animación sea el círculo.
+ */
+const REVEAL_ATTR = 'data-theme-reveal'
+
+/** Espejo de --motion-slow y --ease-cinematic (variables.css). */
+const REVEAL_DURATION_MS = 480
+const REVEAL_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)'
+
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+/**
+ * Radio que cubre el viewport entero desde `origin`: la distancia a la
+ * esquina más lejana. Con menos, el círculo terminaría antes de pintar todo y
+ * el resto saltaría de golpe al final.
+ */
+function revealRadius({ x, y }) {
+  return Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y))
 }
 
 export function ThemeProvider({ children }) {
@@ -34,7 +55,7 @@ export function ThemeProvider({ children }) {
     [],
   )
 
-  const changeTheme = useCallback((next) => {
+  const changeTheme = useCallback((next, origin = null) => {
     // Reduced motion: cambio instantáneo, sin View Transition ni fade CSS.
     if (prefersReducedMotion()) {
       persistTheme(next)
@@ -45,11 +66,42 @@ export function ThemeProvider({ children }) {
     // View Transition API: el navegador cruza un snapshot del documento. Es la
     // ruta buena donde existe (Chrome 111+, Safari 18+) y no necesita el
     // fallback CSS — tener las dos activas animaba lo mismo dos veces.
+    //
+    // `flushSync` hace que lo que React pinta según el tema (el ícono del
+    // toggle, logos por tema) ya esté en el DOM cuando el navegador toma el
+    // snapshot nuevo; si no, aparecía de golpe después del cruce.
     if (typeof document.startViewTransition === 'function') {
-      document.startViewTransition(() => {
-        persistTheme(next)
-        setThemeState(next)
+      const root = document.documentElement
+      // Con origen (el toggle que se tocó) el tema nuevo se abre en círculo
+      // desde ahí: el cambio se lee como respuesta a ese botón y no como un
+      // parpadeo de toda la pantalla. Sin origen, el fundido de base.css.
+      if (origin) root.setAttribute(REVEAL_ATTR, '')
+      const transition = document.startViewTransition(() => {
+        flushSync(() => {
+          persistTheme(next)
+          setThemeState(next)
+        })
       })
+      if (origin) {
+        transition.ready
+          .then(() => {
+            root.animate(
+              {
+                clipPath: [
+                  `circle(0px at ${origin.x}px ${origin.y}px)`,
+                  `circle(${revealRadius(origin)}px at ${origin.x}px ${origin.y}px)`,
+                ],
+              },
+              {
+                duration: REVEAL_DURATION_MS,
+                easing: REVEAL_EASING,
+                pseudoElement: '::view-transition-new(root)',
+              },
+            )
+          })
+          .catch(() => {})
+        transition.finished.finally(() => root.removeAttribute(REVEAL_ATTR))
+      }
       return
     }
 
@@ -83,8 +135,9 @@ export function ThemeProvider({ children }) {
         if (!THEMES.includes(next) || next === theme) return
         changeTheme(next)
       },
-      toggleTheme() {
-        changeTheme(theme === 'dark' ? 'light' : 'dark')
+      /** @param {{ x: number, y: number } | null} [origin] punto del viewport desde donde se revela el tema nuevo */
+      toggleTheme(origin = null) {
+        changeTheme(theme === 'dark' ? 'light' : 'dark', origin)
       },
     }),
     [changeTheme, theme],

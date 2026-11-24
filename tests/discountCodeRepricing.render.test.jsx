@@ -105,6 +105,12 @@ const ATHLETE = {
   id: 'ath-1',
   fullName: 'Ana Torres',
   documentId: '30111222',
+  birthDate: '1994-04-12',
+  sex: 'Femenino',
+  phone: '1112345678',
+  country: 'Argentina',
+  province: 'Buenos Aires',
+  city: 'La Plata',
   credentialToken: 'a4f1c0de-0000-4000-8000-000000000001',
 }
 
@@ -191,7 +197,7 @@ describe('recotización de un cupón por cambio de canal', () => {
     })
 
     expect(await screen.findByRole('radio', { name: /Transferencia bancaria/i })).toBeTruthy()
-    expect(screen.getByRole('radio', { name: /Efectivo en Pitbull/i })).toBeTruthy()
+    expect(screen.getByRole('radio', { name: /Efectivo en el lugar/i })).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: /Tengo un código/i }))
     fireEvent.change(await screen.findByLabelText(/^Código$/i), {
@@ -202,7 +208,7 @@ describe('recotización de un cupón por cambio de canal', () => {
     await waitFor(() => expect(redeemPromotionCodeRequest).toHaveBeenCalledTimes(1))
     await waitFor(() => {
       expect(screen.queryByRole('radio', { name: /Transferencia bancaria/i })).toBeNull()
-      expect(screen.queryByRole('radio', { name: /Efectivo en Pitbull/i })).toBeNull()
+      expect(screen.queryByRole('radio', { name: /Efectivo en el lugar/i })).toBeNull()
     })
     expect(screen.getByRole('radio', { name: /Mercado Pago/i })).toBeTruthy()
   })

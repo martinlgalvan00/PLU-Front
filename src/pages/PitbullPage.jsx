@@ -1,4 +1,5 @@
 import '../styles/pages/design-phase2.css'
+import '../styles/pages/event-landing-themes.css'
 import '../styles/pages/pitbull.css'
 import '../styles/pages/pitbull-journey.css'
 import '../styles/pages/pitbull-meet.css'
@@ -30,6 +31,7 @@ import PitbullCategoriesFilm from '../components/ui/PitbullCategoriesFilm.jsx'
 import PitbullCountdownIntro from '../components/ui/PitbullCountdownIntro.jsx'
 import PitbullMeetCountdown from '../components/ui/PitbullMeetCountdown.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
+import PublicEventSchedule from '../components/ui/PublicEventSchedule.jsx'
 import EventWeighInSchedule, {
   eventHasWeighInWindows,
 } from '../components/ui/EventWeighInSchedule.jsx'
@@ -38,26 +40,31 @@ import SeasonComboOffer from '../components/ui/SeasonComboOffer.jsx'
 import TicketPassPreview from '../components/ui/TicketPassPreview.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
-import { useTicketCheckoutAvailability } from '../hooks/useTicketAvailability.js'
+import { usePublicEventSchedule } from '../hooks/usePublicEventSchedule.js'
+import { usePublicTicketOffer } from '../hooks/useTicketAvailability.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
-import {
-  isTicketSalesEnabled,
-  resolveEventPricing,
-  resolveLiveComboOffer,
-} from '../lib/eventPricing.js'
+import { resolveEventPricing, resolveLiveComboOffer } from '../lib/eventPricing.js'
+import { ticketOfferCopyKey } from '../lib/ticketSalesState.js'
 import {
   eventShowsPublicCategories,
+  eventShowsPublicCountdown,
   eventShowsPublicExperience,
+  eventShowsPublicFaq,
   eventShowsPublicLocation,
+  eventShowsPublicRecentRegistrants,
+  eventShowsPublicSchedule,
+  eventShowsPublicTickets,
   eventShowsPublicWeighIns,
-  normalizeEventPublicCopy,
 } from '../lib/eventPublicSurface.js'
+import { eventLandingFaqItems, eventLandingFromEvent } from '../lib/eventLanding.js'
+import { landingPaletteStyle } from '../lib/eventLandingPalette.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
-import { getPitbullClassicEvent } from '../lib/eventNavigation.js'
+import { getPitbullClassicEvent, PITBULL_CLASSIC_SLUG } from '../lib/eventNavigation.js'
 import { buildExternalMapUrl, buildWazeUrl } from '../lib/eventMap.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import {
+  formatDayMonth,
   formatRelativeTime,
   formatShortStamp,
   initials,
@@ -368,7 +375,7 @@ function PitbullInscriptionCounter({
   )
 }
 
-function PitbullExperienceSection({ t }) {
+function PitbullExperienceSection({ t, title, lead }) {
   const { reducedMotion } = useMotionConfig()
   const items = [
     {
@@ -392,6 +399,8 @@ function PitbullExperienceSection({ t }) {
       text: t('pages.pitbull.experienceItemWarmupDesc'),
     },
   ]
+  const sectionTitle = title || t('pages.pitbull.experienceTitle')
+  const sectionLead = lead || t('pages.pitbull.experienceLead')
 
   const StageTag = reducedMotion ? 'div' : m.div
   const PillarsTag = reducedMotion ? 'ul' : m.ul
@@ -457,9 +466,9 @@ function PitbullExperienceSection({ t }) {
                 <span>{t('pages.pitbull.experienceEyebrow')}</span>
               </p>
               <h2 id="pitbull-experience-title" className="pitbull-experience__title">
-                {t('pages.pitbull.experienceTitle')}
+                {sectionTitle}
               </h2>
-              <p className="pitbull-experience__lead">{t('pages.pitbull.experienceLead')}</p>
+              <p className="pitbull-experience__lead">{sectionLead}</p>
             </header>
           </StageTag>
 
@@ -501,11 +510,33 @@ function PitbullWeighInSnapshot({ windows }) {
   )
 }
 
-function PitbullLocationSection({ event, venue, t }) {
+/** Grilla publicada por la organización. Apagada o vacía: la sección no existe. */
+function PitbullScheduleSection({ schedule, t, updatedAt }) {
+  if (!schedule?.hasContent) return null
+
+  return (
+    <PitbullDossierSection
+      id="grilla"
+      className="pitbull-dossier__section--schedule"
+      eyebrow={t('pages.pitbull.gridEyebrow')}
+      index={t('pages.pitbull.gridIndex')}
+      lead={t('pages.pitbull.gridLead')}
+      title={t('pages.pitbull.gridTitle')}
+      titleId="pitbull-schedule-title"
+    >
+      <PublicEventSchedule schedule={schedule} updatedAt={updatedAt} />
+    </PitbullDossierSection>
+  )
+}
+
+function PitbullLocationSection({ event, venue, t, title, lead: leadOverride }) {
   const locality = venue.locality?.replace(/^B\d+\s*/, '') || ''
-  const lead = venue.street
-    ? [venue.street, locality].filter(Boolean).join(' · ')
-    : t('pages.pitbull.locationLead')
+  const lead =
+    leadOverride ||
+    (venue.street
+      ? [venue.street, locality].filter(Boolean).join(' · ')
+      : t('pages.pitbull.locationLead'))
+  const sectionTitle = title || venue.name || t('pages.pitbull.locationTitle')
 
   const travelTarget = {
     ...event,
@@ -528,7 +559,7 @@ function PitbullLocationSection({ event, venue, t }) {
       eyebrow={t('pages.pitbull.locationEyebrow')}
       index={t('pages.pitbull.locationIndex')}
       lead={lead}
-      title={venue.name || t('pages.pitbull.locationTitle')}
+      title={sectionTitle}
       titleId="pitbull-location-title"
     >
       <div className="pitbull-venue">
@@ -580,7 +611,7 @@ function PitbullLocationSection({ event, venue, t }) {
   )
 }
 
-function PitbullTicketsBand({ event, onOpen, soon = false, t }) {
+function PitbullTicketsBand({ event, index, onOpen, soon = false, blockedNote = null, t }) {
   return (
     <section
       id="entradas"
@@ -605,17 +636,25 @@ function PitbullTicketsBand({ event, onOpen, soon = false, t }) {
       <div className="pitbull-tickets-band__content">
         <p className="pitbull-tickets-band__kicker">
           <span className="pitbull-tickets-band__index" aria-hidden>
-            {t('pages.pitbull.ticketsIndex')}
+            {index ?? t('pages.pitbull.ticketsIndex')}
           </span>
           <span className="pitbull-tickets-band__eyebrow">
-            {soon ? t('pages.pitbull.ticketsSoonEyebrow') : t('pages.pitbull.ticketsEyebrow')}
+            {soon && !blockedNote
+              ? t('pages.pitbull.ticketsSoonEyebrow')
+              : t('pages.pitbull.ticketsEyebrow')}
           </span>
         </p>
         <h2 id="pitbull-tickets-title" className="pitbull-tickets-band__title">
-          {soon ? t('pages.pitbull.ticketsSoonTitle') : t('pages.pitbull.ticketsTitle')}
+          {soon && !blockedNote
+            ? t('pages.pitbull.ticketsSoonTitle')
+            : t('pages.pitbull.ticketsTitle')}
         </h2>
         <p className="pitbull-tickets-band__lead">
-          {soon ? t('pages.pitbull.ticketsSoonLead') : t('pages.pitbull.ticketsLead')}
+          {blockedNote
+            ? blockedNote
+            : soon
+              ? t('pages.pitbull.ticketsSoonLead')
+              : t('pages.pitbull.ticketsLead')}
         </p>
         <p className="pitbull-tickets-band__facts" aria-label={t('pages.pitbull.ticketsFactsAria')}>
           <span>{t('pages.pitbull.ticketsFactId')}</span>
@@ -624,7 +663,7 @@ function PitbullTicketsBand({ event, onOpen, soon = false, t }) {
           <span aria-hidden>·</span>
           <span>{t('pages.pitbull.ticketsNote')}</span>
         </p>
-        {soon ? (
+        {blockedNote ? null : soon ? (
           <p className="pitbull-tickets-band__soon">{t('pages.pitbull.ticketsSoonMark')}</p>
         ) : (
           <button
@@ -774,6 +813,7 @@ function PitbullInscriptionSection({
   locale,
   onChangePaymentMethod,
   onNavigate,
+  onBuyTickets,
   onRegister,
   presentation,
   pricing,
@@ -783,9 +823,11 @@ function PitbullInscriptionSection({
   registered,
   registeredToday = 0,
   registrationPhase,
+  showRecentRegistrants = true,
   slots,
   softLaunch = false,
   t,
+  ticketsOpen = false,
   totalPublic = true,
 }) {
   const { reducedMotion } = useMotionConfig()
@@ -1053,6 +1095,27 @@ function PitbullInscriptionSection({
                       : t('launchTeaser.createAccountCta')}
                   </button>
                 </>
+              ) : isClosedOrFull && ticketsOpen ? (
+                <>
+                  <button
+                    type="button"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--primary"
+                    onClick={onBuyTickets}
+                  >
+                    {t('pages.pitbull.heroTickets')}
+                    <ArrowRight size={14} aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
+                    onClick={() => onNavigate(hasActiveMembership ? 'profile' : 'members')}
+                  >
+                    {hasActiveMembership
+                      ? t('pages.pitbull.viewMyMembership')
+                      : t('pages.pitbull.joinNow')}
+                    <ArrowRight size={14} aria-hidden />
+                  </button>
+                </>
               ) : isClosedOrFull ? (
                 <>
                   <button
@@ -1097,7 +1160,7 @@ function PitbullInscriptionSection({
         </div>
       </div>
 
-      {!softLaunch && capacityLive ? (
+      {!softLaunch && capacityLive && showRecentRegistrants ? (
         <PitbullRecentRegistrants
           capacityStatus={capacityStatus}
           locale={locale}
@@ -1113,7 +1176,7 @@ function PitbullInscriptionSection({
 /** Categorías contadas como un film: el reproductor fijo acompaña la lectura de
  * tres capítulos (Modalidades, Equipamiento, Divisiones). Ver
  * `PitbullCategoriesFilm`. */
-function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
+function PitbullCategoriesSection({ pitbullClassic, onNavigate, t, title, lead }) {
   const acts = [
     {
       id: 'modalities',
@@ -1141,8 +1204,8 @@ function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
       className="pitbull-dossier__section--categories"
       eyebrow={t('pages.pitbull.categoriesEyebrow')}
       index={t('pages.pitbull.categoriesIndex')}
-      lead={t('pages.pitbull.categoriesDesc')}
-      title={t('pages.pitbull.categoriesTitle')}
+      lead={lead || t('pages.pitbull.categoriesDesc')}
+      title={title || t('pages.pitbull.categoriesTitle')}
       titleId="pitbull-categories-title"
       framed
     >
@@ -1169,6 +1232,7 @@ export default function PitbullPage({
   onNavigate,
   onSelectEvent,
   events = UPCOMING_EVENTS,
+  eventSlug = null,
   session = null,
   memberships = [],
   registrations = [],
@@ -1177,31 +1241,62 @@ export default function PitbullPage({
   const { PITBULL_CLASSIC, PITBULL_VENUE } = useContent()
   const { locale, t } = useI18n()
 
-  // Esta es una pagina de un torneo concreto. `featured` controla la portada,
-  // no la identidad de Pitbull: usarlo aca hizo que un evento de prueba a $2
-  // contaminara precios, estado, cupo y links de esta pantalla.
-  const pitbullEvent = getPitbullClassicEvent(events) ?? getPitbullClassicEvent(UPCOMING_EVENTS)
+  // Landing editorial: prioriza el slug pedido (cualquier meet con plantilla
+  // editorial). Sin slug, cae a Pitbull Classic (alias `/pitbull`).
+  const pitbullEvent =
+    (eventSlug ? events.find((event) => event.slug === eventSlug) : null) ||
+    getPitbullClassicEvent(events) ||
+    getPitbullClassicEvent(UPCOMING_EVENTS)
+  const landing = eventLandingFromEvent(pitbullEvent)
+  const landingSlots = landing.slots
+  const faqItems = eventLandingFaqItems(landingSlots)
+  const isLegacyPitbull =
+    !pitbullEvent?.slug || pitbullEvent.slug === PITBULL_CLASSIC_SLUG
+  const eventDateLabel =
+    pitbullEvent?.displayDate ||
+    (pitbullEvent?.dateISO ? formatDayMonth(pitbullEvent.dateISO, locale) : '') ||
+    (isLegacyPitbull ? PITBULL_CLASSIC.date : '')
+  const eventDateShort =
+    pitbullEvent?.displayDate ||
+    (pitbullEvent?.dateISO ? formatDayMonth(pitbullEvent.dateISO, locale) : '') ||
+    (isLegacyPitbull ? PITBULL_CLASSIC.dateShort : '')
+  const editorialVenue = isLegacyPitbull
+    ? PITBULL_VENUE
+    : {
+        name: pitbullEvent?.venue || pitbullEvent?.title || '',
+        // Calle y número cargados en el panel: Maps y Waze llegan a la puerta,
+        // no a una búsqueda por nombre de la sede.
+        street: pitbullEvent?.venueAddress || '',
+        locality: pitbullEvent?.location || '',
+        address: pitbullEvent?.venueAddress
+          ? [pitbullEvent.venueAddress, pitbullEvent?.location].filter(Boolean).join(', ')
+          : [pitbullEvent?.venue, pitbullEvent?.location].filter(Boolean).join(', '),
+        latitude: pitbullEvent?.latitude ?? null,
+        longitude: pitbullEvent?.longitude ?? null,
+        mapsUrl: pitbullEvent?.mapsUrl || '',
+      }
   const pitbullMapEvent = {
     ...pitbullEvent,
-    date: pitbullEvent?.displayDate ?? PITBULL_CLASSIC.dateShort,
+    date: eventDateShort,
     featured: true,
-    slug: pitbullEvent?.slug ?? 'pitbull-classic-2026',
+    slug: pitbullEvent?.slug ?? PITBULL_CLASSIC_SLUG,
     status: pitbullEvent?.status ?? 'proximamente',
-    title: pitbullEvent?.title ?? PITBULL_CLASSIC.title,
+    title: pitbullEvent?.title ?? (isLegacyPitbull ? PITBULL_CLASSIC.title : ''),
   }
   const eventStatus = pitbullEvent?.status ?? 'proximamente'
 
   /**
-   * El hero se presenta con el copy que cargó el staff en Vista pública. Antes
-   * el H1 salía de `PITBULL_CLASSIC.title`, una constante de código: para
-   * cambiar el título de un meet -- o para la edición siguiente -- había que
-   * tocar el repo. Vacío cae al título del evento y, si tampoco hay, a la
-   * constante y a los textos del diseño.
+   * Hero y secciones editoriales leen slots de `landing`. Vacío cae al título
+   * del evento / i18n genérico (Pitbull solo como fallback del meet canónico).
    */
-  const publicCopy = normalizeEventPublicCopy(pitbullEvent?.publicCopy)
-  const heroTitle = publicCopy.publicTitle || pitbullEvent?.title || PITBULL_CLASSIC.title
-  const heroLead = publicCopy.heroLead || t('pages.pitbull.heroLead')
-  const heroCtaLabel = publicCopy.ctaLabel || undefined
+  const heroTitle =
+    landingSlots.heroTitle ||
+    pitbullEvent?.title ||
+    (isLegacyPitbull ? PITBULL_CLASSIC.title : '')
+  const heroLead =
+    landingSlots.heroLead ||
+    (isLegacyPitbull ? t('pages.pitbull.heroLead') : '')
+  const heroCtaLabel = landingSlots.ctaLabel || undefined
   const registrationCheckoutEnabled = checkoutAvailability.registrationEnabled !== false
   const paidCheckoutOpen =
     registrationCheckoutEnabled &&
@@ -1237,13 +1332,13 @@ export default function PitbullPage({
     hasActiveMembership || pitbullEvent?.comboOffer?.audience === 'code'
       ? null
       : resolveLiveComboOffer(pitbullEvent)
-  const eventSlug = pitbullEvent?.slug ?? 'pitbull-classic-2026'
-  const ticketCheckout = useTicketCheckoutAvailability(eventSlug)
-  const ticketsOpen =
-    env.ticketSalesEnabled &&
-    ticketCheckoutOpen &&
-    isTicketSalesEnabled(pitbullEvent) &&
-    ticketCheckout.ticketEnabled
+  const resolvedEventSlug = pitbullEvent?.slug ?? PITBULL_CLASSIC_SLUG
+  const ticketOffer = usePublicTicketOffer(pitbullEvent ?? { slug: resolvedEventSlug }, {
+    checkoutOpen: ticketCheckoutOpen,
+  })
+  const ticketsOpen = ticketOffer.status === 'open'
+  const ticketBlockedNote =
+    ticketOffer.status === 'blocked' ? t(ticketOfferCopyKey(ticketOffer)) : null
   const {
     status: capacityStatus,
     registered: liveRegistered,
@@ -1253,18 +1348,29 @@ export default function PitbullPage({
     remaining: liveRemaining,
     progressPublic,
     totalPublic,
-  } = useEventRegistrationCapacity(eventSlug, {
+  } = useEventRegistrationCapacity(resolvedEventSlug, {
     enabled: true,
     observeRoot: 'inscripcion',
     // Nunca inventar inscritos: el seed (48) distorsiona soft-launch.
     fallbackRegistered: 0,
-    fallbackSlots: pitbullEvent?.slots ?? PITBULL_CLASSIC.slots ?? 180,
+    fallbackSlots:
+      pitbullEvent?.slots ?? (isLegacyPitbull ? PITBULL_CLASSIC.slots : null) ?? 180,
   })
+  // La grilla la publica la organización a propósito (arranca apagada): el
+  // servidor decide, esta página solo pinta lo que llega.
+  const scheduleVisible = eventShowsPublicSchedule(pitbullEvent)
+  const { schedule: publicSchedule, updatedAt: publicScheduleUpdatedAt } =
+    usePublicEventSchedule(resolvedEventSlug, { enabled: scheduleVisible })
+  const showSchedule = publicSchedule.hasContent && scheduleVisible
+  const showRecentRegistrants = eventShowsPublicRecentRegistrants(pitbullEvent)
   const showWeighIns =
     eventHasWeighInWindows(pitbullEvent) && eventShowsPublicWeighIns(pitbullEvent)
   const showCategories = eventShowsPublicCategories(pitbullEvent)
   const showExperience = eventShowsPublicExperience(pitbullEvent)
   const showLocation = eventShowsPublicLocation(pitbullEvent)
+  const showFaq = eventShowsPublicFaq(pitbullEvent) && faqItems.length > 0
+  const showTickets = eventShowsPublicTickets(pitbullEvent)
+  const showCountdown = eventShowsPublicCountdown(pitbullEvent)
   const sectionNavItems = [
     { id: 'inscripcion', index: '01', label: t('pages.pitbull.inscriptionEyebrow') },
     ...(showExperience
@@ -1279,7 +1385,18 @@ export default function PitbullPage({
     ...(showLocation
       ? [{ id: 'lugar', index: '05', label: t('pages.pitbull.locationEyebrow') }]
       : []),
-    { id: 'entradas', index: '06', label: t('pages.pitbull.ticketsEyebrow') },
+    ...(showSchedule
+      ? [{ id: 'grilla', index: '06', label: t('pages.pitbull.gridEyebrow') }]
+      : []),
+    ...(showTickets
+      ? [
+          {
+            id: 'entradas',
+            index: showSchedule ? '07' : '06',
+            label: t('pages.pitbull.ticketsEyebrow'),
+          },
+        ]
+      : []),
   ]
 
   function goToTicketsPage() {
@@ -1310,8 +1427,11 @@ export default function PitbullPage({
       onNavigate('results')
       return
     }
-    // Soft-launch / cerrado: el CTA primario queda disabled; el secundario
-    // "Afiliarme" usa handleHeroJoin. Por si acaso, anclar al aviso.
+    if (ticketsOpen) {
+      goToTicketsPage()
+      return
+    }
+    // Soft-launch o cerrado sin entradas: el CTA primario queda disabled.
     scrollToSection('inscripcion')
   }
 
@@ -1340,18 +1460,26 @@ export default function PitbullPage({
   }
 
   return (
-    <main className="page page--design pitbull-page pitbull-page--premium">
-      <PitbullCountdownIntro dateLabel={PITBULL_CLASSIC.date} event={pitbullEvent} />
+    <main
+      className="page page--design pitbull-page pitbull-page--premium event-landing-theme"
+      data-event-theme={landing.themeId}
+      style={landingPaletteStyle(landing.layout, { withBackground: false })}
+    >
+      {showCountdown ? (
+        <PitbullCountdownIntro dateLabel={eventDateLabel} event={pitbullEvent} />
+      ) : null}
 
       <PitbullHero
         athleteStatus={athleteEventStatus}
         canRegister={canRegister}
+        heroImageUrl={pitbullEvent?.heroImageUrl || null}
         onHome={() => onNavigate('home')}
         onJoin={handleHeroJoin}
         onRegister={handleHeroRegister}
         presentation={registrationPresentation}
         registrationFee={money(eventPricing.registration, locale)}
         registrationPhase={registration.phase}
+        ticketsOpen={ticketsOpen}
         title={heroTitle}
         lead={heroLead}
         registerLabel={heroCtaLabel}
@@ -1361,11 +1489,13 @@ export default function PitbullPage({
 
       <div className="pitbull-page__body">
         <div className="pitbull-dossier pitbull-dossier--minimal">
-          <PitbullMeetCountdown
-            dateLabel={PITBULL_CLASSIC.date}
-            event={pitbullEvent}
-            onScrollToInscription={() => scrollToSection('inscripcion')}
-          />
+          {showCountdown ? (
+            <PitbullMeetCountdown
+              dateLabel={eventDateLabel}
+              event={pitbullEvent}
+              onScrollToInscription={() => scrollToSection('inscripcion')}
+            />
+          ) : null}
 
           <PitbullInscriptionSection
             athleteEventStatus={athleteEventStatus}
@@ -1388,13 +1518,22 @@ export default function PitbullPage({
             registered={liveRegistered}
             registeredToday={liveRegisteredToday}
             registrationPhase={registration.phase}
+            showRecentRegistrants={showRecentRegistrants}
             slots={liveSlots}
+            onBuyTickets={goToTicketsPage}
             softLaunch={softLaunch}
             t={t}
+            ticketsOpen={ticketsOpen}
             totalPublic={totalPublic}
           />
 
-          {showExperience ? <PitbullExperienceSection t={t} /> : null}
+          {showExperience ? (
+            <PitbullExperienceSection
+              lead={landingSlots.experienceBody}
+              t={t}
+              title={landingSlots.experienceTitle}
+            />
+          ) : null}
 
           {showWeighIns ? <PitbullWeighInSnapshot windows={pitbullEvent?.weighInWindows} /> : null}
 
@@ -1406,24 +1545,61 @@ export default function PitbullPage({
 
           {showCategories ? (
             <PitbullCategoriesSection
-              pitbullClassic={PITBULL_CLASSIC}
+              lead={landingSlots.categoriesBody}
               onNavigate={onNavigate}
+              pitbullClassic={PITBULL_CLASSIC}
               t={t}
+              title={landingSlots.categoriesTitle}
             />
           ) : null}
 
           {showLocation ? (
-            <PitbullLocationSection event={pitbullMapEvent} venue={PITBULL_VENUE} t={t} />
+            <PitbullLocationSection
+              event={pitbullMapEvent}
+              lead={landingSlots.locationBody}
+              t={t}
+              title={landingSlots.locationTitle}
+              venue={editorialVenue}
+            />
           ) : null}
 
-          <Reveal as="div" direction="up" className="pitbull-tickets-band-wrap">
-            <PitbullTicketsBand
-              event={pitbullEvent}
-              soon={!ticketsOpen}
-              onOpen={goToTicketsPage}
-              t={t}
-            />
-          </Reveal>
+          <PitbullScheduleSection
+            schedule={publicSchedule}
+            t={t}
+            updatedAt={publicScheduleUpdatedAt}
+          />
+
+          {showTickets ? (
+            <Reveal as="div" direction="up" className="pitbull-tickets-band-wrap">
+              <PitbullTicketsBand
+                event={pitbullEvent}
+                index={showSchedule ? '07' : undefined}
+                soon={!ticketsOpen && !ticketBlockedNote}
+                blockedNote={ticketBlockedNote}
+                onOpen={goToTicketsPage}
+                t={t}
+              />
+            </Reveal>
+          ) : null}
+
+          {showFaq ? (
+            <section
+              className="pitbull-dossier__section pitbull-landing-faq"
+              aria-labelledby="pitbull-landing-faq-title"
+            >
+              <h2 id="pitbull-landing-faq-title" className="pitbull-landing-faq__title">
+                {t('pages.pitbull.landingFaqTitle')}
+              </h2>
+              <dl className="pitbull-landing-faq__list">
+                {faqItems.map((item) => (
+                  <div key={item.question} className="pitbull-landing-faq__item">
+                    <dt>{item.question}</dt>
+                    <dd>{item.answer}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ) : null}
         </div>
       </div>
 

@@ -1,3 +1,4 @@
+import { planEventBoard } from '../../services/eventBoardPlanner.js'
 import ScheduleBoardSection from './ScheduleBoardSection.jsx'
 
 /**
@@ -113,6 +114,29 @@ function withBoard(board) {
           headers: { 'Content-Type': 'application/json' },
         })
       }
+      if (url.includes('/grid-templates')) {
+        return new Response(
+          JSON.stringify({
+            templates: [
+              {
+                id: 'tpl-meet',
+                name: 'Pitbull · doble tablado',
+                config: {
+                  platforms: ['Tablado Rojo', 'Tablado Azul'],
+                  maxPerSession: 12,
+                  groupBy: ['sex', 'category'],
+                  sortBy: 'weight',
+                  mergeSmall: true,
+                  platformMode: 'balance',
+                  weightClasses: null,
+                  schedule: { firstStart: '09:00', sessionMinutes: 45, gapMinutes: 10, weighInLeadMinutes: 120 },
+                },
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
       if (url.includes('/schedule/autofill')) {
         return new Response(JSON.stringify({ placed: 5, remaining: 0, board }), {
           status: 200,
@@ -195,4 +219,164 @@ export const SinTandas = {
 export const SoloLectura = {
   args: { adminEvents, canEdit: false, onGoToEvents: () => undefined },
   decorators: [withBoard(FULL_BOARD)],
+}
+
+/** Bolsa grande con sexo, edad y peso variados: lo que hay que filtrar y agrupar. */
+function bigPool() {
+  const names = ['Ana', 'Luz', 'Mica', 'Sofi', 'Vale', 'Pau', 'Lucas', 'Tomás', 'Nico', 'Facu']
+  const surnames = ['Torres', 'Ruiz', 'Paz', 'Ferro', 'Sosa', 'Medina', 'Aguirre', 'Navarro']
+  const divisions = ['Open', 'Junior', 'Youth', 'Sub-Masters', 'Masters']
+  const ages = { Open: 27, Junior: 21, Youth: 17, 'Sub-Masters': 36, Masters: 47 }
+  const weights = [52, 57, 63, 69, 76, 83, 93, 105]
+  return Array.from({ length: 48 }, (_, index) => {
+    const division = divisions[index % divisions.length]
+    const female = index % 3 !== 0
+    return athlete(`big-${index}`, `${names[index % names.length]} ${surnames[(index * 3) % surnames.length]}`, {
+      division,
+      category: index % 4 === 0 ? 'Raw With Wraps' : 'Raw',
+      sex: female ? 'Femenino' : 'Masculino',
+      age: ages[division] + (index % 5),
+      bodyweightKg: weights[(index * 5) % weights.length],
+      gym: ['Barra Fija', 'PLU Norte', 'Iron House', 'Savage'][index % 4],
+    })
+  })
+}
+
+const DOUBLE_BOARD = {
+  ...FULL_BOARD,
+  platforms: [
+    { id: 'plat-1', name: 'Tablado 1', sortOrder: 0 },
+    { id: 'plat-2', name: 'Tablado 2', sortOrder: 1 },
+  ],
+  totals: { registered: 52, assigned: 4, unassigned: 48 },
+  days: FULL_BOARD.days.map((day) => ({
+    ...day,
+    sessions: day.sessions.map((session, index) => ({
+      ...session,
+      platformId: index % 2 === 0 ? 'plat-1' : 'plat-2',
+      athletes: session.athletes.map((row) => ({ ...row, sex: 'Femenino', age: 24 })),
+    })),
+  })),
+  unassigned: bigPool(),
+}
+
+/** Doble tablado: una columna por tablado, bolsa con filtros por sexo, edad y peso. */
+export const DobleTablado = {
+  args: { adminEvents, canEdit: true, onGoToEvents: () => undefined },
+  decorators: [withBoard(DOUBLE_BOARD)],
+}
+
+const TIMED_BOARD = {
+  ...DOUBLE_BOARD,
+  days: DOUBLE_BOARD.days.map((day) => {
+    // Cada tablado corre sus tandas una tras otra: 09:00 y 10:00 (hora de Buenos Aires).
+    const seen = {}
+    return {
+      ...day,
+      sessions: day.sessions.map((session) => {
+        const slot = seen[session.platformId] ?? 0
+        seen[session.platformId] = slot + 1
+        const start = Date.parse(`${day.date}T00:00:00-03:00`) + (9 + slot) * 3_600_000
+        return {
+          ...session,
+          startsAt: new Date(start).toISOString(),
+          weighInAt: new Date(start - 2 * 3_600_000).toISOString(),
+        }
+      }),
+    }
+  }),
+}
+
+/** Doble tablado con horarios: inicio y pesaje en cada tanda, "Recalcular horarios" por tablado. */
+export const DobleTabladoConHorarios = {
+  args: { adminEvents, canEdit: true, onGoToEvents: () => undefined },
+  decorators: [withBoard(TIMED_BOARD)],
+}
+
+/** Un meet real: 234 inscriptos sin ubicar, dos días con fecha y sin tandas todavía. */
+function crowd(total) {
+  let state = 11
+  const rand = () => {
+    state = (state * 1664525 + 1013904223) % 4294967296
+    return state / 4294967296
+  }
+  const divisions = ['Open', 'Junior', 'Youth', 'Sub-Masters', 'Masters']
+  const gyms = ['Barra Fija', 'PLU Norte', 'Iron House', 'Savage', 'Pitbull Barbell Club']
+  return Array.from({ length: total }, (_, index) =>
+    athlete(`crowd-${index}`, `Atleta ${String(index + 1).padStart(3, '0')}`, {
+      sex: rand() < 0.55 ? 'Femenino' : 'Masculino',
+      category: rand() < 0.7 ? 'Raw' : 'Raw With Wraps',
+      division: divisions[Math.floor(rand() * divisions.length)],
+      bodyweightKg: Math.round((47 + rand() * 75) * 2) / 2,
+      age: 15 + Math.floor(rand() * 40),
+      gym: gyms[index % gyms.length],
+    }),
+  )
+}
+
+const CROWD_BOARD = {
+  event: { slug: 'pitbull-classic-2026', title: 'Pitbull Classic 2026', published: true },
+  platforms: [],
+  schedulePublic: false,
+  totals: { registered: 234, assigned: 0, unassigned: 234 },
+  days: [
+    { id: 'day-1', dayIndex: 0, label: 'Día 1', date: '2026-11-13', assignedCount: 0, sessions: [], withoutSession: [] },
+    { id: 'day-2', dayIndex: 1, label: 'Día 2', date: '2026-11-14', assignedCount: 0, sessions: [], withoutSession: [] },
+  ],
+  unassigned: crowd(234),
+}
+
+/** 234 inscriptos, sin tablados ni tandas: el caso que el asistente tiene que resolver de una. */
+export const Inscriptos234 = {
+  args: { adminEvents, canEdit: true, onGoToEvents: () => undefined },
+  decorators: [withBoard(CROWD_BOARD)],
+}
+
+/** Lo que deja el asistente: los 234 ya repartidos en dos tablados y dos días, con horarios. */
+function arrangedBoard() {
+  const platforms = [
+    { id: 'plat-rojo', name: 'Tablado Rojo', sortOrder: 0 },
+    { id: 'plat-azul', name: 'Tablado Azul', sortOrder: 1 },
+  ]
+  const plan = planEventBoard({
+    unassigned: CROWD_BOARD.unassigned,
+    days: CROWD_BOARD.days,
+    platforms,
+    maxPerSession: 12,
+    schedule: { firstStart: '09:00', sessionMinutes: 45, gapMinutes: 10, weighInLeadMinutes: 120 },
+  })
+  const byId = new Map(CROWD_BOARD.unassigned.map((row) => [row.registrationId, row]))
+  const days = CROWD_BOARD.days.map((day) => ({
+    ...day,
+    sessions: plan.newSessions
+      .filter((session) => session.dayIndex === day.dayIndex)
+      .map((session, index) => ({
+        id: `ses-${session.name}`,
+        name: session.name,
+        platform: session.platform,
+        platformId: session.platformId,
+        weighInAt: session.weighInAt,
+        startsAt: session.startsAt,
+        sortOrder: index,
+        athletes: plan.placements
+          .filter((placement) => placement.tempId === session.tempId)
+          .map((placement) => byId.get(placement.registrationId)),
+      })),
+  }))
+  return {
+    ...CROWD_BOARD,
+    platforms,
+    totals: { registered: 234, assigned: 234, unassigned: 0 },
+    days: days.map((day) => ({
+      ...day,
+      assignedCount: day.sessions.reduce((sum, session) => sum + session.athletes.length, 0),
+    })),
+    unassigned: [],
+  }
+}
+
+/** Grilla armada: 21 tandas en compacta, para ver de un vistazo cuánto lleva cada tablado. */
+export const GrillaArmada234 = {
+  args: { adminEvents, canEdit: true, onGoToEvents: () => undefined },
+  decorators: [withBoard(arrangedBoard())],
 }

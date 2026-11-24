@@ -73,6 +73,26 @@ describe('documentMeta', () => {
       }).title,
     ).toBe('Pitbull Classic | PLU')
   })
+
+  it('sin título de evento no deja el título en "| PLU": cae al del calendario', () => {
+    const t = tFactory({
+      seo: {
+        views: {
+          home: { title: 'Home PLU', description: 'Desc home' },
+          events: { title: 'Calendario PLU', description: 'Desc calendario' },
+          eventDetail: {
+            title: '{{eventTitle}} | PLU',
+            description: 'Detalle {{eventTitle}}',
+          },
+        },
+      },
+    })
+
+    const meta = buildDocumentMeta('events', t, { eventSlug: 'no-existe' })
+    expect(meta.title).toBe('Calendario PLU')
+    // La URL compartida sigue siendo la del evento pedido.
+    expect(meta.path).toBe('/evento/no-existe')
+  })
 })
 
 describe('archivo de resultados', () => {

@@ -3,6 +3,7 @@ import { LockKeyhole, RefreshCw, Save, ShieldCheck, Trash2, XCircle } from 'luci
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
+import PaymentAccountsPanel from '../../components/admin/payment-accounts/PaymentAccountsPanel.jsx'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import { ApiError } from '../../lib/api.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -187,6 +188,8 @@ export default function RegistrationAccessSection({
   onSave,
   onDelete,
   onToggleSaved,
+  canReadPaymentAccounts = false,
+  canEditPaymentAccounts = false,
 }) {
   const { locale, t } = useI18n()
   const { startTour } = useAdminTour()
@@ -817,6 +820,12 @@ export default function RegistrationAccessSection({
           </div>
         ) : null}
       </section>
+
+      {/* Con qué cuentas se cobra: va entre los medios (la matriz de arriba)
+          y las tandas, porque completa la pregunta "cómo se cobra". */}
+      {canReadPaymentAccounts ? (
+        <PaymentAccountsPanel t={t} locale={locale} canEdit={canEditPaymentAccounts} />
+      ) : null}
 
       <section className="admin-access__block" aria-labelledby="access-gates-private-title">
         <header className="admin-access__block-head">

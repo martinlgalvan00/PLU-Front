@@ -83,6 +83,48 @@ describe('QR único por atleta', () => {
     expect(scannedUrl.searchParams.has('evento')).toBe(false)
   })
 
+  it('destaca el torneo que se pidió ver y reusa el mismo QR', async () => {
+    render(
+      <I18nProvider>
+        <QrCredentialSection
+          athlete={{
+            id: 'athlete-1',
+            fullName: 'Ana Torres',
+            credentialToken: 'credential-token-1',
+          }}
+          membership={null}
+          latestMembership={{
+            status: 'vencida',
+            memberCode: 'PLU-1',
+            expirationDate: '2020-01-01',
+          }}
+          registrations={[
+            {
+              id: 'registration-a',
+              status: 'confirmada',
+              event: 'Meet A',
+              eventSlug: 'meet-a',
+              requiresMembership: false,
+            },
+            {
+              id: 'registration-b',
+              status: 'confirmada',
+              event: 'Meet B',
+              eventSlug: 'meet-b',
+              requiresMembership: true,
+            },
+          ]}
+          focusEventSlug="meet-b"
+          onNavigateSection={vi.fn()}
+        />
+      </I18nProvider>,
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Meet B' })).toBeTruthy()
+    expect(screen.getByTestId('credential-status').textContent).toBe('Cupo reservado')
+    await waitFor(() => expect(generateCredentialQr).toHaveBeenCalledTimes(1))
+  })
+
   it('con financiamiento pendiente, la credencial suma el cartel del plazo', async () => {
     // La credencial ya sale habilitada (afiliación 'activa', inscripción
     // 'confirmada' — 20260909100000): el cartel es lo único que dice que ese
@@ -206,15 +248,34 @@ describe('QR único por atleta', () => {
     )
 
     expect(screen.getByRole('heading', { name: 'Mi QR' })).toBeTruthy()
-    expect(screen.getByRole('heading', { name: 'Activá tu credencial' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Tu ficha ya está' })).toBeTruthy()
     expect(
       screen.getByText(
-        'Con afiliación activa o una inscripción confirmada generás tu QR de ingreso.',
+        'El QR se activa cuando te afiliás o cuando se confirma una inscripción.',
       ),
     ).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Afiliarme para generar mi credencial' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Ver calendario de meets' })).toBeTruthy()
     expect(screen.queryByTestId('credential-status')).toBeNull()
+  })
+
+  it('con un pago pendiente mantiene el aviso de credencial en camino', () => {
+    render(
+      <I18nProvider>
+        <QrCredentialSection
+          athlete={{ id: 'athlete-1', fullName: 'Ana Torres' }}
+          membership={null}
+          registrations={[
+            { id: 'reg-1', status: 'pendiente_pago', event: 'Meet', eventSlug: 'meet' },
+          ]}
+          onNavigateSection={vi.fn()}
+        />
+      </I18nProvider>,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Tu credencial está en camino' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'Tu ficha ya está' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Ver mis pagos' })).toBeTruthy()
   })
 
   it('en dual muestra una credencial y la banda de conversión, no dos QR', async () => {
@@ -245,7 +306,10 @@ describe('QR único por atleta', () => {
     )
 
     expect(await screen.findByTestId('credential-status')).toBeTruthy()
-    expect(screen.getByText('Pendiente de activación')).toBeTruthy()
+    expect(
+      screen.getByText('La inscripción está. La afiliación se activa cuando se acredite el pago.'),
+    ).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Pitbull Classic 2026' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Pagar afiliación' })).toBeTruthy()
     expect(screen.queryByTestId('share-card-variant')).toBeNull()
   })

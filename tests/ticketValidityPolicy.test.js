@@ -3,7 +3,13 @@ import {
   TICKET_ACCESS_POLICY_MODE,
   TICKET_ACCESS_USAGE_MODE,
   addCalendarDay,
+  competitorAccessWindowKey,
+  competitorCheckInCountsToday,
+  pickCompetitorCheckInToday,
+  resolveTicketAccessUsageMode,
   summarizeTicketQrValidity,
+  ticketDoorAdmit,
+  ticketTypeDaysUsagePatch,
   ticketValidityDurationParts,
 } from '../src/lib/ticketValidityPolicy.js'
 
@@ -11,6 +17,40 @@ const EVENT_DAYS = [
   { dayIndex: 0, label: 'Día 1', date: '2026-08-15' },
   { dayIndex: 1, label: 'Día 2', date: '2026-08-16' },
 ]
+
+describe('acceso diario del competidor', () => {
+  const saturdayNight = new Date('2026-08-16T02:30:00.000Z')
+  const sundayMorning = new Date('2026-08-16T03:30:00.000Z')
+
+  it('cambia de clave a la medianoche de Argentina, no a la de UTC', () => {
+    expect(competitorAccessWindowKey(saturdayNight)).toBe('event_day:2026-08-15')
+    expect(competitorAccessWindowKey(sundayMorning)).toBe('event_day:2026-08-16')
+  })
+
+  it('el ingreso de ayer no cuenta como el de hoy', () => {
+    const checkIns = [
+      { access_window_key: 'event_day:2026-08-15', scanned_at: '2026-08-15T15:00:00.000Z' },
+      { access_window_key: 'event_day:2026-08-16', scanned_at: '2026-08-16T14:00:00.000Z' },
+    ]
+
+    expect(pickCompetitorCheckInToday(checkIns, sundayMorning)?.scanned_at).toBe(
+      '2026-08-16T14:00:00.000Z',
+    )
+    expect(pickCompetitorCheckInToday(checkIns.slice(0, 1), sundayMorning)).toBeNull()
+  })
+
+  it('un escaneo sin clave cuenta solo si cayó hoy en Argentina', () => {
+    expect(
+      competitorCheckInCountsToday('2026-08-16T02:30:00.000Z', null, sundayMorning),
+    ).toBe(false)
+    expect(
+      competitorCheckInCountsToday('2026-08-16T03:30:00.000Z', null, sundayMorning),
+    ).toBe(true)
+    expect(
+      competitorCheckInCountsToday('2026-08-15T15:00:00.000Z', 'event_day:2026-08-16', sundayMorning),
+    ).toBe(true)
+  })
+})
 
 describe('ticketValidityPolicy', () => {
   it('suma un día de calendario sin pasar por la zona local', () => {
@@ -50,6 +90,7 @@ describe('ticketValidityPolicy', () => {
     expect(summary.dayCount).toBe(2)
     expect(summary.coversAllDays).toBe(true)
     expect(summary.untilDate).toBe('2026-08-17')
+    expect(summary.usage).toBe(TICKET_ACCESS_USAGE_MODE.ONCE_PER_EVENT_DAY)
   })
 
   it('sin jornadas no hay vigencia que mostrar', () => {
@@ -140,5 +181,71 @@ describe('ticketValidityPolicy', () => {
       kind: 'from_first_scan',
       durationMinutes: 6 * 60,
     })
+  })
+})
+
+describe('canje de puerta', () => {
+  it('un pase de un día se consume una sola vez', () => {
+    expect(resolveTicketAccessUsageMode({ dayIndexes: [0] })).toBe(
+      TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL,
+    )
+    const first = ticketDoorAdmit({
+      usageMode: TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL,
+      admittedKeys: [],
+      dayKey: '2026-08-15',
+    })
+    expect(first).toEqual({ admit: true, reason: 'ready', key: 'once_total' })
+    expect(
+      ticketDoorAdmit({
+        usageMode: TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL,
+        admittedKeys: [first.key],
+        dayKey: '2026-08-16',
+      }),
+    ).toMatchObject({ admit: false, reason: 'already_used' })
+  })
+
+  it('un pase de dos días entra el segundo día y no repite el primero', () => {
+    expect(resolveTicketAccessUsageMode({ dayIndexes: [0, 1] })).toBe(
+      TICKET_ACCESS_USAGE_MODE.ONCE_PER_EVENT_DAY,
+    )
+    expect(
+      resolveTicketAccessUsageMode({
+        dayIndexes: [0, 1],
+        accessUsageMode: TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL,
+      }),
+    ).toBe(TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL)
+
+    const dayOne = ticketDoorAdmit({
+      usageMode: TICKET_ACCESS_USAGE_MODE.ONCE_PER_EVENT_DAY,
+      admittedKeys: [],
+      dayKey: '2026-08-15',
+    })
+    expect(dayOne).toEqual({ admit: true, reason: 'ready', key: 'event_day:2026-08-15' })
+    expect(
+      ticketDoorAdmit({
+        usageMode: TICKET_ACCESS_USAGE_MODE.ONCE_PER_EVENT_DAY,
+        admittedKeys: [dayOne.key],
+        dayKey: '2026-08-15',
+      }),
+    ).toMatchObject({ admit: false, reason: 'already_used' })
+    expect(
+      ticketDoorAdmit({
+        usageMode: TICKET_ACCESS_USAGE_MODE.ONCE_PER_EVENT_DAY,
+        admittedKeys: [dayOne.key],
+        dayKey: '2026-08-16',
+      }),
+    ).toEqual({ admit: true, reason: 'ready', key: 'event_day:2026-08-16' })
+  })
+
+  it('marcar la segunda jornada propone un ingreso por día, salvo elección explícita', () => {
+    const oneDay = { dayIndexes: [0], accessUsageMode: TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL }
+    expect(ticketTypeDaysUsagePatch(oneDay, [0, 1]).accessUsageMode).toBe(
+      TICKET_ACCESS_USAGE_MODE.ONCE_PER_EVENT_DAY,
+    )
+    const explicit = {
+      dayIndexes: [0, 1],
+      accessUsageMode: TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL,
+    }
+    expect(ticketTypeDaysUsagePatch(explicit, [0]).accessUsageMode).toBeUndefined()
   })
 })

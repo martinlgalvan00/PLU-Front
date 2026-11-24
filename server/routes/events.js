@@ -1,40 +1,93 @@
 import { Router } from 'express'
 import { z } from 'zod'
+import { withLandingBlockImageUrls } from '../../src/lib/eventLandingLayout.js'
+import { buildLandingLayoutSchema } from '../../src/lib/schemas/landingLayoutSchema.js'
 import { HttpError } from '../lib/errors.js'
 import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
-import { EVENT_LOGO_BUCKET, PROOF_BUCKET } from '../lib/supabaseAdmin.js'
+import { assertEventAccess } from '../lib/eventScope.js'
+import { saveEventLanding } from '../modules/events/eventLandingStore.js'
+import {
+  assertEventPaymentsReadyToPublish,
+  readRegistrationWindow,
+  saveRegistrationWindow,
+} from '../modules/events/eventRegistrationSaleStore.js'
+import {
+  applyOrganizerUpsertPolicy,
+  filterEventsForScope,
+} from '../modules/events/organizerEventPolicy.js'
+import { logger } from '../lib/logger.js'
+import { EVENT_LOGO_BUCKET, EVENT_MEDIA_BUCKET, PROOF_BUCKET } from '../lib/supabaseAdmin.js'
 import {
   assertSupabaseResult,
+  isMissingRelation as esRelacionFaltante,
   isMissingSchemaColumn,
   requireSupabaseClient,
 } from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
-import { sanitizePublicCatalogEvent } from '../services/publicEventCatalogService.js'
+import { registerEventResultRoutes } from './eventResults.js'
+import { publicCatalogEventFor } from '../services/publicEventCatalogService.js'
 import { buildTicketCredentialsPayload } from '../../src/lib/ticketCredentials.js'
+import {
+  EVENT_OFFERING_CATEGORIES,
+  EVENT_OFFERING_DIVISIONS,
+  EVENT_OFFERING_MODALITIES,
+  normalizeEventOffering,
+  offeringForStorage,
+} from '../../shared/eventOffering.js'
+import {
+  MAX_INSTALLMENTS,
+  eventModulesForStorage,
+  eventModulesFromRules,
+  paymentPolicyForStorage,
+  paymentPolicyFromRules,
+} from '../../shared/eventModules.js'
+import {
+  EXTERNAL_FORM_LABEL_MAX,
+  EXTERNAL_FORM_URL_MAX,
+  normalizeExternalFormUrl,
+} from '../../src/lib/eventExternalForm.js'
 import { resolveTicketTypeChannels } from '../../src/lib/ticketTypePaymentChannels.js'
 import {
   MAX_TICKET_QR_VALIDITY_MINUTES,
   TICKET_ACCESS_USAGE_MODE,
   TICKET_ACCESS_USAGE_MODES,
+  resolveTicketAccessUsageMode,
   TICKET_QR_VALIDITY_MODE,
   TICKET_QR_VALIDITY_MODES,
 } from '../../src/lib/ticketValidityPolicy.js'
 import {
-  assertEventBankTransferReady,
+  bankTransferIssueError,
+  checkEventBankTransferReady,
+  checkEventCashPaymentReady,
+  cashPaymentIssueError,
   normalizeBankTransferInput,
+  normalizeCashPaymentInput,
   normalizePaymentChannelOverrides,
+  resolveEventMercadoPagoReadiness,
 } from '../modules/payments/eventPaymentProfile.js'
 import { createSupabasePaymentProfileRepository } from '../modules/payments/supabasePaymentProfileRepository.js'
+import { createSupabaseAthleteRepository } from '../modules/athletes/supabaseAthleteRepository.js'
+import { createSupabaseTicketRepository } from '../modules/ticketing/supabaseTicketRepository.js'
+import { summarizeEventPayments } from '../modules/events/eventPaymentsSummary.js'
+
+/** Tope de cuotas de un concepto: `null` = decide Mercado Pago. */
+const INSTALLMENT_CAP_SCHEMA = z
+  .object({ maxInstallments: z.number().int().min(1).max(MAX_INSTALLMENTS).nullable().optional() })
+  .nullable()
+  .optional()
 
 /** Cuentas temporales de puerta: viven en Prisma, atadas al evento por uuid. */
 const SECURITY_ROLE = 'seguridad_plu_arg'
 
+// Inscriptos: la base cuenta (filtrado por estado activo en `readEventRows`).
+// Antes viajaba una fila por inscripción de todos los eventos en cada lectura,
+// guardado, cambio de estado y logo, solo para contarlas en el cliente.
 const EVENT_SELECT = `
   *,
   capacityRules:event_capacity_rules(*),
-  eventRegistrations:event_registrations(status),
+  eventRegistrations:event_registrations(count),
   eventDays:event_days(*),
   comboOffer:event_combo_offers(
     id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, financed, archived_at
@@ -63,13 +116,15 @@ const CATALOG_TICKET_TYPE_EMBED = `
     credentials:ticket_type_credentials(id, label, zone_scopes, sort_order)
 `
 
-function catalogEventSelect(ticketTypeColumns) {
+function catalogEventSelect(ticketTypeColumns, { revealLead = false } = {}) {
+  const revealColumn = revealLead ? 'ticket_reveal_lead_minutes, ' : ''
   return `
   id, slug, title, description, venue, location,
   starts_at, ends_at,
   registration_opens_at, registration_closes_at,
-  ticket_sales_opens_at, ticket_sales_closes_at,
+  ticket_sales_opens_at, ticket_sales_closes_at, ${revealColumn}
   capacity, status, published, requires_membership, capacity_progress_public, price, manual_price, currency, rules,
+  logo_path,
   scheduled_price, scheduled_manual_price, price_effective_at, wise_price,
   live_stream_url, live_stream_provider, live_status, created_at, updated_at,
   eventRegistrations:event_registrations(count),
@@ -86,6 +141,7 @@ function catalogEventSelect(ticketTypeColumns) {
 
 const CATALOG_EVENT_SELECT = catalogEventSelect(
   'id, name, description, price, wise_price, manual_price, quota, sort_order, active, sales_opens_at, sales_closes_at, valid_from, valid_until, qr_validity_mode, qr_validity_duration_minutes, access_usage_mode, payment_channels,',
+  { revealLead: true },
 )
 const CATALOG_EVENT_SELECT_COMPAT = catalogEventSelect(
   'id, name, price, quota, sort_order, active,',
@@ -101,13 +157,16 @@ async function readPublishedCatalog(client) {
       .order('starts_at')
 
   const primary = await run(CATALOG_EVENT_SELECT)
-  if (!primary.error) return primary.data
+  if (!primary.error) return withLogoUrls(client, primary.data)
   if (!isMissingSchemaColumn(primary.error)) {
     return assertSupabaseResult(primary, 'No se pudieron leer los eventos públicos.')
   }
-  return assertSupabaseResult(
-    await run(CATALOG_EVENT_SELECT_COMPAT),
-    'No se pudieron leer los eventos públicos.',
+  return withLogoUrls(
+    client,
+    assertSupabaseResult(
+      await run(CATALOG_EVENT_SELECT_COMPAT),
+      'No se pudieron leer los eventos públicos.',
+    ),
   )
 }
 
@@ -141,6 +200,25 @@ const optionalDateTime = z
   .optional()
   .transform((value) => value ?? '')
   .refine((value) => value === '' || !Number.isNaN(Date.parse(value)), 'Fecha y hora inválidas.')
+
+const requiredDateTime = (missing) =>
+  z
+    .string({ required_error: missing })
+    .trim()
+    .min(1, missing)
+    .refine((value) => !Number.isNaN(Date.parse(value)), 'Fecha y hora inválidas.')
+
+/**
+ * Tope de entradas. Ausente = no tocar la fila. null o '' = sin tope.
+ * No convierte null en 0: un coerce sobre null contaría como tope cero.
+ */
+const optionalTicketCapacity = z
+  .union([
+    z.null(),
+    z.literal('').transform(() => null),
+    z.coerce.number().int().min(0).max(5000),
+  ])
+  .optional()
 
 const ticketAddonSchema = z.object({
   id: z.string().trim().min(1).max(80),
@@ -299,7 +377,9 @@ const ticketTypeSchema = z
       })
     }
     if (
-      [TICKET_QR_VALIDITY_MODE.FROM_PAYMENT, TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN].includes(validityMode) &&
+      [TICKET_QR_VALIDITY_MODE.FROM_PAYMENT, TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN].includes(
+        validityMode,
+      ) &&
       !type.validityDurationMinutes
     ) {
       ctx.addIssue({
@@ -309,7 +389,11 @@ const ticketTypeSchema = z
       })
     }
     if (
-      [TICKET_QR_VALIDITY_MODE.FROM_PAYMENT, TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN].includes(validityMode) &&
+      [
+        TICKET_QR_VALIDITY_MODE.FROM_PAYMENT,
+        TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN,
+        TICKET_QR_VALIDITY_MODE.FIRST_ENTRY_DAY,
+      ].includes(validityMode) &&
       (type.validFrom || type.validUntil)
     ) {
       ctx.addIssue({
@@ -330,10 +414,22 @@ const ticketTypeSchema = z
     }
   })
 
+// A nivel evento un canal se cierra (`false`) o se abre aunque la plataforma lo
+// tenga cerrado (`'open'`). El tipo de entrada sigue siendo sólo booleano:
+// únicamente puede cerrar debajo del evento.
+const eventChannelDecisionSchema = z.union([z.boolean(), z.literal('open')]).optional()
+
+const eventChannelDecisionsSchema = z.object({
+  mercado_pago: eventChannelDecisionSchema,
+  bank_transfer: eventChannelDecisionSchema,
+  cash_pitbull: eventChannelDecisionSchema,
+  wise_transfer: eventChannelDecisionSchema,
+})
+
 const eventPaymentChannelsByConceptSchema = z
   .object({
-    registration: eventPaymentChannelFlagsSchema.strict().optional(),
-    ticket: eventPaymentChannelFlagsSchema.strict().optional(),
+    registration: eventChannelDecisionsSchema.strict().optional(),
+    ticket: eventChannelDecisionsSchema.strict().optional(),
   })
   .strict()
 
@@ -361,6 +457,8 @@ export const eventSchema = z
     description: z.string().trim().max(1000).optional(),
     venue: z.string().trim().min(2).max(120),
     location: z.string().trim().min(2).max(120),
+    // Calle y número de la sede: alimenta Google Maps y Waze.
+    venueAddress: z.string().trim().max(200).optional(),
     startsAt: z
       .string()
       .trim()
@@ -378,12 +476,18 @@ export const eventSchema = z
     // Independiente: si el medidor también publica el número total (“de 200”).
     capacityTotalPublic: z.boolean().default(true),
     slots: z.coerce.number().int().min(1).max(5000),
+    // Tope de público. Independiente de slots. Ausente = se conserva el guardado.
+    ticketCapacity: optionalTicketCapacity,
     pricing: pricingSchema,
     featured: z.boolean().optional(),
-    registrationOpensAt: optionalDateTime,
-    registrationClosesAt: optionalDateTime,
+    // charge (default) | announce: soft-launch sin exigir medios de cobro.
+    salesIntent: z.enum(['charge', 'announce']).optional(),
+    registrationOpensAt: requiredDateTime('Elegí cuándo abre la inscripción.'),
+    registrationClosesAt: requiredDateTime('Elegí cuándo cierra la inscripción.'),
     ticketSalesOpensAt: optionalDateTime,
     ticketSalesClosesAt: optionalDateTime,
+    // Horas antes de valid_from en las que el comprador ve el QR. 0 = al pagar.
+    ticketRevealLeadHours: z.coerce.number().int().min(0).max(366 * 24).optional(),
     eventDays: z.array(eventDaySchema).max(31).optional(),
     ticketTypes: z.array(ticketTypeSchema).max(50).optional(),
     weighInWindows: z.array(weighInWindowSchema).max(60).optional(),
@@ -391,10 +495,15 @@ export const eventSchema = z
       .object({
         calendar: z.boolean().optional(),
         weighIns: z.boolean().optional(),
+        schedule: z.boolean().optional(),
+        recentRegistrants: z.boolean().optional(),
         livestream: z.boolean().optional(),
         experience: z.boolean().optional(),
         categories: z.boolean().optional(),
         location: z.boolean().optional(),
+        faq: z.boolean().optional(),
+        tickets: z.boolean().optional(),
+        countdown: z.boolean().optional(),
       })
       .optional(),
     // Copy del hero público. Techos espejo de la RPC de merge y del esquema
@@ -408,6 +517,48 @@ export const eventSchema = z
         inscriptionNote: z.string().trim().max(160).optional(),
       })
       .optional(),
+    // Plantilla + slots de landing. Merge aparte: el upsert reconstruye rules.
+    landing: z
+      .object({
+        templateId: z.enum(['meet', 'editorial', 'submission', 'builder']).optional(),
+        themeId: z
+          .enum(['plu-default', 'night-steel', 'ember', 'clean-light'])
+          .optional(),
+        publicVisible: z.boolean().optional(),
+        phase: z.enum(['coming_soon', 'published']).optional(),
+        layout: buildLandingLayoutSchema(z).optional(),
+        slots: z
+          .object({
+            heroTitle: z.string().trim().max(120).optional(),
+            heroLead: z.string().trim().max(240).optional(),
+            ctaLabel: z.string().trim().max(40).optional(),
+            inscriptionMark: z.string().trim().max(40).optional(),
+            inscriptionNote: z.string().trim().max(160).optional(),
+            experienceTitle: z.string().trim().max(120).optional(),
+            experienceBody: z.string().trim().max(800).optional(),
+            categoriesTitle: z.string().trim().max(120).optional(),
+            categoriesBody: z.string().trim().max(800).optional(),
+            locationTitle: z.string().trim().max(120).optional(),
+            locationBody: z.string().trim().max(800).optional(),
+            heroImagePath: z
+              .string()
+              .trim()
+              .max(200)
+              .regex(/^[A-Za-z0-9._()+/-]*$/)
+              .refine((value) => !value.includes('..'))
+              .optional(),
+            metaTitle: z.string().trim().max(70).optional(),
+            metaDescription: z.string().trim().max(160).optional(),
+            faq1Question: z.string().trim().max(120).optional(),
+            faq1Answer: z.string().trim().max(400).optional(),
+            faq2Question: z.string().trim().max(120).optional(),
+            faq2Answer: z.string().trim().max(400).optional(),
+            faq3Question: z.string().trim().max(120).optional(),
+            faq3Answer: z.string().trim().max(400).optional(),
+          })
+          .optional(),
+      })
+      .optional(),
     liveStreamUrl: z
       .string()
       .trim()
@@ -419,8 +570,8 @@ export const eventSchema = z
       ),
     liveStreamProvider: z.enum(['youtube', 'instagram', 'twitch']).optional(),
     liveStatus: z.enum(['offline', 'live', 'ended']).optional(),
-    // NULL = heredar matriz de plataforma. Objeto = restringir canales del
-    // evento (solo puede cerrar; no reabre lo que Finanzas cerró).
+    // NULL = heredar matriz de plataforma. Objeto = decisiones del evento: cierra
+    // (`false`) o abre (`'open'`) un canal; sin clave hereda la plataforma.
     //
     // Se acepta por concepto —`{registration, ticket}`, que es lo que manda el
     // panel— y también la forma plana vieja, que vale para los dos. Los dos
@@ -428,7 +579,7 @@ export const eventSchema = z
     // entraría por la rama plana, zod descartaría las claves desconocidas y el
     // override llegaría vacío al guardado.
     paymentChannelOverrides: z
-      .union([eventPaymentChannelsByConceptSchema, eventPaymentChannelFlagsSchema.strict()])
+      .union([eventPaymentChannelsByConceptSchema, eventChannelDecisionsSchema.strict()])
       .nullable()
       .optional(),
     bankTransfer: z
@@ -436,11 +587,67 @@ export const eventSchema = z
         alias: z.string().trim().max(120).optional(),
         cbu: z.string().trim().max(30).optional(),
         holder: z.string().trim().max(160).optional(),
+        cuit: z.string().trim().max(20).optional(),
+        bankName: z.string().trim().max(80).optional(),
       })
       .nullable()
       .optional(),
     bankTransferProfileId: z.string().uuid().nullable().optional(),
     mercadoPagoProfileId: z.string().uuid().nullable().optional(),
+    // Efectivo en el lugar: vacío = la sede del evento.
+    cashPayment: z
+      .object({
+        place: z.string().trim().max(160).optional(),
+        notes: z.string().trim().max(400).optional(),
+        address: z.string().trim().max(200).optional(),
+        hours: z.string().trim().max(160).optional(),
+        contact: z.string().trim().max(120).optional(),
+      })
+      .nullable()
+      .optional(),
+    // Qué ofrece el evento. Listas ausentes = ofrece todo (ver shared/eventOffering.js).
+    offering: z
+      .object({
+        categories: z.array(z.enum(EVENT_OFFERING_CATEGORIES)).max(10).optional(),
+        divisions: z.array(z.enum(EVENT_OFFERING_DIVISIONS)).max(10).optional(),
+        modalities: z.array(z.enum(EVENT_OFFERING_MODALITIES)).max(10).optional(),
+      })
+      .nullable()
+      .optional(),
+    // Módulos apagados (combo, extras de entradas, puerta) y tope de cuotas por
+    // concepto. Ausentes = se conservan los guardados (ver shared/eventModules.js).
+    modules: z
+      .object({
+        combo: z.boolean().optional(),
+        ticketAddons: z.boolean().optional(),
+        door: z.boolean().optional(),
+      })
+      .nullable()
+      .optional(),
+    paymentPolicy: z
+      .object({
+        registration: INSTALLMENT_CAP_SCHEMA,
+        ticket: INSTALLMENT_CAP_SCHEMA,
+      })
+      .nullable()
+      .optional(),
+    // Google Form del evento. Vacío = sin formulario. Solo https y dominios de
+    // Google Forms: termina en un link público y en un QR impreso.
+    externalForm: z
+      .object({
+        url: z
+          .string()
+          .trim()
+          .max(EXTERNAL_FORM_URL_MAX)
+          .refine(
+            (value) => normalizeExternalFormUrl(value).ok,
+            'El formulario debe ser un link https de Google Forms.',
+          )
+          .optional(),
+        label: z.string().trim().max(EXTERNAL_FORM_LABEL_MAX).optional(),
+      })
+      .nullable()
+      .optional(),
   })
   .superRefine((event, context) => {
     if (new Date(event.endsAt) < new Date(event.startsAt)) {
@@ -576,6 +783,13 @@ export const eventSchema = z
  * pero mandar el body vacío no tiene sentido y se rechaza acá en vez de gastar
  * un viaje a la base.
  */
+const nullableWindowDateTime = z
+  .string()
+  .trim()
+  .refine((value) => !Number.isNaN(Date.parse(value)), 'Fecha y hora inválidas.')
+  .nullable()
+  .optional()
+
 const eventStateSchema = z
   .object({
     status: z.enum(EVENT_STATUSES).optional(),
@@ -587,14 +801,33 @@ const eventStateSchema = z
     // Mostrar/ocultar la ocupación pública (contador y barra) sin reescribir
     // el evento: misma clase de decisión operativa que los dos de arriba.
     capacityProgressPublic: z.boolean().optional(),
+    // Ventana de inscripción desde el control de venta ("Abrir ahora",
+    // "Programar apertura"): ISO para fijarla, null para borrarla.
+    registrationOpensAt: nullableWindowDateTime,
+    registrationClosesAt: nullableWindowDateTime,
+    // Venta pública de entradas, sin reescribir días ni tipos.
+    ticketsEnabled: z.boolean().optional(),
   })
   .refine(
     (body) =>
       body.status !== undefined ||
       body.published !== undefined ||
       body.requiresMembership !== undefined ||
-      body.capacityProgressPublic !== undefined,
+      body.capacityProgressPublic !== undefined ||
+      body.registrationOpensAt !== undefined ||
+      body.registrationClosesAt !== undefined ||
+      body.ticketsEnabled !== undefined,
     'No hay ningún cambio para aplicar.',
+  )
+  .refine(
+    (body) =>
+      !body.registrationOpensAt ||
+      !body.registrationClosesAt ||
+      new Date(body.registrationClosesAt) >= new Date(body.registrationOpensAt),
+    {
+      message: 'El cierre de la inscripción tiene que ser posterior a la apertura.',
+      path: ['registrationClosesAt'],
+    },
   )
 
 /** Tandas de un evento: el grupo con el que un atleta entra a plataforma. */
@@ -603,6 +836,9 @@ const eventSessionSchema = z.object({
   dayIndex: z.coerce.number().int().min(0).max(30),
   name: z.string().trim().min(1).max(80),
   platform: z.string().trim().max(80).optional(),
+  // Sin la clave, el RPC enlaza por nombre (editor legado de solo texto); con
+  // null, la tanda queda sin tablado.
+  platformId: z.string().uuid().nullable().optional(),
   weighInAt: optionalDateTime,
   startsAt: optionalDateTime,
   sortOrder: z.coerce.number().int().min(0).max(1000).optional(),
@@ -610,6 +846,61 @@ const eventSessionSchema = z.object({
 
 const eventSessionsSchema = z.object({
   sessions: z.array(eventSessionSchema).max(60),
+})
+
+/**
+ * Tablados del evento: 1 o 2 en la práctica (el RPC admite hasta 4). El set
+ * viaja completo; lo que no viene se quita y sus tandas quedan sin tablado.
+ */
+const eventSchedulePublicSchema = z.object({ public: z.boolean() })
+
+/**
+ * Plantilla de grilla: configuración reutilizable entre eventos. `.strict()` a
+ * propósito -- la plantilla se guarda como jsonb y se vuelve a leer en el
+ * cliente, así que una clave de más no se tira en silencio: se rechaza.
+ */
+const weightClassBounds = z.array(z.number().positive().max(300)).max(15)
+const gridTemplateConfigSchema = z
+  .object({
+    platforms: z.array(z.string().trim().min(1).max(80)).max(4),
+    maxPerSession: z.coerce.number().int().min(1).max(100),
+    groupBy: z.array(z.enum(['sex', 'category', 'division'])).max(3),
+    sortBy: z.enum(['weight', 'age']),
+    mergeSmall: z.boolean(),
+    platformMode: z.enum(['balance', 'alternate', 'sex']),
+    weightClasses: z
+      .object({ Femenino: weightClassBounds.optional(), Masculino: weightClassBounds.optional() })
+      .strict()
+      .nullable()
+      .optional(),
+    schedule: z
+      .object({
+        firstStart: z.string().regex(/^\d{1,2}:\d{2}$/),
+        sessionMinutes: z.coerce.number().int().min(1).max(600),
+        minutesPerAthlete: z.coerce.number().min(0.5).max(60).optional(),
+        gapMinutes: z.coerce.number().int().min(0).max(240),
+        weighInLeadMinutes: z.coerce.number().int().min(0).max(720),
+      })
+      .strict()
+      .nullable()
+      .optional(),
+  })
+  .strict()
+
+const gridTemplateSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  config: gridTemplateConfigSchema,
+})
+
+const eventPlatformsSchema = z.object({
+  platforms: z
+    .array(
+      z.object({
+        id: z.string().uuid().optional(),
+        name: z.string().trim().min(1).max(80),
+      }),
+    )
+    .max(4),
 })
 
 /**
@@ -698,16 +989,94 @@ const EVENT_SELECT_SIN_CREDENCIALES = EVENT_SELECT.replace(
 )
 
 /**
- * PostgREST cuando no encuentra algo en el schema cache: PGRST200 es una tabla
- * o su relación, PGRST202 una función. Los dos casos son "la migración no
- * corrió acá todavía", no "el pedido estaba mal".
+ * Compatibilidad para los dos módulos agregados después de la RPC original.
+ * La migración actualiza `staff_merge_event_public_surface`, pero la escritura
+ * directa asegura que una API nueva pueda guardar el switch aun si el schema
+ * remoto todavía conserva la versión anterior de esa función.
  */
-function esRelacionFaltante(error) {
-  return (
-    error?.code === 'PGRST200' ||
-    error?.code === 'PGRST202' ||
-    /schema cache/i.test(error?.message ?? '')
+async function mergePublicSurfaceMaterialsCompat(client, { slug, surface }) {
+  const reader = client.from('events').select('rules').eq('slug', slug)
+  // Un adaptador sin `maybeSingle` no puede hacer el respaldo directo (ver eventLandingStore.js).
+  if (typeof reader?.maybeSingle !== 'function') return
+  const current = assertSupabaseResult(
+    await client.from('events').select('rules').eq('slug', slug).maybeSingle(),
+    'No se pudo leer la superficie pública del evento.',
   )
+  if (!current) throw new HttpError(404, 'El evento no existe.')
+
+  const rules = current.rules && typeof current.rules === 'object' ? current.rules : {}
+  const publicSurface =
+    rules.publicSurface && typeof rules.publicSurface === 'object' ? rules.publicSurface : {}
+  assertSupabaseResult(
+    await client
+      .from('events')
+      .update({
+        rules: {
+          ...rules,
+          publicSurface: {
+            ...publicSurface,
+            ...surface,
+          },
+        },
+      })
+      .eq('slug', slug),
+    'No se pudo guardar la superficie pública del evento.',
+  )
+}
+
+/**
+ * Prende o apaga la venta pública de entradas sin reescribir el evento.
+ * Al habilitar también muestra el bloque de entradas de la ficha: si queda
+ * oculto, el público no ve el botón aunque la venta esté abierta.
+ */
+async function mergeTicketSalesSwitch(client, { slug, enabled }) {
+  const reader = client.from('events').select('rules').eq('slug', slug)
+  if (typeof reader?.maybeSingle !== 'function') {
+    throw new HttpError(503, 'No se pudo cambiar la venta de entradas.')
+  }
+  const current = assertSupabaseResult(
+    await client.from('events').select('rules').eq('slug', slug).maybeSingle(),
+    'No se pudo leer la venta de entradas del evento.',
+  )
+  if (!current) throw new HttpError(404, 'El evento no existe.')
+
+  const rules = current.rules && typeof current.rules === 'object' ? current.rules : {}
+  const nextRules = { ...rules, ticketsEnabled: enabled === true }
+  if (enabled === true) {
+    const publicSurface =
+      rules.publicSurface && typeof rules.publicSurface === 'object' ? rules.publicSurface : {}
+    nextRules.publicSurface = { ...publicSurface, tickets: true }
+  }
+
+  assertSupabaseResult(
+    await client
+      .from('events')
+      .update({
+        rules: nextRules,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('slug', slug),
+    'No se pudo cambiar la venta de entradas.',
+  )
+}
+
+async function readPublicMaterialVisibility(client, slug) {
+  const reader = client.from('events').select('published, rules').eq('slug', slug)
+  if (typeof reader?.maybeSingle !== 'function') {
+    // El adaptador de lectura no expone reglas por evento. Conservamos la
+    // superficie pÃºblica histÃ³rica en vez de dejar las rutas en error.
+    return { published: true, schedule: true, recentRegistrants: true }
+  }
+  const event = assertSupabaseResult(
+    await client.from('events').select('published, rules').eq('slug', slug).maybeSingle(),
+    'No se pudo leer la visibilidad pública del evento.',
+  )
+  const surface = event?.rules?.publicSurface
+  return {
+    published: event?.published === true,
+    schedule: surface?.schedule !== false,
+    recentRegistrants: surface?.recentRegistrants !== false,
+  }
 }
 
 /** Ruta de Storage del logo -> URL pública estable del bucket. */
@@ -716,17 +1085,74 @@ function eventLogoPublicUrl(client, path) {
   return client.storage.from(EVENT_LOGO_BUCKET).getPublicUrl(path).data.publicUrl
 }
 
-/** Suma `logo_url` a cada fila: el panel no conoce el bucket ni el dominio de Storage. */
+/** Hero de landing (`event-media`) -> URL pública. */
+function eventHeroImagePublicUrl(client, path) {
+  if (!path) return null
+  return client.storage.from(EVENT_MEDIA_BUCKET).getPublicUrl(path).data.publicUrl
+}
+
+/** Suma `logo_url` / `hero_image_url` a cada fila. */
 function withLogoUrls(client, rows) {
-  return (rows ?? []).map((row) => ({ ...row, logo_url: eventLogoPublicUrl(client, row.logo_path) }))
+  return (rows ?? []).map((row) => {
+    const heroPath = row?.rules?.landing?.slots?.heroImagePath ?? null
+    return {
+      ...row,
+      ...(row?.rules
+        ? {
+            rules: withLandingBlockImageUrls(row.rules, (path) =>
+              eventHeroImagePublicUrl(client, path),
+            ),
+          }
+        : {}),
+      logo_url: eventLogoPublicUrl(client, row.logo_path),
+      hero_image_url: eventHeroImagePublicUrl(client, heroPath),
+    }
+  })
+}
+
+/**
+ * Adjunta `mercado_pago_readiness` a cada fila admin: destino (cuenta general
+ * vs perfil), nombre y estado OAuth. Una sola lectura del catálogo MP.
+ */
+async function withMercadoPagoReadiness(client, rows) {
+  const list = rows ?? []
+  const needed = new Set(
+    list.map((row) => row?.mercado_pago_profile_id).filter((id) => typeof id === 'string' && id),
+  )
+  const byId = new Map()
+  if (needed.size > 0) {
+    const profiles = await createSupabasePaymentProfileRepository(client).list({
+      kind: 'mercado_pago',
+      activeOnly: false,
+    })
+    for (const profile of profiles ?? []) {
+      if (needed.has(profile.id)) byId.set(profile.id, profile)
+    }
+  }
+  return list.map((row) => {
+    const profileId = row?.mercado_pago_profile_id ?? null
+    return {
+      ...row,
+      mercado_pago_readiness: resolveEventMercadoPagoReadiness({
+        mercadoPagoProfileId: profileId,
+        profile: profileId ? (byId.get(profileId) ?? null) : undefined,
+      }),
+    }
+  })
 }
 
 async function readEvents(client) {
-  return withLogoUrls(client, await readEventRows(client))
+  return withMercadoPagoReadiness(client, withLogoUrls(client, await readEventRows(client)))
 }
 
 async function readEventRows(client) {
-  const result = await client.from('events').select(EVENT_SELECT).order('starts_at')
+  const run = (select) =>
+    client
+      .from('events')
+      .select(select)
+      .in('event_registrations.status', ACTIVE_REGISTRATION_STATUSES)
+      .order('starts_at')
+  const result = await run(EVENT_SELECT)
 
   // Degradar antes que caerse: sin la migración aplicada el panel sigue
   // funcionando y lo único que falta es el detalle de credenciales por tipo de
@@ -736,7 +1162,7 @@ async function readEventRows(client) {
       '[eventos] `ticket_type_credentials` no existe en esta base: se leen los eventos sin las credenciales de entrada. Aplicá la migración 20261107100000_ticket_credential_classes.sql.',
     )
     return assertSupabaseResult(
-      await client.from('events').select(EVENT_SELECT_SIN_CREDENCIALES).order('starts_at'),
+      await run(EVENT_SELECT_SIN_CREDENCIALES),
       'No se pudieron leer los eventos.',
     )
   }
@@ -761,7 +1187,20 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   const router = Router()
   const prisma = getPrisma()
   const editGuard = requirePermission('admin.events.write', { prisma })
-  const viewGuard = requirePermission('admin.events.read', { prisma })
+  // Variantes que un organizador (rol por evento) SÍ puede usar: cada handler que
+  // las usa filtra o verifica contra los eventos asignados a la cuenta.
+  const scopedEditGuard = requirePermission('admin.events.write', { prisma }, { eventScoped: true })
+  const scopedViewGuard = requirePermission('admin.events.read', { prisma }, { eventScoped: true })
+  const scopedPaymentsViewGuard = requirePermission(
+    'admin.payments.read',
+    { prisma },
+    { eventScoped: true },
+  )
+  const scopedRegistrationsViewGuard = requirePermission(
+    'admin.registrations.read',
+    { prisma },
+    { eventScoped: true },
+  )
   // La grilla es dato de inscripciones, no de configuración del evento: quien
   // arma el reparto de atletas no necesariamente puede editar precios y fechas.
   const registrationsViewGuard = requirePermission('admin.registrations.read', { prisma })
@@ -770,12 +1209,48 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   // entradas y acreditaciones. Mismo techo que el borrado de atletas y de
   // cuentas de staff -- solo Super Admin, no `admin.events.write`.
   const deleteGuard = requirePermission('admin.events.delete', { prisma })
+  registerEventResultRoutes(router, { prisma, getSupabaseAdmin })
 
-  router.get('/', ...viewGuard, staffLimiter, async (_req, res, next) => {
+  router.get('/', ...scopedViewGuard, staffLimiter, async (req, res, next) => {
     try {
       const client = requireSupabaseClient(getSupabaseAdmin())
-      const events = await readEvents(client)
+      // Un organizador ve solo los eventos que se le asignaron.
+      const events = filterEventsForScope(req, await readEvents(client))
       res.json({ events })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Cobros de UN evento: órdenes de entradas y de inscripción con su resumen. Es lo que
+   * alimenta el panel de cobros de un organizador, que no puede leer los listados
+   * globales (traen todos los eventos). Un Super Admin también puede usarla.
+   */
+  router.get('/:eventSlug/payments', ...scopedPaymentsViewGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const slug = parseEventSlug(req.params.eventSlug)
+      assertEventAccess(req, { slug })
+      const client = requireSupabaseClient(getSupabaseAdmin())
+      const event = assertSupabaseResult(
+        await client.from('events').select('id, slug, title').eq('slug', slug).maybeSingle(),
+        'No se pudo leer el evento.',
+      )
+      if (!event) throw new HttpError(404, 'El evento no existe.')
+      // Con el id ya resuelto se vuelve a verificar: el slug del pedido y el id real
+      // del evento tienen que ser del mismo evento asignado.
+      assertEventAccess(req, { eventId: event.id, slug: event.slug })
+
+      const [ticketOrders, registrationOrders] = await Promise.all([
+        createSupabaseTicketRepository(client).listOrdersForEvent(event.id),
+        createSupabaseAthleteRepository(client).listRegistrationOrdersForEvent(event.id),
+      ])
+      res.json({
+        event,
+        ticketOrders,
+        registrationOrders,
+        summary: summarizeEventPayments({ ticketOrders, registrationOrders }),
+      })
     } catch (error) {
       next(error)
     }
@@ -794,8 +1269,36 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       // visible por stale-while-revalidate despues de apagarla o borrarla.
       res.set('Cache-Control', 'no-store')
       res.json({
-        events: Array.isArray(events) ? events.map((row) => sanitizePublicCatalogEvent(row)) : [],
+        events: Array.isArray(events) ? events.map((row) => publicCatalogEventFor(row)) : [],
       })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Grilla pública del evento (sin auth): tandas por tablado con su composición.
+   * Apagada o con el evento sin publicar devuelve `{ enabled: false }` y nada
+   * más. Nunca lleva nombres: ver `public_event_schedule`.
+   */
+  router.get('/:eventSlug/schedule-public', publicReadLimiter, async (req, res, next) => {
+    try {
+      const slug = parseEventSlug(req.params.eventSlug)
+      const client = requireSupabaseClient(getSupabaseAdmin())
+      const visibility = await readPublicMaterialVisibility(client, slug)
+      if (!visibility.published || !visibility.schedule) {
+        res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE, { staleFor: 0 }))
+        res.json({ schedule: { enabled: false, platforms: [], days: [] } })
+        return
+      }
+      const schedule = assertSupabaseResult(
+        await client.rpc('public_event_schedule', { p_event_slug: slug }),
+        'No se pudo consultar la grilla del evento.',
+      )
+      // Apagar la grilla es una decisión deliberada del staff: cache corto y sin
+      // stale-while-revalidate, así que deja de verse a lo sumo en 10 s.
+      res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE, { staleFor: 0 }))
+      res.json({ schedule })
     } catch (error) {
       next(error)
     }
@@ -806,6 +1309,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       const slug = parseEventSlug(req.params.eventSlug)
 
       const client = requireSupabaseClient(getSupabaseAdmin())
+      const visibility = await readPublicMaterialVisibility(client, slug)
       const summary = assertSupabaseResult(
         await client.rpc('get_event_registration_capacity', { p_event_slug: slug }),
         'No se pudo consultar el cupo de inscripción.',
@@ -813,7 +1317,10 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       // El hook de cupo la pide cada 30 s por visitante (`LIVE_REGISTRATION_POLL_MS`):
       // en una difusión son cientos de invocaciones por minuto contra el mismo número.
       res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE))
-      res.json({ summary: attachRecentRegistrationPortraits(summary) })
+      const sanitized = attachRecentRegistrationPortraits(summary)
+      res.json({
+        summary: visibility.recentRegistrants ? sanitized : { ...sanitized, recent: [] },
+      })
     } catch (error) {
       next(error)
     }
@@ -821,12 +1328,21 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
 
   router.post(
     '/upsert',
-    ...editGuard,
+    ...scopedEditGuard,
     staffLimiter,
     validateBody(eventSchema),
     async (req, res, next) => {
       try {
         const client = requireSupabaseClient(getSupabaseAdmin())
+        // Cuenta por evento: se fijan los campos que no puede cambiar y se rechaza lo
+        // que excede su alcance, ANTES de leer nada más del cuerpo.
+        if (req.eventScope) {
+          req.validatedBody = await applyOrganizerUpsertPolicy({
+            req,
+            client,
+            body: req.validatedBody,
+          })
+        }
         const mode = req.validatedBody.id ? 'updated' : 'created'
         const paymentChannelOverrides = normalizePaymentChannelOverrides(
           req.validatedBody.paymentChannelOverrides,
@@ -838,6 +1354,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             : req.validatedBody.bankTransferProfileId
         const profiles = createSupabasePaymentProfileRepository(client)
         let linkedProfile = null
+        const profileWarnings = []
 
         // Si eligieron un perfil del catálogo, manda ese. Si cargaron alias
         // suelto sin perfil, se crea/reusa uno para poder reutilizarlo después.
@@ -850,25 +1367,81 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             alias: linkedProfile.config.alias,
             cbu: linkedProfile.config.cbu,
             holder: linkedProfile.config.holder,
+            cuit: linkedProfile.config.cuit ?? '',
+            bankName: linkedProfile.config.bankName ?? '',
           }
-        } else if (bankTransfer.alias) {
-          linkedProfile = await profiles.ensureBankTransferProfile({
-            name: `Transferencia · ${req.validatedBody.title || req.validatedBody.slug}`,
-            ...bankTransfer,
-          })
-          bankTransferProfileId = linkedProfile.id
+        } else if (bankTransfer.alias && !req.eventScope) {
+          // Un organizador no crea cuentas de cobro globales: sin perfil elegido y con el
+          // alias sin cambios, el evento conserva sus columnas.
+          // El perfil es una comodidad (reusar la cuenta en otros eventos), no
+          // un requisito del guardado: si no se puede crear, el evento se guarda
+          // igual con el alias en sus columnas, que es lo que lee el checkout, y
+          // se avisa. Antes un fallo acá cortaba todo y el operador perdía
+          // también lo que había cambiado en el resto del evento.
+          try {
+            linkedProfile = await profiles.ensureBankTransferProfile({
+              name: `Transferencia · ${req.validatedBody.title || req.validatedBody.slug}`,
+              ...bankTransfer,
+            })
+            bankTransferProfileId = linkedProfile.id
+          } catch (error) {
+            logger.warn('event.bank_profile_not_saved', {
+              slug: req.validatedBody.slug,
+              err: error,
+            })
+            // Desvincula el perfil anterior: si no, el checkout seguiría
+            // mostrando la cuenta vieja y no el alias que se acaba de cargar.
+            bankTransferProfileId = null
+            profileWarnings.push({
+              code: 'EVENT_BANK_PROFILE_NOT_SAVED',
+              message:
+                'El evento se guardó, pero no pudimos guardar la cuenta de transferencia como perfil reutilizable. Los datos cargados igual se usan en este evento.',
+              field: 'bankTransferProfileId',
+            })
+          }
         } else if (bankTransferProfileId === null) {
           // Explicitamente sin perfil: limpia el vínculo.
           bankTransferProfileId = null
         }
 
-        assertEventBankTransferReady({
+        // Un evento oculto se puede guardar con el cobro a medio configurar: nadie
+        // puede pagarle todavía, y obligar a completar el alias para cambiar un
+        // título trababa cualquier edición. Se guarda y se avisa. Publicado sí
+        // se rechaza: ahí un comprador podría llegar a una transferencia sin
+        // destino.
+        const warnings = [...profileWarnings]
+        const bankTransferIssue = checkEventBankTransferReady({
           overrides: paymentChannelOverrides,
           bankTransfer,
           bankTransferProfileId: bankTransferProfileId ?? null,
           profile: linkedProfile,
           env: process.env,
         })
+        if (bankTransferIssue) {
+          if (req.validatedBody.published === true) throw bankTransferIssueError(bankTransferIssue)
+          warnings.push({
+            code: bankTransferIssue.code,
+            message: bankTransferIssue.message,
+            field: bankTransferIssue.field,
+          })
+        }
+
+        const cashPaymentIssue = checkEventCashPaymentReady({
+          overrides: paymentChannelOverrides,
+          cashPayment: req.validatedBody.cashPayment,
+          event: {
+            venue: req.validatedBody.venue,
+            location: req.validatedBody.location,
+          },
+        })
+        if (cashPaymentIssue) {
+          if (req.validatedBody.published === true) throw cashPaymentIssueError(cashPaymentIssue)
+          warnings.push({
+            code: cashPaymentIssue.code,
+            message: cashPaymentIssue.message,
+            field: cashPaymentIssue.field,
+          })
+        }
 
         // Un tipo de entrada sólo puede cerrar debajo del evento. Que no le
         // quede ninguno abierto —porque cerró los últimos, o porque el evento
@@ -914,6 +1487,26 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           pEvent.mercadoPagoProfileId = mercadoPagoProfileId
         }
 
+        // `staff_save_event` reconstruye `rules` y se lleva puestos los módulos y
+        // el tope de cuotas. Un cliente que no los manda (versión anterior del
+        // panel) no tiene por qué borrarlos: se leen antes y se vuelven a escribir.
+        const keepModules = req.validatedBody.modules === undefined
+        const keepPaymentPolicy = req.validatedBody.paymentPolicy === undefined
+        let previousRules = null
+        if (mode === 'updated' && (keepModules || keepPaymentPolicy)) {
+          // Sin lectura no hay nada que conservar: el guardado sigue igual.
+          try {
+            const previous = await client
+              .from('events')
+              .select('rules')
+              .eq('id', req.validatedBody.id)
+              .maybeSingle()
+            previousRules = previous?.error ? null : (previous?.data?.rules ?? null)
+          } catch {
+            previousRules = null
+          }
+        }
+
         const savedEvent = assertSupabaseResult(
           await client.rpc('staff_save_event', {
             p_event: pEvent,
@@ -922,13 +1515,27 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           'No se pudo guardar el evento.',
         )
 
+        // Si el evento cambió de slug, las asignaciones de organizadores (que guardan el slug
+        // desnormalizado) se actualizan: si no, perderían acceso a su propio evento.
+        if (savedEvent?.id && savedEvent?.slug && typeof prisma.userEventAccess?.updateMany === 'function') {
+          await prisma.userEventAccess.updateMany({
+            where: { eventId: savedEvent.id },
+            data: { eventSlug: savedEvent.slug },
+          })
+        }
+
         const publicSurface = {
           calendar: pEvent.publicSurface?.calendar !== false,
           weighIns: pEvent.publicSurface?.weighIns !== false,
+          schedule: pEvent.publicSurface?.schedule !== false,
+          recentRegistrants: pEvent.publicSurface?.recentRegistrants !== false,
           livestream: pEvent.publicSurface?.livestream !== false,
           experience: pEvent.publicSurface?.experience !== false,
           categories: pEvent.publicSurface?.categories !== false,
           location: pEvent.publicSurface?.location !== false,
+          faq: pEvent.publicSurface?.faq !== false,
+          tickets: pEvent.publicSurface?.tickets !== false,
+          countdown: pEvent.publicSurface?.countdown !== false,
         }
         assertSupabaseResult(
           await client.rpc('staff_merge_event_public_surface', {
@@ -937,6 +1544,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           }),
           'No se pudo guardar la superficie pública del evento.',
         )
+        await mergePublicSurfaceMaterialsCompat(client, { slug: pEvent.slug, surface: publicSurface })
 
         // Mismo motivo que la superficie: `staff_upsert_event` reconstruye
         // `rules` clave por clave, así que el copy va en su propio merge.
@@ -954,12 +1562,33 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           'No se pudo guardar el copy público del evento.',
         )
 
+        // Plantilla, slots, estado y layout de la landing: el upsert reconstruye
+        // `rules`, así que se persisten aparte (ver eventLandingStore).
+        await saveEventLanding(client, pEvent)
+
         // Misma razón: el upsert no escribe columnas nuevas. El total público
         // viaja aparte para no redefinir staff_upsert_event.
         const totalPublicMerge = await client.rpc('staff_merge_event_capacity_total', {
           p_slug: pEvent.slug,
           p_total_public: pEvent.capacityTotalPublic !== false,
         })
+
+        if (pEvent.ticketRevealLeadHours !== undefined) {
+          const revealMerge = await client.rpc('staff_merge_event_ticket_reveal', {
+            p_slug: pEvent.slug,
+            p_lead_minutes: Math.round(Number(pEvent.ticketRevealLeadHours) * 60),
+          })
+          if (revealMerge.error && esRelacionFaltante(revealMerge.error)) {
+            console.warn(
+              '[eventos] `staff_merge_event_ticket_reveal` no existe en esta base: el evento se guardó sin la anticipación del QR. Aplicá la migración 20270113100000_ticket_reveal_lead.sql.',
+            )
+          } else {
+            assertSupabaseResult(
+              revealMerge,
+              'No se pudo guardar cuándo se habilita la entrada para verla.',
+            )
+          }
+        }
 
         // Sin esta RPC el staff_save_event ya corrió y pisó `updated_at`.
         // Abortar acá devolvía 500 y el reintento chocaba con PLU09.
@@ -972,6 +1601,179 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             totalPublicMerge,
             'No se pudo guardar la visibilidad del cupo total.',
           )
+        }
+
+        // Intención de venta (cobrar vs solo anunciar). Vive en rules y el
+        // upsert la pisaría: merge post-save, igual que publicCopy.
+        if (req.validatedBody.salesIntent !== undefined) {
+          const salesIntent =
+            req.validatedBody.salesIntent === 'announce' ? 'announce' : 'charge'
+          const intentMerge = await client.rpc('staff_merge_event_sales_intent', {
+            p_slug: pEvent.slug,
+            p_sales_intent: salesIntent,
+          })
+          if (intentMerge.error && esRelacionFaltante(intentMerge.error)) {
+            console.warn(
+              '[eventos] `staff_merge_event_sales_intent` no existe en esta base: el evento se guardó sin la intención de venta. Aplicá la migración 20261221100000_event_sales_intent.sql.',
+            )
+            if (salesIntent === 'announce') {
+              warnings.push({
+                code: 'EVENT_SALES_INTENT_NOT_SAVED',
+                message:
+                  'El evento se guardó, pero el modo «solo anuncio» todavía no: falta aplicar una migración en la base.',
+                field: 'salesIntent',
+              })
+            }
+          } else {
+            assertSupabaseResult(intentMerge, 'No se pudo guardar la intención de venta.')
+          }
+        }
+
+        // Dónde se cobra el efectivo: columnas nuevas, mismo merge post-save.
+        // Sin la migración el evento se guarda igual; si alguien cargó un
+        // lugar, se avisa en vez de perderlo en silencio.
+        if (req.validatedBody.cashPayment !== undefined) {
+          const cashPayment = normalizeCashPaymentInput(req.validatedBody.cashPayment)
+          const cashMerge = await client.rpc('staff_merge_event_cash_payment', {
+            p_slug: pEvent.slug,
+            p_place: cashPayment.place,
+            p_notes: cashPayment.notes,
+          })
+          if (cashMerge.error && esRelacionFaltante(cashMerge.error)) {
+            console.warn(
+              '[eventos] `staff_merge_event_cash_payment` no existe en esta base: el evento se guardó sin el lugar del efectivo. Aplicá la migración 20261216100000_event_cash_payment_place.sql.',
+            )
+            if (cashPayment.place || cashPayment.notes) {
+              warnings.push({
+                code: 'EVENT_CASH_PAYMENT_NOT_SAVED',
+                message:
+                  'El evento se guardó, pero el lugar del efectivo todavía no: falta aplicar una migración en la base. Mientras tanto se muestra la sede del evento.',
+                field: 'cashPayment.place',
+              })
+            }
+          } else {
+            assertSupabaseResult(cashMerge, 'No se pudo guardar el lugar del efectivo.')
+          }
+        }
+
+        // Direcciones (sede y efectivo) para Maps/Waze: columnas de
+        // 20270102110000. `null` = no tocar; así un cliente que no manda uno de
+        // los dos bloques no borra el otro.
+        const cashInput =
+          req.validatedBody.cashPayment === undefined
+            ? null
+            : normalizeCashPaymentInput(req.validatedBody.cashPayment)
+        const venueAddress = req.validatedBody.venueAddress
+        if (cashInput || venueAddress !== undefined) {
+          const placesMerge = await client.rpc('staff_merge_event_places', {
+            p_slug: pEvent.slug,
+            p_venue_address: venueAddress ?? null,
+            p_cash_address: cashInput?.address ?? null,
+            p_cash_hours: cashInput?.hours ?? null,
+            p_cash_contact: cashInput?.contact ?? null,
+          })
+          if (placesMerge.error && esRelacionFaltante(placesMerge.error)) {
+            console.warn(
+              '[eventos] `staff_merge_event_places` no existe en esta base: el evento se guardó sin direcciones. Aplicá la migración 20270102110000_event_places.sql.',
+            )
+            if (venueAddress || cashInput?.address || cashInput?.hours || cashInput?.contact) {
+              warnings.push({
+                code: 'EVENT_PLACES_NOT_SAVED',
+                message:
+                  'El evento se guardó, pero las direcciones todavía no: falta aplicar una migración en la base.',
+                field: 'venueAddress',
+              })
+            }
+          } else {
+            assertSupabaseResult(placesMerge, 'No se pudieron guardar las direcciones del evento.')
+          }
+        }
+
+        // Qué ofrece el evento (categorías, divisiones, modalidades): mismo
+        // patrón. Solo viajan las listas que restringen algo; `{}` = todo.
+        if (req.validatedBody.offering !== undefined) {
+          const offeringForRpc = offeringForStorage(
+            normalizeEventOffering(req.validatedBody.offering ?? {}),
+          )
+          const offeringMerge = await client.rpc('staff_merge_event_offering', {
+            p_slug: pEvent.slug,
+            p_offering: offeringForRpc,
+          })
+          if (offeringMerge.error && esRelacionFaltante(offeringMerge.error)) {
+            console.warn(
+              '[eventos] `staff_merge_event_offering` no existe en esta base: el evento se guardó sin su oferta. Aplicá la migración 20261228130000_event_offering.sql.',
+            )
+            if (Object.keys(offeringForRpc).length > 0) {
+              warnings.push({
+                code: 'EVENT_OFFERING_NOT_SAVED',
+                message:
+                  'El evento se guardó, pero lo que ofrece todavía no: falta aplicar una migración en la base. Mientras tanto se ofrece todo.',
+                field: 'offering',
+              })
+            }
+          } else {
+            assertSupabaseResult(offeringMerge, 'No se pudo guardar lo que ofrece el evento.')
+          }
+        }
+
+        // Módulos y tope de cuotas: mismo patrón. Solo se guarda lo apagado y
+        // los conceptos con tope; `{}` = todo prendido y sin tope.
+        if (!keepModules || !keepPaymentPolicy || previousRules) {
+          const modulesForRpc = eventModulesForStorage(
+            keepModules ? eventModulesFromRules(previousRules) : (req.validatedBody.modules ?? {}),
+          )
+          const policyForRpc = paymentPolicyForStorage(
+            keepPaymentPolicy
+              ? paymentPolicyFromRules(previousRules)
+              : (req.validatedBody.paymentPolicy ?? {}),
+          )
+          const modulesMerge = await client.rpc('staff_merge_event_modules', {
+            p_slug: pEvent.slug,
+            p_modules: modulesForRpc,
+            p_payment_policy: policyForRpc,
+          })
+          if (modulesMerge.error && esRelacionFaltante(modulesMerge.error)) {
+            console.warn(
+              '[eventos] `staff_merge_event_modules` no existe en esta base: el evento se guardó sin sus módulos ni tope de cuotas. Aplicá la migración 20270103100000_event_modules_payment_policy.sql.',
+            )
+            if (Object.keys(modulesForRpc).length > 0 || Object.keys(policyForRpc).length > 0) {
+              warnings.push({
+                code: 'EVENT_MODULES_NOT_SAVED',
+                message:
+                  'El evento se guardó, pero los módulos apagados y el tope de cuotas todavía no: falta aplicar una migración en la base. Mientras tanto todo queda prendido y sin tope.',
+                field: 'modules',
+              })
+            }
+          } else {
+            assertSupabaseResult(modulesMerge, 'No se pudieron guardar los módulos del evento.')
+          }
+        }
+
+        // Formulario de Google del evento: mismo patrón. Sin la migración el
+        // evento se guarda igual y, si alguien cargó un link, se avisa.
+        if (req.validatedBody.externalForm !== undefined) {
+          const externalForm = req.validatedBody.externalForm ?? {}
+          const formUrl = externalForm.url ?? ''
+          const formMerge = await client.rpc('staff_merge_event_external_form', {
+            p_slug: pEvent.slug,
+            p_url: formUrl,
+            p_label: formUrl ? (externalForm.label ?? '') : '',
+          })
+          if (formMerge.error && esRelacionFaltante(formMerge.error)) {
+            console.warn(
+              '[eventos] `staff_merge_event_external_form` no existe en esta base: el evento se guardó sin el formulario. Aplicá la migración 20261228120000_event_external_form.sql.',
+            )
+            if (formUrl) {
+              warnings.push({
+                code: 'EVENT_EXTERNAL_FORM_NOT_SAVED',
+                message:
+                  'El evento se guardó, pero el formulario todavía no: falta aplicar una migración en la base.',
+                field: 'externalForm.url',
+              })
+            }
+          } else {
+            assertSupabaseResult(formMerge, 'No se pudo guardar el formulario del evento.')
+          }
         }
 
         // Las subcategorías de entrada (qué credenciales emite cada tipo y qué
@@ -1044,11 +1846,11 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           // una duración relativa como si fueran jornadas, exigir la función
           // nueva cuando se elige este modo.
           if (
-            pEvent.ticketTypes.some(
-              (type) =>
-                [TICKET_QR_VALIDITY_MODE.FROM_PAYMENT, TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN].includes(
-                  type?.validityMode,
-                ),
+            pEvent.ticketTypes.some((type) =>
+              [
+                TICKET_QR_VALIDITY_MODE.FROM_PAYMENT,
+                TICKET_QR_VALIDITY_MODE.FROM_FIRST_SCAN,
+              ].includes(type?.validityMode),
             )
           ) {
             const relativePolicy = await client.rpc('staff_merge_ticket_type_validity_policy', {
@@ -1076,7 +1878,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             p_event_slug: pEvent.slug,
             p_types: pEvent.ticketTypes.map((type, index) => ({
               ...(type?.id ? { ticketTypeId: type.id } : { sortOrder: type?.sortOrder ?? index }),
-              accessUsageMode: type?.accessUsageMode ?? TICKET_ACCESS_USAGE_MODE.ONCE_TOTAL,
+              accessUsageMode: resolveTicketAccessUsageMode(type),
             })),
             p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
           })
@@ -1086,7 +1888,10 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
               'La política de acceso por tipo requiere aplicar la migración de entradas unívocas.',
             )
           }
-          assertSupabaseResult(accessPolicy, 'No se pudo guardar la política de acceso de las entradas.')
+          assertSupabaseResult(
+            accessPolicy,
+            'No se pudo guardar la política de acceso de las entradas.',
+          )
         }
 
         const events = await readEvents(client)
@@ -1095,7 +1900,9 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           throw new HttpError(503, 'El evento se guardó, pero no se pudo volver a leer.')
         }
 
-        res.status(mode === 'created' ? 201 : 200).json({ event, events, mode })
+        res
+          .status(mode === 'created' ? 201 : 200)
+          .json({ event, events: filterEventsForScope(req, events), mode, warnings })
       } catch (error) {
         next(error)
       }
@@ -1121,25 +1928,71 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       try {
         const slug = parseEventSlug(req.params.eventSlug)
         const client = requireSupabaseClient(getSupabaseAdmin())
-        const result = assertSupabaseResult(
-          await client.rpc('staff_set_event_state', {
-            p_event_slug: slug,
-            p_status: req.validatedBody.status ?? null,
-            p_published: req.validatedBody.published ?? null,
-            p_requires_membership: req.validatedBody.requiresMembership ?? null,
-            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
-            p_capacity_progress_public: req.validatedBody.capacityProgressPublic ?? null,
-          }),
-          'No se pudo cambiar el estado del evento.',
-        )
+        const body = req.validatedBody
+        const actor = `${req.auth.user.id}:${req.auth.user.email}`
+
+        // Publicar desde acá exige lo mismo que el guardado del editor.
+        if (body.published === true) await assertEventPaymentsReadyToPublish(client, slug)
+
+        // La ventana va antes que el estado: "Abrir ahora" borra una apertura
+        // pendiente y recién después pasa el estado a abierta. Son dos llamadas
+        // sin transacción común: si la segunda falla, se repone la ventana
+        // anterior para no dejar el evento a medio cambiar.
+        const saleWindow = {
+          registrationOpensAt: body.registrationOpensAt,
+          registrationClosesAt: body.registrationClosesAt,
+        }
+        const touchesWindow =
+          saleWindow.registrationOpensAt !== undefined ||
+          saleWindow.registrationClosesAt !== undefined
+        const stateChanges =
+          body.status !== undefined ||
+          body.published !== undefined ||
+          body.requiresMembership !== undefined ||
+          body.capacityProgressPublic !== undefined
+        const previousWindow =
+          touchesWindow && stateChanges ? await readRegistrationWindow(client, slug) : null
+        const windowSaved = await saveRegistrationWindow(client, slug, saleWindow, actor)
+        const ticketSalesSaved = body.ticketsEnabled !== undefined
+        if (ticketSalesSaved) {
+          await mergeTicketSalesSwitch(client, { slug, enabled: body.ticketsEnabled === true })
+        }
+
+        let result = null
+        if (stateChanges) {
+          try {
+            result = assertSupabaseResult(
+              await client.rpc('staff_set_event_state', {
+                p_event_slug: slug,
+                p_status: body.status ?? null,
+                p_published: body.published ?? null,
+                p_requires_membership: body.requiresMembership ?? null,
+                p_actor: actor,
+                p_capacity_progress_public: body.capacityProgressPublic ?? null,
+              }),
+              'No se pudo cambiar el estado del evento.',
+            )
+          } catch (error) {
+            if (previousWindow && windowSaved) {
+              await saveRegistrationWindow(client, slug, previousWindow, actor).catch((rollbackError) =>
+                logger.warn('event.registration_window_rollback_failed', { slug, err: rollbackError }),
+              )
+            }
+            throw error
+          }
+        }
 
         const events = await readEvents(client)
-        const event = events.find((candidate) => candidate.id === result.event?.id)
+        const event = events.find((candidate) =>
+          result
+            ? candidate.id === result.event?.id
+            : (windowSaved || ticketSalesSaved) && candidate.slug === slug,
+        )
         if (!event) {
           throw new HttpError(503, 'El estado se guardó, pero no se pudo volver a leer.')
         }
 
-        res.json({ event, events, statusOverridden: result.statusOverridden === true })
+        res.json({ event, events, statusOverridden: result?.statusOverridden === true })
       } catch (error) {
         next(error)
       }
@@ -1159,12 +2012,13 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
    */
   router.post(
     '/:eventSlug/logo/upload-url',
-    ...editGuard,
+    ...scopedEditGuard,
     staffLimiter,
     validateBody(logoUploadSchema),
     async (req, res, next) => {
       try {
         const slug = parseEventSlug(req.params.eventSlug)
+        assertEventAccess(req, { slug })
         const client = requireSupabaseClient(getSupabaseAdmin())
         const found = assertSupabaseResult(
           await client.from('events').select('id').eq('slug', slug).maybeSingle(),
@@ -1187,12 +2041,13 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
 
   router.patch(
     '/:eventSlug/logo',
-    ...editGuard,
+    ...scopedEditGuard,
     staffLimiter,
     validateBody(logoSetSchema),
     async (req, res, next) => {
       try {
         const slug = parseEventSlug(req.params.eventSlug)
+        assertEventAccess(req, { slug })
         const { path } = req.validatedBody
         const client = requireSupabaseClient(getSupabaseAdmin())
         const found = assertSupabaseResult(
@@ -1222,7 +2077,45 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
         const events = await readEvents(client)
         const event = events.find((candidate) => candidate.id === found.id)
         if (!event) throw new HttpError(503, 'El logo se guardó, pero no se pudo volver a leer.')
-        res.json({ event, events })
+        res.json({ event, events: filterEventsForScope(req, events) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
+   * URL firmada para el hero de la landing (`event-media`). La ruta queda en
+   * `rules.landing.slots.heroImagePath` al guardar el evento (merge de landing);
+   * acá solo se emite la subida. No toca `updated_at`.
+   */
+  router.post(
+    '/:eventSlug/hero/upload-url',
+    ...scopedEditGuard,
+    staffLimiter,
+    validateBody(logoUploadSchema),
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        assertEventAccess(req, { slug })
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const found = assertSupabaseResult(
+          await client.from('events').select('id').eq('slug', slug).maybeSingle(),
+          'No se pudo leer el evento.',
+        )
+        if (!found) throw new HttpError(404, 'El evento no existe.')
+
+        const extension = EVENT_LOGO_EXTENSIONS[req.validatedBody.contentType]
+        const path = `${found.id}/hero-${Date.now()}.${extension}`
+        const signed = assertSupabaseResult(
+          await client.storage.from(EVENT_MEDIA_BUCKET).createSignedUploadUrl(path),
+          'No se pudo preparar la carga del hero.',
+        )
+        res.json({
+          path,
+          token: signed.token,
+          url: eventHeroImagePublicUrl(client, path),
+        })
       } catch (error) {
         next(error)
       }
@@ -1276,7 +2169,11 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       // una base sin la columna (migración pendiente) no puede frenar el borrado.
       let logoPath = null
       try {
-        const logoRow = await client.from('events').select('logo_path').eq('slug', slug).maybeSingle()
+        const logoRow = await client
+          .from('events')
+          .select('logo_path')
+          .eq('slug', slug)
+          .maybeSingle()
         logoPath = logoRow?.data?.logo_path ?? null
       } catch {
         logoPath = null
@@ -1324,11 +2221,12 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
    */
   router.get(
     '/:eventSlug/schedule',
-    ...registrationsViewGuard,
+    ...scopedRegistrationsViewGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
         const slug = parseEventSlug(req.params.eventSlug)
+        assertEventAccess(req, { slug })
         const client = requireSupabaseClient(getSupabaseAdmin())
         const schedule = assertSupabaseResult(
           await client.rpc('staff_get_event_schedule', { p_event_slug: slug }),
@@ -1344,12 +2242,13 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   /** Alta/edición de tandas. Reemplaza el set completo del evento. */
   router.post(
     '/:eventSlug/sessions',
-    ...editGuard,
+    ...scopedEditGuard,
     staffLimiter,
     validateBody(eventSessionsSchema),
     async (req, res, next) => {
       try {
         const slug = parseEventSlug(req.params.eventSlug)
+        assertEventAccess(req, { slug })
         const client = requireSupabaseClient(getSupabaseAdmin())
         const schedule = assertSupabaseResult(
           await client.rpc('staff_save_event_sessions', {
@@ -1358,6 +2257,130 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
           }),
           'No se pudieron guardar las tandas.',
+        )
+        res.json({ schedule })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /** Plantillas de grilla de la organización del evento. */
+  router.get(
+    '/:eventSlug/grid-templates',
+    ...registrationsViewGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const templates = assertSupabaseResult(
+          await client.rpc('staff_list_grid_templates', { p_event_slug: slug }),
+          'No se pudieron leer las plantillas de grilla.',
+        )
+        res.json({ templates })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /** Guarda una plantilla; con un nombre existente la pisa. */
+  router.post(
+    '/:eventSlug/grid-templates',
+    ...editGuard,
+    staffLimiter,
+    validateBody(gridTemplateSchema),
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const templates = assertSupabaseResult(
+          await client.rpc('staff_save_grid_template', {
+            p_event_slug: slug,
+            p_name: req.validatedBody.name,
+            p_config: req.validatedBody.config,
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          }),
+          'No se pudo guardar la plantilla.',
+        )
+        res.json({ templates })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.delete(
+    '/:eventSlug/grid-templates/:templateId',
+    ...editGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const templateId = z.string().uuid().safeParse(req.params.templateId)
+        if (!templateId.success) {
+          res.status(400).json({ error: 'La plantilla indicada no es válida.' })
+          return
+        }
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const templates = assertSupabaseResult(
+          await client.rpc('staff_delete_grid_template', {
+            p_event_slug: slug,
+            p_template_id: templateId.data,
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          }),
+          'No se pudo borrar la plantilla.',
+        )
+        res.json({ templates })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /** Publica o retira la grilla del sitio oficial. Arranca apagada. */
+  router.post(
+    '/:eventSlug/schedule-public',
+    ...editGuard,
+    staffLimiter,
+    validateBody(eventSchedulePublicSchema),
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const result = assertSupabaseResult(
+          await client.rpc('staff_set_event_schedule_public', {
+            p_event_slug: slug,
+            p_public: req.validatedBody.public,
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          }),
+          'No se pudo cambiar la visibilidad de la grilla.',
+        )
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /** Tablados del evento (nombre editable). Reemplaza el set completo. */
+  router.post(
+    '/:eventSlug/platforms',
+    ...editGuard,
+    staffLimiter,
+    validateBody(eventPlatformsSchema),
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const schedule = assertSupabaseResult(
+          await client.rpc('staff_save_event_platforms', {
+            p_event_slug: slug,
+            p_platforms: req.validatedBody.platforms,
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          }),
+          'No se pudieron guardar los tablados.',
         )
         res.json({ schedule })
       } catch (error) {

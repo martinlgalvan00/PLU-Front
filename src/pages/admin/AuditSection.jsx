@@ -16,7 +16,7 @@ import TicketSalesAnalyticsPanel from '../../components/admin/TicketSalesAnalyti
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
 import { auditLabels } from '../../i18n/adminHelpers.js'
-import es from '../../i18n/locales/es.js'
+import es from '../../i18n/locales/esFull.js'
 import { translate } from '../../i18n/translate.js'
 import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 import {

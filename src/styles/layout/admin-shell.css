@@ -31,6 +31,17 @@
   }
 }
 
+/* El panel es una app de pantalla completa: el único scroll es el de
+   `.admin-shell__content`. Si el documento también scrollea, al llegar al final
+   de una tabla larga la rueda encadena al documento, el shell sube y queda un
+   hueco vacío debajo (sidebar y contenido cortados). AdminPage marca <html>. */
+html[data-surface='admin'],
+html[data-surface='admin'] body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 .admin-shell {
   background: var(--color-bg-primary);
   display: flex;
@@ -588,6 +599,26 @@ button.admin-shell__account:hover,
   outline-offset: 2px;
 }
 
+/* Táctil: la cabecera mantiene su escala (íconos de 36px, idioma de 26px) y
+   lo que crece es el área que recibe el toque, hasta los 44px de alto. */
+@media (pointer: coarse) {
+  .admin-shell__icon-button {
+    position: relative;
+  }
+
+  .admin-shell__icon-button::after {
+    content: '';
+    inset: -4px;
+    position: absolute;
+  }
+
+  .admin-shell__header-actions .locale-switch__segment-option::after {
+    content: '';
+    inset: -9px 0;
+    position: absolute;
+  }
+}
+
 /* ---- Drawer (teléfono) ---- */
 
 .admin-shell__drawer .ant-drawer-content,
@@ -796,6 +827,7 @@ button.admin-shell__account:hover,
   flex-direction: column;
   min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .admin-shell__main {

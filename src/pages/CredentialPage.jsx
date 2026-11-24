@@ -4,7 +4,8 @@ import { AlertTriangle, CheckCircle2, HelpCircle, RefreshCw, WifiOff, XCircle } 
 import { BRAND } from '../lib/brand.js'
 import { documentKind, formatShortDate, initials } from '../lib/format.js'
 import { formatScheduleSummary, formatSessionDetail } from '../lib/eventSchedule.js'
-import { getStatusMeta, isGateAccessReady, isRegistrationAdmitted } from '../lib/status.js'
+import { describeDoorCredential } from '../lib/athleteCredential.js'
+import { getStatusMeta, isRegistrationAdmitted } from '../lib/status.js'
 import { isPreviewCredentialCode } from '../lib/credentialQr.js'
 import { useCredentialVerification } from '../hooks/useCredentialVerification.js'
 import { useContent } from '../hooks/useContent.js'
@@ -13,8 +14,8 @@ import { formatCacheAge } from '../services/credentialCache.js'
 import { verifyTicketByQrToken } from '../services/ticketApi.js'
 import { zoneScopeLabel } from '../components/ui/TicketTypeOptions.jsx'
 import { getMembershipByCodeOrToken } from '../services/athleteApi.js'
-import { isMembershipCurrent } from '../services/membershipService.js'
 import { ticketValidityStatus } from '../lib/ticketValidity.js'
+import { speakDoorCode } from '../lib/doorCodeSpeech.js'
 
 const VERDICT_META = {
   valid: {
@@ -391,7 +392,13 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
   // cron que la pasa a "vencida" no corrió (ver expire_memberships()) --
   // no confiamos solo en el campo cacheado, comparamos la fecha en vivo
   // contra "ahora" para que el veredicto en la puerta sea siempre correcto.
-  const membershipCurrent = isMembershipCurrent(membership)
+  const door = describeDoorCredential({
+    membership,
+    registration,
+    registrations,
+    eventSlug,
+  })
+  const membershipCurrent = door.membershipCurrent
   const membershipExpiredLive =
     Boolean(membership?.expirationDate) && new Date(membership.expirationDate) < new Date()
   const membershipMeta = membership
@@ -401,36 +408,8 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
   // Inscripciones a mostrar cuando el QR se escaneó sin `?evento=`: antes ese
   // caso no traía ninguna y la puerta se quedaba sin nada que hacer.
   const otherRegistrations = eventSlug ? [] : registrations
-
-  const registrationRequiresMembership = Boolean(registration?.requiresMembership)
-  const gateReady = registration
-    ? isGateAccessReady({
-        registrationStatus: registration.status,
-        requiresMembership: registrationRequiresMembership,
-        membershipCurrent,
-      })
-    : false
-
-  // Veredicto general que se muestra arriba de todo, grande, para un
-  // vistazo rápido. Si el meet exige afiliación y todavía no está vigente,
-  // baja a "revisar" aunque la inscripción figure confirmada.
-  let verdict = 'unknown'
-  if (eventSlug) {
-    const registrationOk = registration && registrationMeta.tone === 'success'
-    if (registrationOk && gateReady) {
-      verdict = 'valid'
-    } else if (registration) {
-      verdict = 'warning'
-    } else {
-      verdict = 'unknown'
-    }
-  } else if (membershipMeta?.tone === 'success' && membershipCurrent) {
-    verdict = 'valid'
-  } else if (otherRegistrations.some((item) => getStatusMeta(item.status).tone === 'success')) {
-    verdict = 'valid'
-  } else {
-    verdict = 'warning'
-  }
+  const verdict = door.verdict
+  const gateFor = (item) => door.gates.find((gate) => gate.registration.id === item?.id)
 
   // Con datos diferidos el veredicto no puede presentarse como fresco: se
   // baja a "revisar" y la franja de arriba explica por qué.
@@ -449,11 +428,7 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
     !isStale &&
     Boolean(item) &&
     !item.checkedInAt &&
-    isGateAccessReady({
-      registrationStatus: item.status,
-      requiresMembership: Boolean(item.requiresMembership),
-      membershipCurrent,
-    })
+    Boolean(gateFor(item)?.ready)
   const canCheckIn = isCheckInable(registration)
 
   const membershipMetaLine = membership
@@ -507,7 +482,6 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
       verdictIcon={Icon}
       verdictLabel={verdictLabel}
       verdictClass={verdictClass}
-      code={code}
       verifiedAt={verifiedAt}
     >
       <div className="credential-page__body">
@@ -520,16 +494,19 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
             {membership?.memberCode ? (
               <p className="credential-page__member-code">
                 <span className="credential-page__member-code-label">Nº de socio</span>
-                <span className="credential-page__member-code-value">{membership.memberCode}</span>
+                <span className="credential-page__door-code-value">{membership.memberCode}</span>
+                <span className="credential-page__gate-hint">
+                  Si no pueden escanear el QR, decí este número. Es la misma credencial.
+                </span>
               </p>
             ) : null}
           </div>
         </div>
 
-        <IdentityFacts facts={buildAthleteIdentityFacts(athlete)} />
-
-        {/* Escaneo con evento: la grilla de esa inscripción manda. */}
+        {/* Escaneo con evento: la grilla de esa inscripción es el acceso. */}
         {eventSlug && registration && <ScheduleBlock registration={registration} showEventTitle />}
+
+        <IdentityFacts facts={buildAthleteIdentityFacts(athlete)} />
 
         <dl className="credential-page__rows">
           <div className="credential-page__row">
@@ -631,16 +608,17 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
           </p>
         )}
 
-        {eventSlug &&
-          registration &&
-          isRegistrationAdmitted(registration.status) &&
-          registrationRequiresMembership &&
-          !membershipCurrent &&
-          !registration.checkedInAt && (
-            <p className="credential-page__alert" role="status">
-              Cupo reservado. Falta afiliación activa para habilitar el ingreso.
-            </p>
-          )}
+        {door.gates.some(
+          (gate) =>
+            isRegistrationAdmitted(gate.registration.status) &&
+            gate.requiresMembership &&
+            !membershipCurrent &&
+            !gate.registration.checkedInAt,
+        ) && (
+          <p className="credential-page__alert" role="status">
+            Cupo reservado. Falta afiliación activa para habilitar el ingreso.
+          </p>
+        )}
 
         {canCheckIn && (
           <button
@@ -824,7 +802,6 @@ function TicketCredential({ code, onCheckIn }) {
       verdictIcon={Icon}
       verdictLabel={verdictLabel}
       verdictClass={verdictClass}
-      code={code}
       verifiedAt={verifiedAt}
     >
       <div className="credential-page__body">
@@ -834,6 +811,22 @@ function TicketCredential({ code, onCheckIn }) {
           <AthletePortrait name={ticket.attendeeName} photoUrl={null} />
           <div className="credential-page__identity-hero-copy">
             <p className="credential-page__athlete-name">{ticket.attendeeName}</p>
+            {ticket.gateCode ? (
+              <p className="credential-page__member-code">
+                <span className="credential-page__member-code-label">Código de puerta</span>
+                <span className="credential-page__door-code-value">{ticket.gateCode}</span>
+                <span className="credential-page__gate-hint">
+                  Si no pueden escanear el QR, cantale este código a seguridad.
+                </span>
+                <button
+                  type="button"
+                  className="credential-page__text-action"
+                  onClick={() => speakDoorCode(ticket.gateCode)}
+                >
+                  Cantar código
+                </button>
+              </p>
+            ) : null}
             {ticket.ticketCode ? (
               <p className="credential-page__member-code">
                 <span className="credential-page__member-code-label">Entrada</span>
@@ -843,25 +836,8 @@ function TicketCredential({ code, onCheckIn }) {
           </div>
         </div>
 
-        <IdentityFacts
-          facts={[
-            ticket.attendeeDni ? { label: 'Documento', value: ticket.attendeeDni } : null,
-            // El tipo baja a dato: una compra de entrenador emite dos
-            // credenciales del mismo tipo, así que acá abajo ubica y arriba
-            // confundiría.
-            ticket.ticketTypeName
-              ? { label: 'Tipo de entrada', value: ticket.ticketTypeName }
-              : null,
-          ].filter(Boolean)}
-        />
-
-        {/* La entrada es un pase de un solo uso, no una identidad: lo que
-            manda es a qué da acceso, y por eso ocupa el lugar que en la
-            credencial de atleta ocupa la grilla.
-            Lo que se muestra es la CREDENCIAL, no el tipo: una entrada de
-            entrenador emite "Espectador" y "ENTRENADOR", y mostrar el nombre
-            del tipo las dejaba idénticas — el mismo problema que la puerta ya
-            tenía resuelto. */}
+        {/* La entrada es un pase de un solo uso: después de la persona y el
+            código, lo que manda es a qué da acceso. */}
         <div className="credential-page__schedule-block">
           <span className="credential-page__schedule-eyebrow">Acceso</span>
           <p className="credential-page__schedule-day">
@@ -881,6 +857,15 @@ function TicketCredential({ code, onCheckIn }) {
             </ul>
           ) : null}
         </div>
+
+        <IdentityFacts
+          facts={[
+            ticket.attendeeDni ? { label: 'Documento', value: ticket.attendeeDni } : null,
+            ticket.ticketTypeName
+              ? { label: 'Tipo de entrada', value: ticket.ticketTypeName }
+              : null,
+          ].filter(Boolean)}
+        />
 
         <dl className="credential-page__rows">
           <div className="credential-page__row">

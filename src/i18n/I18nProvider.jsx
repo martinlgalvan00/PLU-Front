@@ -1,6 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useContext, useEffect, useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { I18nContext } from './context.js'
+import {
+  getAdminMessagesSnapshot,
+  loadAdminMessages,
+  subscribeAdminMessages,
+} from './adminMessages.js'
 import es from './locales/es.js'
 import { translate } from './translate.js'
 import { documentLangForLocale } from '../lib/localDateTime.js'
@@ -19,6 +24,7 @@ function getInitialLocale() {
 }
 
 const initialLocale = getInitialLocale()
+
 syncDocumentLocale(initialLocale)
 
 export function I18nProvider({ children }) {
@@ -26,6 +32,22 @@ export function I18nProvider({ children }) {
   // en.js (~79 KB + admin.en.js) solo se descarga si el usuario elige inglés;
   // mientras carga se muestra español para no bloquear el primer render.
   const [enMessages, setEnMessages] = useState(null)
+  // Textos del panel: se cargan aparte (ver adminMessages.js). La foto entra
+  // al diccionario: si solo se escucha el aviso y el memo no depende de ella,
+  // el primer render (sin textos) queda cacheado y el panel muestra las claves.
+  const adminSnapshot = useSyncExternalStore(
+    subscribeAdminMessages,
+    getAdminMessagesSnapshot,
+    getAdminMessagesSnapshot,
+  )
+
+  // Con el panel ya abierto en español, pasar a inglés pide sus textos.
+  useEffect(() => {
+    if (locale !== 'en' || !adminSnapshot.es || adminSnapshot.en) return
+    loadAdminMessages('en').catch(() => {
+      // Sin red queda el español del panel como respaldo.
+    })
+  }, [locale, adminSnapshot])
 
   useEffect(() => {
     if (locale !== 'en' || enMessages) return undefined
@@ -39,7 +61,9 @@ export function I18nProvider({ children }) {
   }, [locale, enMessages])
 
   const value = useMemo(() => {
-    const messages = locale === 'en' ? (enMessages ?? es) : es
+    const base = locale === 'en' ? (enMessages ?? es) : es
+    const admin = adminSnapshot[locale] ?? adminSnapshot.es
+    const messages = admin ? { ...base, admin } : base
 
     function setLocale(next) {
       if (next !== 'es' && next !== 'en') return
@@ -53,7 +77,7 @@ export function I18nProvider({ children }) {
     }
 
     return { locale, setLocale, t, messages }
-  }, [locale, enMessages])
+  }, [locale, enMessages, adminSnapshot])
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }

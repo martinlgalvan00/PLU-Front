@@ -60,7 +60,19 @@ function clientKey(req) {
  *   poco (login, checkout, código de acceso); `sampled` acumula y sincroniza por
  *   lotes, para el volumen alto donde interesa frenar abuso, no contar exacto.
  */
-function buildLimiter(windowMs, limit, message, { name, mode = 'sampled' } = {}) {
+/**
+ * Vitest corre con NODE_ENV=test. El server de Playwright no puede (con
+ * NODE_ENV=test `app.js` deja sin cliente admin de Supabase), así que lo pide
+ * con E2E_DISABLE_AUTH_RATE_LIMIT; con APP_PRODUCTION=true se ignora.
+ */
+function isAuthRateLimitSkipped() {
+  if (process.env.NODE_ENV === 'test') return true
+  return (
+    process.env.E2E_DISABLE_AUTH_RATE_LIMIT === 'true' && process.env.APP_PRODUCTION !== 'true'
+  )
+}
+
+function buildLimiter(windowMs, limit, message, { name, mode = 'sampled', skipInTest = false } = {}) {
   return rateLimit({
     windowMs,
     limit,
@@ -69,6 +81,10 @@ function buildLimiter(windowMs, limit, message, { name, mode = 'sampled' } = {})
     keyGenerator: clientKey,
     message: { error: message },
     store: name ? createSharedStore({ name, mode }) : undefined,
+    // La suite entra decenas de veces desde la misma IP. El cupo de producción
+    // (20 logins / 15 min) corta el archivo de eventos con 429 antes de llegar
+    // al caso. En producción el skip no aplica.
+    skip: skipInTest ? isAuthRateLimitSkipped : undefined,
   })
 }
 
@@ -77,7 +93,7 @@ export const authLimiter = buildLimiter(
   15 * 60 * 1000,
   20,
   'Demasiados intentos. Proba de nuevo en unos minutos.',
-  { name: 'auth', mode: 'strict' },
+  { name: 'auth', mode: 'strict', skipInTest: true },
 )
 
 /**
@@ -96,7 +112,7 @@ export const athleteAuthLimiter = buildLimiter(
   15 * 60 * 1000,
   40,
   'Demasiados intentos. Proba de nuevo en unos minutos.',
-  { name: 'athlete-auth', mode: 'strict' },
+  { name: 'athlete-auth', mode: 'strict', skipInTest: true },
 )
 
 // Escritura pública sin auth: registro de atleta, alta de orden de membresía.
@@ -126,6 +142,15 @@ export const ticketOrderLookupLimiter = buildLimiter(
   15,
   'Demasiados intentos. Proba de nuevo en unos minutos.',
   { name: 'ticket-order-lookup', mode: 'strict' },
+)
+
+// Entradas de la cuenta logueada. No comparte el balde corto del lookup
+// público: quien ya tiene sesión no está adivinando una referencia.
+export const ticketMineLimiter = buildLimiter(
+  60 * 1000,
+  60,
+  'Demasiadas solicitudes. Proba de nuevo en un momento.',
+  { name: 'ticket-mine', mode: 'sampled' },
 )
 
 // Lecturas públicas sin auth (verificación de QR, estado de pago con
@@ -298,17 +323,18 @@ export const scanTelemetryLimiter = buildLimiter(
 )
 
 /**
- * Verificación por código en la puerta (código de 6 dígitos, número de entrada
- * o DNI). Límite propio y más corto que `staffLimiter`: es la única ruta staff
- * donde un atacante con una sesión de puerta podría probar códigos al azar. El
- * volumen alcanza para varias puertas detrás del mismo wifi del venue (la clave
- * es la IP) cargando a mano todo el día, y corta un barrido de miles.
+ * Lookup del código hablado XXX-XXX. No comparte balde con el resto del
+ * panel: una cuenta que pruebe códigos no tiene que dejar sin cupo al escaneo
+ * de QR, y el QR no tiene que poder esconder una ráfaga contra este alias.
+ * El freno por cuenta (doorCodeAttempts) corta antes que este techo de IP.
+ * La búsqueda por DNI o número de entrada (`POST /checkin/lookup`) usa este
+ * mismo balde: todo lo que se tipea en la puerta comparte un presupuesto.
  */
-export const doorLookupLimiter = buildLimiter(
+export const doorCodeLookupLimiter = buildLimiter(
   60 * 1000,
-  60,
-  'Demasiadas búsquedas por código. Esperá un minuto.',
-  { name: 'door-lookup', mode: 'strict' },
+  90,
+  'Demasiados códigos de puerta. Esperá un momento y reintentá.',
+  { name: 'door-code', mode: 'sampled' },
 )
 
 // Todo lo staff-only: ya protegido por rol (requireRole), este límite es

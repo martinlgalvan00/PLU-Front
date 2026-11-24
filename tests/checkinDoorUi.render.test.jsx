@@ -56,15 +56,19 @@ describe('AdminQrScanner: cámara', () => {
     expect((await screen.findByRole('alert')).textContent).toMatch(/no encontramos una cámara/i)
   })
 
-  it('con la cámara ocupada ofrece reintentar y vuelve a pedirla', async () => {
+  it('con la cámara ocupada prueba tres veces y deja cargar el código', async () => {
     getUserMedia.mockRejectedValue(named('NotReadableError'))
     renderScanner()
 
-    expect((await screen.findByRole('alert')).textContent).toMatch(/en uso/i)
-    expect(getUserMedia).toHaveBeenCalledTimes(1)
+    // Tres intentos solos y después el puesto sigue por el código, no por un botón
+    // que desaparece con el cambio de modo.
+    expect(await screen.findByText(/no abrió después de 3 intentos/i)).toBeTruthy()
+    expect(getUserMedia).toHaveBeenCalledTimes(3)
+    expect(screen.getByRole('tab', { name: /manual/i }).getAttribute('aria-selected')).toBe('true')
 
-    fireEvent.click(screen.getByRole('button', { name: /reintentar/i }))
-    await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(2))
+    fireEvent.click(screen.getByRole('tab', { name: /cámara/i }))
+    await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(6), { timeout: 3000 })
+    expect(await screen.findByText(/no abrió después de 3 intentos/i)).toBeTruthy()
   })
 
   it('ofrece la linterna sólo si la cámara la declara y la prende con aplicarConstraints', async () => {
@@ -120,6 +124,14 @@ describe('AdminOfflineSyncStatus: sesión vencida', () => {
     expect(alert.textContent).toMatch(/no se pierden/i)
   })
 
+  it('volver a entrar avisa y no toca la cola desde este aviso', () => {
+    const reenter = vi.fn()
+    withI18n(<AdminOfflineSyncStatus {...props} onReauthenticate={reenter} syncIssue="auth" />)
+    fireEvent.click(screen.getByRole('button', { name: /volver a entrar/i }))
+    expect(reenter).toHaveBeenCalledTimes(1)
+    expect(screen.getByText(/3 ingreso/i)).toBeTruthy()
+  })
+
   it('sin problema de sesión no muestra el aviso', () => {
     withI18n(<AdminOfflineSyncStatus {...props} syncIssue={null} />)
     expect(screen.queryByRole('alert')).toBeNull()
@@ -128,6 +140,72 @@ describe('AdminOfflineSyncStatus: sesión vencida', () => {
   it('sin pendientes no hay nada que avisar', () => {
     withI18n(<AdminOfflineSyncStatus {...props} pendingCount={0} syncIssue="auth" />)
     expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('sin internet avisa que el ingreso quedó en el teléfono y muestra el QR', () => {
+    withI18n(
+      <AdminOfflineSyncStatus
+        {...props}
+        isOnline={false}
+        pendingCount={1}
+        queueLog={[{ localId: '1', label: 'TCK-1', status: 'pending' }]}
+      />,
+    )
+    expect(screen.getByRole('status').textContent).toMatch(/este teléfono/i)
+    expect(screen.getByText('TCK-1')).toBeTruthy()
+    expect(screen.getByText('En cola')).toBeTruthy()
+  })
+
+  it('sin internet la cola queda a la vista y no se puede sincronizar', () => {
+    const reload = vi.fn()
+    withI18n(
+      <AdminOfflineSyncStatus
+        {...props}
+        isOnline={false}
+        onReloadAndSync={reload}
+        pendingCount={1}
+        queueLog={[{ localId: '1', label: 'Ana Torres', gate: 'Puerta', at: '2026-10-30T18:00:00.000Z', status: 'pending' }]}
+        workList
+      />,
+    )
+    expect(screen.getByText('Ana Torres')).toBeTruthy()
+    expect(screen.getByText('En cola')).toBeTruthy()
+    expect(screen.getByText(/Puerta/)).toBeTruthy()
+    const button = screen.getByRole('button', { name: /volver a cargar y sincronizar/i })
+    expect(button.disabled).toBe(true)
+    fireEvent.click(button)
+    expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('con señal, volver a cargar sincroniza la cola', () => {
+    const reload = vi.fn()
+    withI18n(
+      <AdminOfflineSyncStatus
+        {...props}
+        isOnline
+        onReloadAndSync={reload}
+        pendingCount={1}
+        queueLog={[{ localId: '2', label: 'Luis Gómez', status: 'pending' }]}
+        syncIssue="auth"
+        workList
+      />,
+    )
+    expect(screen.getByText('Sin sesión')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /volver a cargar y sincronizar/i }))
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('al volver la señal se puede ver qué QR ya se registró', () => {
+    withI18n(
+      <AdminOfflineSyncStatus
+        {...props}
+        pendingCount={0}
+        queueLog={[{ localId: '9', label: 'TCK-9', status: 'synced' }]}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /ingresos de este teléfono/i }))
+    expect(screen.getByText('TCK-9')).toBeTruthy()
+    expect(screen.getByText('Enviado')).toBeTruthy()
   })
 })
 

@@ -36,6 +36,7 @@ export default function TicketPassPreview({
   date = '',
   dayPassLabel = '',
   eventSlug = '',
+  displayCode = '',
   eventTitle = '',
   interactive = true,
   live = false,
@@ -66,6 +67,7 @@ export default function TicketPassPreview({
     [qrCode, seed],
   )
   const isPreviewQr = !qrCode
+  const printedCode = displayCode || (isPreviewQr ? previewCode : '')
 
   useEffect(() => {
     let cancelled = false
@@ -130,6 +132,7 @@ export default function TicketPassPreview({
       className={[
         'ticket-pass-preview',
         !isPreviewQr ? 'ticket-pass-preview--ready' : '',
+        live ? 'ticket-pass-preview--live' : '',
         interactive && canTilt ? 'ticket-pass-preview--interactive' : '',
       ]
         .filter(Boolean)
@@ -195,7 +198,9 @@ export default function TicketPassPreview({
                   </span>
                 ) : null}
               </div>
-              <span className="ticket-pass-preview__code">{previewCode}</span>
+              {printedCode ? (
+                <span className="ticket-pass-preview__code">{printedCode}</span>
+              ) : null}
             </footer>
           </div>
 
@@ -207,7 +212,7 @@ export default function TicketPassPreview({
             </span>
             <div className="ticket-pass-preview__qr" aria-hidden>
               {qrSrc ? (
-                <img src={qrSrc} alt="" className="ticket-pass-preview__qr-img" />
+                <img src={qrSrc} alt="" className="ticket-pass-preview__qr-img" decoding="async" />
               ) : (
                 <span className="ticket-pass-preview__qr-fallback">
                   <QrCode size={44} strokeWidth={1.5} />

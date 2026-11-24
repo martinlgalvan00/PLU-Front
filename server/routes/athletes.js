@@ -17,6 +17,11 @@ import { PUBLIC_PORTRAIT_CACHE_CONTROL, sendPortraitBinary } from '../lib/portra
 import { touchProofAccessed } from '../modules/payments/paymentProofRetention.js'
 import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
 import { promotionCodeAllowsChannel } from '../../shared/promotionPaymentChannels.js'
+import { EQUIPMENT_TYPES, competitionProfileFieldsChanged } from '../../shared/competitionLexicon.js'
+import {
+  canonicalDeclaredWeightClass,
+  isDeclaredWeightClassForSex,
+} from '../../shared/pluWeightClasses.js'
 
 // Solo hace falta resolver la fecha del evento cuando el gate va a mirarla:
 // en produccion y sin kill switch. Evita una consulta a Supabase de mas en
@@ -26,6 +31,8 @@ async function resolveScopedRegistrationOpensAt(env, supabase, eventSlug) {
   return resolveEventRegistrationOpensAt(supabase, { eventSlug })
 }
 import { validateBody } from '../lib/validate.js'
+import { REGISTRATION_IMPORT_BATCH_SIZE } from '../../shared/registrationSheet.js'
+import { runRegistrationSheetImport } from '../services/registrationSheetImport.js'
 import { requirePermission } from '../middleware/auth.js'
 import { readSessionFromRequest } from '../services/sessionService.js'
 import {
@@ -54,6 +61,10 @@ import {
   wisePriceFor,
 } from '../modules/pricing/checkoutPricePolicy.js'
 import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
+import {
+  createEventCredentialNotificationService,
+  createEventCredentialRepository,
+} from '../modules/notifications/eventCredentialNotificationService.js'
 import {
   buildPaymentConfirmationParams,
   displayPaymentConcept,
@@ -94,9 +105,16 @@ import {
   EMAIL_OTP_TTL_MS,
 } from '../services/emailVerificationOtp.js'
 import {
+  assertAthleteOwnsDocumentPath,
   assertAthleteOwnsPath,
   createSupabaseAthleteRepository,
 } from '../modules/athletes/supabaseAthleteRepository.js'
+import {
+  buildMembershipCertificate,
+  MEMBERSHIP_CERTIFICATE_NOT_CURRENT,
+  membershipCertificateNow,
+} from '../modules/athletes/membershipCertificate.js'
+import { assertAthleteOrderInScope } from '../modules/events/orderEventScope.js'
 import {
   PROFILE_NOTICE_BULK_MAX,
   PROFILE_NOTICE_MESSAGE_MAX,
@@ -105,6 +123,50 @@ import {
   sendProfileNoticesBulk,
 } from '../modules/athletes/profileNoticeService.js'
 import { athleteProfileFromRow } from '../../shared/athleteProfile.js'
+import {
+  ATHLETE_DOCUMENT_KIND_LABELS,
+  ATHLETE_DOCUMENT_PDF_MAX_BYTES,
+  ATHLETE_DOCUMENT_PDF_TOO_LARGE_MESSAGE,
+  ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES,
+  documentPackGate,
+  isSafeAthleteDocumentPath,
+} from '../../shared/athleteDocuments.js'
+import { membershipFileStatus } from '../../shared/membershipFile.js'
+import { COMPETITION_DIVISIONS } from '../../shared/ageDivision.js'
+import { offeringFromRules, validateSelectionAgainstOffering } from '../../shared/eventOffering.js'
+import { isAnnounceOnly } from '../../shared/registrationSaleState.js'
+import { EVENT_MODULE_DISABLED, isStoredEventModuleOn } from '../../shared/eventModules.js'
+import { resolveRegistrationDeclaredTotals } from '../../shared/declaredMeetTotal.js'
+import {
+  BODYWEIGHT_KG_RANGE,
+  REGISTRATION_REQUIRED_MESSAGES,
+} from '../../shared/registrationRequirements.js'
+import {
+  normalizeModalities,
+  normalizeRegistrationCategories,
+  priceRegistrationSelection,
+  registrationCategoryCount,
+  validateDivisionSelection,
+  validateModalities,
+} from '../../shared/registrationSelection.js'
+import {
+  buildAdminExportRows,
+  buildPluUsaExportRows,
+  serializeCsv,
+  serializeSpreadsheet,
+} from '../../shared/exportRows.js'
+import {
+  buildLiftersExportRows,
+  buildLiftersReadiness,
+  filterLiftersRowsByCompleteness,
+  liftersRowsForSpreadsheet,
+  liftersImportColumnsMissing,
+  normalizeLiftersExportOptions,
+  resolveLiftersColumnKeys,
+  serializeLiftersSpreadsheet,
+  summarizeLifterMeet,
+  validateLifterExport,
+} from '../../shared/liftersExport.js'
 import { createSupabaseRegistrationAccessRepository } from '../modules/registrationAccess/supabaseRegistrationAccessRepository.js'
 import {
   assertComboAccessCode,
@@ -131,7 +193,9 @@ import {
   applyEventPaymentChannelOverrides,
   assertEventPaymentChannelEnabled,
   resolveBankTransferDetails,
+  resolveCashPaymentDetails,
 } from '../modules/payments/eventPaymentProfile.js'
+import { applyEventChannelOpens } from '../../src/lib/eventPaymentChannels.js'
 import { createSupabasePaymentProfileRepository } from '../modules/payments/supabasePaymentProfileRepository.js'
 import { resolveMercadoPagoPublicKeyForProfileId } from '../modules/payments/mercadoPagoProfileRuntime.js'
 import {
@@ -144,8 +208,7 @@ import {
   revokeAthleteSession,
 } from '../services/athleteSessionService.js'
 
-const COMPETITION_DIVISIONS = ['Open', 'Youth', 'Junior', 'Sub-Masters', 'Masters']
-const COMPETITION_CATEGORIES = ['Raw', 'Raw With Wraps', 'Single-Ply', 'Multi-Ply', 'Unlimited']
+const COMPETITION_CATEGORIES = EQUIPMENT_TYPES
 
 function todayInBuenosAires() {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -295,6 +358,8 @@ const updateSchema = z.object({
       'Ingresá sólo tu usuario de Instagram, sin espacios ni enlace.',
     ),
   bestTotalKg: optionalDeclaredBestTotal,
+  firstMeet: z.boolean().optional().default(false),
+  trainingBestTotalKg: optionalDeclaredBestTotal,
   division: z.enum(COMPETITION_DIVISIONS),
   category: z.enum(COMPETITION_CATEGORIES),
   estimatedWeight: z.preprocess((value) => {
@@ -309,6 +374,8 @@ const updateSchema = z.object({
   fullName: z.string().trim().min(3).max(160).optional(),
   birthDate: birthDateSchema.optional(),
   country: z.string().trim().min(2).max(80).optional(),
+  streetAddress: z.string().trim().max(200).optional().default(''),
+  postalCode: z.string().trim().max(20).optional().default(''),
   // Puede faltar en cuentas creadas antes de que existiera el perfil
   // competitivo. Es editable sólo para completar ese requisito de inscripción.
   sex: z.enum(['Masculino', 'Femenino']).optional(),
@@ -329,8 +396,32 @@ const orderSchema = z.object({
 const registrationSchema = z.object({
   eventSlug: z.string().trim().min(1),
   division: z.enum(COMPETITION_DIVISIONS),
+  // Segunda división (Open al 50%). Se normaliza y valida contra la edad en la ruta.
+  secondaryDivision: z.enum(COMPETITION_DIVISIONS).optional(),
+  // Obligatoria, aunque el esquema la deje pasar: sin el campo antes se daba
+  // por Full Power sin que nadie la eligiera. Faltante, vacía, desconocida o
+  // redundante la rechaza `validateModalities` con un código claro (422).
+  modalities: z.array(z.string().trim().max(24)).max(5).optional(),
   category: z.enum(COMPETITION_CATEGORIES),
-  bodyweightKg: z.number().min(10).max(250).nullable().optional(),
+  // Submission permite competir en varias categorías. `category` se conserva
+  // como la primera por compatibilidad con el padrón histórico.
+  categories: z.array(z.enum(COMPETITION_CATEGORIES)).min(1).max(5).optional(),
+  // El peso corporal es obligatorio: sin él no se puede ubicar al atleta ni validar el pesaje.
+  bodyweightKg: z
+    .number({
+      error: REGISTRATION_REQUIRED_MESSAGES.bodyweightKg,
+    })
+    .min(BODYWEIGHT_KG_RANGE.min, REGISTRATION_REQUIRED_MESSAGES.bodyweightKg)
+    .max(BODYWEIGHT_KG_RANGE.max, REGISTRATION_REQUIRED_MESSAGES.bodyweightKg),
+  declaredWeightClass: z
+    .string({
+      error: 'Seleccioná la categoría de peso en la que vas a competir.',
+    })
+    .trim()
+    .min(1, 'Seleccioná la categoría de peso en la que vas a competir.'),
+  firstMeet: z.boolean().optional().default(false),
+  competitionBestTotalKg: z.union([z.number(), z.string(), z.null()]).optional(),
+  trainingBestTotalKg: z.union([z.number(), z.string(), z.null()]).optional(),
   paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
   idempotencyKey: z
     .string()
@@ -363,6 +454,17 @@ const registrationAccessVerifySchema = z.object({
   code: z.string().trim().min(1).max(72),
 })
 
+function assertRegistrationDeclaredTotals(body) {
+  const resolved = resolveRegistrationDeclaredTotals(body)
+  if (!resolved.ok) {
+    throw new HttpError(422, resolved.message, {
+      code: 'DECLARED_TOTAL_REQUIRED',
+      fields: { [resolved.field]: 'invalid' },
+    })
+  }
+  return resolved
+}
+
 const comboAccessVerifySchema = z.object({
   eventSlug: z.string().trim().min(1).max(120),
   code: z.string().trim().toUpperCase().min(1).max(32),
@@ -384,6 +486,11 @@ const discountPreviewSchema = z.object({
   paymentMethod: z
     .enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer'])
     .optional(),
+  // La segunda división suma el 50% a la base sobre la que se cotiza el cupón.
+  secondaryDivision: z.enum(COMPETITION_DIVISIONS).optional(),
+  categories: z.array(z.enum(COMPETITION_CATEGORIES)).min(1).max(5).optional(),
+  // Cada modalidad extra suma el 50% a la base sobre la que se cotiza el cupón.
+  modalities: z.array(z.string().trim().max(24)).max(5).optional(),
 })
 /**
  * Canje de un código secreto de oferta exclusiva. A diferencia del preview, no
@@ -437,6 +544,25 @@ const staffApplicationUploadSchema = z.object({
     .int()
     .positive()
     .max(5 * 1024 * 1024),
+})
+const documentKindSchema = z.enum([
+  'dni_front',
+  'dni_back',
+  'medical_certificate',
+  'minor_authorization',
+])
+const documentUploadSchema = z.object({
+  kind: documentKindSchema,
+  fileName: z.string().trim().min(1).max(120),
+  contentType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
+  size: z.number().int().positive().max(ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES),
+})
+const registerDocumentSchema = z.object({
+  kind: documentKindSchema,
+  storagePath: z.string().trim().min(8).max(300),
+  contentType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
+  sizeBytes: z.number().int().positive().max(ATHLETE_DOCUMENT_UPLOAD_MAX_BYTES),
+  originalName: z.string().trim().max(120).optional(),
 })
 // `technicalTrainingStatus` se exige en el `.refine` (no en el campo) porque
 // solo aplica al cuerpo técnico — la RPC vuelve a validar esto mismo, pero
@@ -497,6 +623,10 @@ const registrationNotifySchema = z.object({
 // Corrección masiva: el mismo motivo se aplica a todas las filas
 // seleccionadas. Tope de 50 por la misma razón que el aviso por mail — un
 // click no puede tocar de más por error.
+const eventCredentialSendSchema = z.object({
+  dryRun: z.boolean().default(false),
+  resend: z.boolean().default(false),
+})
 const registrationBulkStatusSchema = z.object({
   registrationIds: z.array(z.string().uuid()).min(1).max(50),
   status: z.enum(['confirmada', 'observada', 'cancelada']),
@@ -604,6 +734,20 @@ const adminDataQuerySchema = z.object({
   photos: z.enum(['0', '1']).optional(),
 })
 
+const adminExportQuerySchema = z.object({
+  type: z.enum(['admin', 'plu_usa', 'lifters']).default('admin'),
+  // `json` = preview de completitud (sin archivo). Lifters default xls.
+  format: z.enum(['csv', 'xls', 'json']).default('csv'),
+  eventSlug: z.string().trim().min(1).max(120).optional(),
+  // Studio Lifters (opcionales; ignorados en admin/plu_usa).
+  preset: z.enum(['audit', 'official', 'minimal', 'contact']).optional(),
+  columns: z.string().trim().max(500).optional(),
+  rowFilter: z.enum(['all', 'complete', 'incomplete']).optional(),
+  highlightEmpty: z.enum(['0', '1']).optional(),
+  freezeHeader: z.enum(['0', '1']).optional(),
+  includeSummarySheet: z.enum(['0', '1']).optional(),
+})
+
 const FORGOT_OK_MESSAGE =
   'Si existe una cuenta con ese correo, te enviamos un enlace para restablecer la contraseña.'
 
@@ -637,12 +781,20 @@ function athleteExistsError(availability) {
   return new HttpError(409, message, { code: 'ATHLETE_EXISTS', fields })
 }
 
+/** La UI manda `?v=` con la fecha de carga. Esa URL no cambia hasta el reemplazo. */
+function athleteDocumentCacheControl(req) {
+  return String(req.query?.v ?? '').trim()
+    ? 'private, max-age=86400, immutable'
+    : 'private, max-age=300, stale-while-revalidate=60'
+}
+
 export function createAthleteRoutes({
   getPrisma,
   getSupabaseAdmin,
   repository,
   registrationAccessRepository,
   platformSettingsRepository,
+  eventCredentialRepository,
   env = process.env,
   brevo,
 }) {
@@ -732,10 +884,15 @@ export function createAthleteRoutes({
    *
    * Preferencia de nombre: entre variantes del mismo core, gana el más completo
    * (más largo). Si el input es más largo que el canónico guardado, se actualiza.
+   *
+   * El corte es antes de Prisma: sin `DATABASE_URL` el cliente igual loguea
+   * `Environment variable not found` y recién después tira. En CI la suite de
+   * integración no tiene ese esquema, y el alta tiene que seguir en silencio.
    */
   const resolveGymName = async (rawName) => {
     if (!rawName || !rawName.trim()) return rawName
     const cleanName = String(rawName).trim()
+    if (!process.env.DATABASE_URL?.trim()) return cleanName
     const core = getCoreName(cleanName)
 
     try {
@@ -793,8 +950,25 @@ export function createAthleteRoutes({
     { prisma },
     { mode: 'any' },
   )
+  const exportGuard = requirePermission(
+    ['admin.exports.admin', 'admin.exports.plu_usa'],
+    { prisma },
+    { mode: 'any' },
+  )
   const financeGuard = requirePermission('admin.payments.approve', { prisma })
   const financeReadGuard = requirePermission('admin.payments.read', { prisma })
+  // Variantes que un organizador (rol por evento) SÍ puede usar sobre las órdenes de
+  // inscripción de SUS eventos: antes de actuar se verifica el evento de la orden.
+  const scopedFinanceReadGuard = requirePermission(
+    'admin.payments.read',
+    { prisma },
+    { eventScoped: true },
+  )
+  const scopedFinanceGuard = requirePermission(
+    'admin.payments.approve',
+    { prisma },
+    { eventScoped: true },
+  )
   const staffApplicationsReadGuard = requirePermission('admin.staff_applications.read', { prisma })
   const staffApplicationsApproveGuard = requirePermission('admin.staff_applications.approve', {
     prisma,
@@ -961,6 +1135,29 @@ export function createAthleteRoutes({
     return result?.status === 'sent'
   }
 
+  // Mail "Tu credencial para {evento}" (QR adjunto). Sin Supabase ni doble de
+  // repositorio no hay de dónde leer la inscripción: se omite en silencio.
+  function credentialMailer() {
+    const credentialRepository =
+      eventCredentialRepository ?? (client() ? createEventCredentialRepository(client()) : null)
+    if (!credentialRepository) return null
+    return createEventCredentialNotificationService({
+      repository: credentialRepository,
+      dispatcher: mailDispatcher(),
+      env,
+    })
+  }
+
+  /** Al confirmar a mano: la confirmación ya quedó en la base, el mail no la revierte. */
+  async function sendCredentialBestEffort(registrationId) {
+    try {
+      return (await credentialMailer()?.sendForRegistration(registrationId)) ?? 'skipped'
+    } catch (error) {
+      console.warn('[email:event_credential] no se pudo enviar', error?.message ?? error)
+      return 'failed'
+    }
+  }
+
   async function sendOnboardingEmails(row) {
     // Un solo mail de alta: bienvenida + confirmación + OTP.
     // Antes salían `welcome` y `email_verification` en paralelo y duplicaban
@@ -1004,6 +1201,46 @@ export function createAthleteRoutes({
    * terminan en un pago, y mandar un comprobante a una dirección con un typo
    * deja al atleta sin constancia y sin forma de reclamar.
    */
+  async function assertAthleteDocumentsComplete(athleteId, purpose, { requiresMembership = false } = {}) {
+    if (typeof repo().findDocumentPack !== 'function') return
+    const pack = await repo().findDocumentPack(athleteId)
+    if (pack?.unavailable) return
+    const athlete = {
+      birthDate: pack.birthDate,
+      documentsGrandfathered: pack.documentsGrandfathered,
+    }
+    const gate = documentPackGate(athlete, pack.documents, { purpose, requiresMembership })
+    if (!gate.blocked) return
+    const labels = gate.missing
+      .map((kind) => ATHLETE_DOCUMENT_KIND_LABELS[kind] ?? kind)
+      .join(', ')
+    throw new HttpError(
+      422,
+      `Subí los documentos obligatorios antes de continuar: falta ${labels}.`,
+      {
+        code: 'ATHLETE_DOCUMENTS_INCOMPLETE',
+        missing: gate.missing,
+      },
+    )
+  }
+
+  async function assertMembershipFileComplete(athleteId) {
+    if (typeof repo().findProfileCompleteness !== 'function') return
+    const row = await repo().findProfileCompleteness(athleteId)
+    if (!row) return
+    const status = membershipFileStatus(row)
+    if (status.complete) return
+    throw new HttpError(
+      422,
+      `Completá los datos de afiliación antes de pagar: falta ${status.labels.join(', ')}.`,
+      {
+        code: 'ATHLETE_MEMBERSHIP_DATA_INCOMPLETE',
+        missing: status.missing,
+        invalid: status.invalid,
+      },
+    )
+  }
+
   async function assertEmailVerified(athleteId) {
     const contact = await repo().findContact(athleteId)
     if (contact && !contact.email_verified_at) {
@@ -1035,8 +1272,7 @@ export function createAthleteRoutes({
       phone: 'teléfono',
       country: 'país',
       province: 'provincia',
-      division: 'división',
-      category: 'categoría',
+      category: 'categoría de competencia',
       estimated_weight: 'peso estimado',
     }
     const isMissing = (field) => {
@@ -1059,6 +1295,173 @@ export function createAthleteRoutes({
           missing: Object.keys(labels).filter((field) => isMissing(field)),
         },
       )
+    }
+  }
+
+  /** PLU §1.3: franja de edad (+ Open) según DOB y fecha del evento. */
+  function assertDeclaredWeightClass(sex, value) {
+    const canonical = canonicalDeclaredWeightClass(value)
+    if (!canonical || !isDeclaredWeightClassForSex(sex, canonical)) {
+      throw new HttpError(422, 'Seleccioná la categoría de peso en la que vas a competir.', {
+        code: 'WEIGHT_CLASS_INVALID',
+      })
+    }
+    return canonical
+  }
+
+  function embeddedRelation(value) {
+    return Array.isArray(value) ? (value[0] ?? null) : (value ?? null)
+  }
+
+  function assertRosterOpen(event) {
+    if (event?.roster_frozen_at) {
+      throw new HttpError(409, 'El padrón de este evento está cerrado después del pesaje.', {
+        code: 'ROSTER_FROZEN',
+      })
+    }
+  }
+
+  /**
+   * "Solo anuncio" (`rules.salesIntent`): el evento se publica para anunciarlo
+   * sin abrir todavía el cobro de inscripciones. Antes solo cambiaba el
+   * semáforo del panel y el checkout seguía cobrando igual.
+   */
+  function assertRegistrationNotAnnounceOnly(event) {
+    if (isAnnounceOnly(event?.rules?.salesIntent)) {
+      throw new HttpError(
+        409,
+        'Este evento todavía no vende inscripciones: por ahora está publicado solo como anuncio.',
+        { code: 'REGISTRATION_ANNOUNCE_ONLY' },
+      )
+    }
+  }
+
+  /**
+   * Módulo «Combo» apagado en el evento: no se vende aunque haya una oferta
+   * vigente. El catálogo ya no la publica; esto cubre una pestaña vieja o un
+   * pedido armado a mano.
+   */
+  function assertComboModuleOn(event) {
+    if (!isStoredEventModuleOn(event, 'combo')) {
+      throw new HttpError(409, 'Este evento no ofrece el combo de afiliación e inscripción.', {
+        code: EVENT_MODULE_DISABLED,
+      })
+    }
+  }
+
+  /** Submission admite una inscripción por cada categoría elegida. */
+  function eventAllowsMultipleCategories(event) {
+    const template = String(event?.rules?.landing?.templateId ?? '').trim().toLowerCase()
+    return template === 'submission' || String(event?.slug ?? '').toLowerCase().startsWith('barbell-submission')
+  }
+
+  /**
+   * División(es) y modalidades de la inscripción, validadas contra la edad en la
+   * fecha del evento. Devuelve la selección canónica: la división de edad queda
+   * primera (100%), Open segunda (50%).
+   */
+  function assertCompetitionSelection(body, profile, event) {
+    const birthDate = profile?.birth_date ?? profile?.birthDate ?? null
+    const eventDate = event?.starts_at ?? event?.startsAt ?? null
+    const divisions = validateDivisionSelection({
+      division: body.division,
+      secondaryDivision: body.secondaryDivision,
+      birthDate,
+      referenceDate: eventDate || undefined,
+    })
+    if (!divisions.ok && divisions.code === 'DIVISION_INVALID') {
+      throw new HttpError(422, 'Elegí una división válida.', { code: 'DIVISION_INVALID' })
+    }
+    if (!divisions.ok) {
+      const { allowed } = divisions
+      throw new HttpError(
+        422,
+        allowed.length
+          ? `La división no corresponde a tu edad en la fecha del evento. Opciones: ${allowed.join(', ')}.`
+          : 'No hay una división válida para tu edad en la fecha del evento.',
+        { code: 'DIVISION_AGE_MISMATCH', allowed },
+      )
+    }
+
+    const modalities = validateModalities(body.modalities)
+    if (!modalities.ok) {
+      const messages = {
+        MODALITY_REQUIRED: 'Elegí al menos un levantamiento.',
+        MODALITY_INVALID: 'Elegí un levantamiento válido.',
+        MODALITY_COMBINATION_INVALID:
+          'Push-Pull ya incluye banco y peso muerto: no se combina con ellos.',
+      }
+      throw new HttpError(422, messages[modalities.code], { code: modalities.code })
+    }
+    // Lo que el evento ofrece manda sobre el catálogo completo.
+    const categories = normalizeRegistrationCategories(body.categories?.length ? body.categories : body.category)
+    if (!categories.length) {
+      throw new HttpError(422, 'Elegí al menos una categoría de competencia.', {
+        code: 'CATEGORY_REQUIRED',
+      })
+    }
+    // `category` es obligatoria y tiene que estar entre las elegidas: si no, un
+    // cliente desfasado inscribía en otra categoría sin que nadie lo notara.
+    if (body.categories?.length && !categories.includes(body.category)) {
+      throw new HttpError(422, 'La categoría elegida no coincide con la inscripción. Volvé a elegirla.', {
+        code: 'CATEGORY_MISMATCH',
+      })
+    }
+    if (categories.length > 1 && !eventAllowsMultipleCategories(event)) {
+      throw new HttpError(422, 'Este evento permite una sola categoría de competencia.', {
+        code: 'MULTIPLE_CATEGORIES_UNAVAILABLE',
+      })
+    }
+    const offered = validateSelectionAgainstOffering(
+      {
+        category: categories[0],
+        categories,
+        division: divisions.primary,
+        secondaryDivision: divisions.secondary,
+        modalities: modalities.modalities,
+      },
+      offeringFromRules(event?.rules),
+    )
+    if (!offered.ok) {
+      const messages = {
+        OFFERING_CATEGORY_UNAVAILABLE: 'Este evento no ofrece esa categoría de competencia.',
+        OFFERING_DIVISION_UNAVAILABLE: 'Este evento no ofrece esa división.',
+        OFFERING_MODALITY_UNAVAILABLE: 'Este evento no ofrece esa modalidad.',
+      }
+      throw new HttpError(422, messages[offered.code], { code: offered.code })
+    }
+    return {
+      category: categories[0],
+      categories,
+      division: divisions.primary,
+      secondaryDivision: divisions.secondary || null,
+      modalities: modalities.modalities,
+    }
+  }
+
+  /**
+   * Precios del combo: el paquete por cada categoría, más los recargos (50% por
+   * la segunda división y por cada modalidad extra) cotizados sobre la
+   * inscripción suelta del evento, en cada canal.
+   */
+  function comboSelectionPrices(event, comboOffer, selection) {
+    const categoryCount = registrationCategoryCount(selection.categories)
+    const extras = (registrationPrice) => {
+      const priced = priceRegistrationSelection({
+        basePrice: registrationPrice,
+        secondary: selection.secondaryDivision,
+        categoryCount,
+        modalities: selection.modalities,
+      })
+      return priced.surcharge + priced.modalitySurcharge
+    }
+    const manualBase = comboOffer.manualPrice
+    return {
+      defaultPrice: Number(comboOffer.price) * categoryCount + extras(event.price),
+      manualPrice:
+        manualBase === null || manualBase === undefined
+          ? null
+          : Number(manualBase) * categoryCount + extras(event.manual_price ?? event.price),
     }
   }
 
@@ -1555,6 +1958,19 @@ export function createAthleteRoutes({
       if (req.validatedBody.gym) {
         req.validatedBody.gym = await resolveGymName(req.validatedBody.gym)
       }
+      if (typeof repo().athleteHasFrozenRoster === 'function' && typeof repo().findCompetitionProfile === 'function') {
+        const frozen = await repo().athleteHasFrozenRoster(auth.athleteId)
+        if (frozen) {
+          const current = await repo().findCompetitionProfile(auth.athleteId)
+          if (competitionProfileFieldsChanged(current, req.validatedBody)) {
+            throw new HttpError(
+              409,
+              'El padrón de tu evento está cerrado. División, equipamiento y peso estimado ya no se pueden cambiar.',
+              { code: 'ROSTER_FROZEN' },
+            )
+          }
+        }
+      }
       const row = await repo().update(auth.athleteId, req.validatedBody)
       if (typeof repo().resolveOpenProfileNotices === 'function') {
         await resolveProfileNoticesIfComplete({
@@ -1576,6 +1992,47 @@ export function createAthleteRoutes({
       next(error)
     }
   })
+
+  const membershipFileSchema = z.object({
+    fullName: z.string(),
+    documentId: z.string(),
+    birthDate: z.string(),
+    sex: z.string(),
+    phone: z.string(),
+    country: z.string(),
+    province: z.string(),
+    city: z.string(),
+  })
+
+  router.patch(
+    '/me/membership-file',
+    athleteWriteLimiter,
+    validateBody(membershipFileSchema),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const status = membershipFileStatus(req.validatedBody)
+        if (!status.complete) {
+          throw new HttpError(
+            422,
+            `Completá los datos de afiliación: falta ${status.labels.join(', ')}.`,
+            {
+              code: 'ATHLETE_MEMBERSHIP_DATA_INCOMPLETE',
+              missing: status.missing,
+              invalid: status.invalid,
+            },
+          )
+        }
+        if (typeof repo().updateMembershipFile !== 'function') {
+          throw new HttpError(503, 'No se pudo guardar la ficha de afiliación.')
+        }
+        const row = await repo().updateMembershipFile(auth.athleteId, req.validatedBody)
+        res.json({ athlete: row })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   router.post('/me/profile-notices/:noticeId/read', athleteWriteLimiter, async (req, res, next) => {
     try {
@@ -1613,6 +2070,40 @@ export function createAthleteRoutes({
       }
     },
   )
+  /**
+   * Cómo se paga la inscripción de un evento, para el bloque "Cómo pagar" de
+   * la landing pública: qué medios acepta (mismo cruce plataforma × evento que
+   * el checkout) y dónde se paga en efectivo. Sin datos bancarios: alias y CBU
+   * se muestran en el checkout, a quien ya está pagando.
+   */
+  router.get('/public/events/:eventSlug/payment-info', publicReadLimiter, async (req, res, next) => {
+    try {
+      const eventSlug = String(req.params.eventSlug ?? '').trim()
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(eventSlug)) {
+        throw new HttpError(400, 'El identificador del evento es inválido.')
+      }
+      const [toggles, event] = await Promise.all([
+        platformSettingsRepo().get(),
+        repo().findEventPricing(eventSlug),
+      ])
+      if (!event) throw new HttpError(404, 'El evento no existe.')
+      const availability = applyEventPaymentChannelOverrides(
+        resolvePublicCheckoutAvailability(
+          applyEventChannelOpens(toggles, event.payment_channel_overrides),
+        ),
+        event.payment_channel_overrides,
+      )
+      const registration = availability.paymentChannels?.registration ?? {}
+      res.set('Cache-Control', 'public, max-age=60')
+      res.json({
+        registrationEnabled: availability.registrationEnabled,
+        channels: Object.keys(registration).filter((channel) => registration[channel] === true),
+        cashPayment: resolveCashPaymentDetails(event),
+      })
+    } catch (error) {
+      next(error)
+    }
+  })
   router.get(
     '/me/registration-access-requirements',
     athleteWriteLimiter,
@@ -1628,9 +2119,11 @@ export function createAthleteRoutes({
           platformSettingsRepo().get(),
           eventSlug ? repo().findEventPricing(eventSlug) : Promise.resolve(null),
         ])
-        const platformAvailability = resolvePublicCheckoutAvailability(toggles)
-        // Con eventSlug la matriz de inscripción/ticket se intersecta con el
-        // perfil del evento; membership sigue siendo solo plataforma.
+        const platformAvailability = resolvePublicCheckoutAvailability(
+          applyEventChannelOpens(toggles, event?.payment_channel_overrides),
+        )
+        // Con eventSlug la matriz de inscripción/ticket se cruza con la decisión
+        // del evento (abre o cierra); membership sigue siendo solo plataforma.
         const availability = event
           ? applyEventPaymentChannelOverrides(platformAvailability, event.payment_channel_overrides)
           : platformAvailability
@@ -1656,6 +2149,7 @@ export function createAthleteRoutes({
           // puede cerrar desde el panel.
           paymentChannels: availability.paymentChannels,
           bankTransfer: resolveBankTransferDetails(event, env, bankProfile),
+          cashPayment: resolveCashPaymentDetails(event),
           bankTransferProfileId: event?.bank_transfer_profile_id ?? null,
           mercadoPagoProfileId: event?.mercado_pago_profile_id ?? null,
           mercadoPagoPublicKey: await resolveMercadoPagoPublicKeyForProfileId(
@@ -1740,6 +2234,8 @@ export function createAthleteRoutes({
         await assertCodeAcceptsMercadoPago(req.validatedBody, 'membership')
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
+        await assertMembershipFileComplete(auth.athleteId)
+        await assertAthleteDocumentsComplete(auth.athleteId, 'membership')
         const plan = await repo().findMembershipPlan(req.validatedBody.planCode)
         if (!plan) throw new HttpError(404, 'Plan de afiliacion no encontrado.')
         if (isRecurringMembershipPlan(plan)) assertRecurringMembershipAvailable(env)
@@ -1804,9 +2300,30 @@ export function createAthleteRoutes({
         const registrationChannel = paymentChannelOf(req.validatedBody.paymentMethod)
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
-        await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
+        const competitionProfile = await repo().findCompetitionProfile(auth.athleteId)
+        await assertCompetitionProfileComplete(competitionProfile)
         const event = await repo().findEventPricing(eventSlug)
         if (!event) throw new HttpError(404, 'Evento no encontrado.')
+        await assertAthleteDocumentsComplete(auth.athleteId, 'registration', {
+          requiresMembership: event.requires_membership === true,
+        })
+        assertRosterOpen(event)
+        assertRegistrationNotAnnounceOnly(event)
+        const selection = assertCompetitionSelection(req.validatedBody, competitionProfile, event)
+        const declaredTotals = assertRegistrationDeclaredTotals(req.validatedBody)
+        const declaredWeightClass = assertDeclaredWeightClass(
+          competitionProfile?.sex,
+          req.validatedBody.declaredWeightClass,
+        )
+        // La segunda división y cada modalidad extra suman el 50% sobre cada
+        // precio (lista y manual).
+        const pricing = priceRegistrationSelection({
+          basePrice: event.price,
+          manualPrice: event.manual_price,
+          secondary: selection.secondaryDivision,
+          categoryCount: registrationCategoryCount(selection.categories),
+          modalities: selection.modalities,
+        })
         assertEventPaymentChannelEnabled(toggles, 'registration', registrationChannel, {
           override: await manualChannelOverride(req.validatedBody, 'registration'),
           eventOverrides: event.payment_channel_overrides,
@@ -1824,7 +2341,7 @@ export function createAthleteRoutes({
           athleteId: auth.athleteId,
           code: req.validatedBody.discountCode,
           appliesTo: 'registration',
-          baseAmount: event.price,
+          baseAmount: pricing.defaultPrice,
           eventSlug,
         })
         const registrationWisePrice =
@@ -1835,11 +2352,29 @@ export function createAthleteRoutes({
                 configuredUsd: event.wise_price,
               })
             : null
+        // Los recargos también aplican al importe en USD de Wise.
+        const wiseAmount = registrationWisePrice
+          ? priceRegistrationSelection({
+              basePrice: registrationWisePrice.amount,
+              secondary: selection.secondaryDivision,
+              categoryCount: registrationCategoryCount(selection.categories),
+              modalities: selection.modalities,
+            }).defaultPrice
+          : null
         const created = await repo().createRegistration(auth.athleteId, {
           ...req.validatedBody,
+          category: selection.category,
+          categories: selection.categories,
+          division: selection.division,
+          secondaryDivision: selection.secondaryDivision,
+          modalities: selection.modalities,
+          declaredWeightClass,
+          isFirstMeet: declaredTotals.isFirstMeet,
+          competitionBestTotalKg: declaredTotals.competitionBestTotalKg,
+          trainingBestTotalKg: declaredTotals.trainingBestTotalKg,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
-          defaultPrice: registrationWisePrice ? registrationWisePrice.amount : event.price,
-          manualPrice: registrationWisePrice ? null : event.manual_price,
+          defaultPrice: registrationWisePrice ? wiseAmount : pricing.defaultPrice,
+          manualPrice: registrationWisePrice ? null : pricing.manualPrice,
           manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
           currency: registrationWisePrice?.currency ?? null,
         })
@@ -1902,9 +2437,17 @@ export function createAthleteRoutes({
         })
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
-        await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
+        await assertMembershipFileComplete(auth.athleteId)
+        await assertAthleteDocumentsComplete(auth.athleteId, 'combo')
+        const competitionProfile = await repo().findCompetitionProfile(auth.athleteId)
+        await assertCompetitionProfileComplete(competitionProfile)
         const event = await repo().findEventPricing(eventSlug)
         if (!event) throw new HttpError(404, 'Evento no encontrado.')
+        assertRosterOpen(event)
+        assertRegistrationNotAnnounceOnly(event)
+        assertComboModuleOn(event)
+        const selection = assertCompetitionSelection(req.validatedBody, competitionProfile, event)
+        const declaredTotals = assertRegistrationDeclaredTotals(req.validatedBody)
         assertEventPaymentChannelEnabled(toggles, 'registration', comboChannel, {
           override: comboOverride,
           eventOverrides: event.payment_channel_overrides,
@@ -1980,11 +2523,35 @@ export function createAthleteRoutes({
           comboChannel === 'wise_transfer'
             ? wisePriceFor({ concept: 'combo', arsAmount: comboOffer.price })
             : null
+        const declaredWeightClass = assertDeclaredWeightClass(
+          competitionProfile?.sex,
+          req.validatedBody.declaredWeightClass,
+        )
+        // La segunda división y las modalidades extra se suman al paquete: 50%
+        // del precio de la inscripción suelta del evento, en cada canal.
+        const comboSelectionPricing = comboSelectionPrices(event, comboOffer, selection)
+        const comboCategoryCount = registrationCategoryCount(selection.categories)
         const created = await repo().createRegistrationCombo(auth.athleteId, {
           ...req.validatedBody,
+          category: selection.category,
+          categories: selection.categories,
+          division: selection.division,
+          secondaryDivision: selection.secondaryDivision,
+          modalities: selection.modalities,
+          declaredWeightClass,
+          isFirstMeet: declaredTotals.isFirstMeet,
+          competitionBestTotalKg: declaredTotals.competitionBestTotalKg,
+          trainingBestTotalKg: declaredTotals.trainingBestTotalKg,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
-          defaultPrice: comboWisePrice ? comboWisePrice.amount : comboOffer.price,
-          manualPrice: comboWisePrice ? null : comboOffer.manualPrice,
+          defaultPrice: comboWisePrice
+            ? priceRegistrationSelection({
+                basePrice: comboWisePrice.amount,
+                secondary: selection.secondaryDivision,
+                categoryCount: comboCategoryCount,
+                modalities: selection.modalities,
+              }).defaultPrice
+            : comboSelectionPricing.defaultPrice,
+          manualPrice: comboWisePrice ? null : comboSelectionPricing.manualPrice,
           manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
           currency: comboWisePrice?.currency ?? null,
         })
@@ -2065,7 +2632,18 @@ export function createAthleteRoutes({
         const auth = await athlete(req)
         const codeGuard = promotionCodeIdentity(auth.athleteId)
         await assertIdentityNotLocked(codeGuard)
-        const { code, appliesTo, planCode, eventSlug, paymentMethod } = req.validatedBody
+        const {
+          code,
+          appliesTo,
+          planCode,
+          eventSlug,
+          paymentMethod,
+          secondaryDivision,
+          categories,
+          modalities: requestedModalities,
+        } = req.validatedBody
+        // Solo cotiza: una combinación inválida se rechaza al crear la orden.
+        const modalities = normalizeModalities(requestedModalities)
         let baseAmount
         let manualPrice
         if (appliesTo === 'membership') {
@@ -2082,12 +2660,36 @@ export function createAthleteRoutes({
           if (!offer) throw new HttpError(404, 'El combo no está disponible para este evento.')
           baseAmount = offer.price
           manualPrice = offer.manualPrice
+          // El combo suma el 50% de la inscripción suelta por la segunda
+          // división y por cada modalidad extra, y se repite por categoría.
+          if (secondaryDivision || categories?.length > 1 || modalities.length > 1) {
+            const event = await repo().findEventPricing(eventSlug)
+            if (!event) throw new HttpError(404, 'Evento no encontrado.')
+            const priced = comboSelectionPrices(event, offer, {
+              secondaryDivision,
+              categories: eventAllowsMultipleCategories(event)
+                ? normalizeRegistrationCategories(categories)
+                : [],
+              modalities,
+            })
+            baseAmount = priced.defaultPrice
+            manualPrice = priced.manualPrice
+          }
         } else {
           if (!eventSlug) throw new HttpError(400, 'Falta el evento.')
           const event = await repo().findEventPricing(eventSlug)
           if (!event) throw new HttpError(404, 'Evento no encontrado.')
-          baseAmount = event.price
-          manualPrice = event.manual_price
+          const priced = priceRegistrationSelection({
+            basePrice: event.price,
+            manualPrice: event.manual_price,
+            secondary: secondaryDivision,
+            categoryCount: eventAllowsMultipleCategories(event)
+              ? registrationCategoryCount(categories)
+              : 1,
+            modalities,
+          })
+          baseAmount = priced.defaultPrice
+          manualPrice = priced.manualPrice
         }
         // Misma política que usa la creación de la orden: el canal manual cotiza
         // contra el precio manual del plan/evento/combo cuando está configurado,
@@ -2351,6 +2953,121 @@ export function createAthleteRoutes({
       }
     },
   )
+  router.post(
+    '/me/documents/upload-url',
+    athleteWriteLimiter,
+    validateBody(documentUploadSchema),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        if (
+          req.validatedBody.contentType === 'application/pdf' &&
+          req.validatedBody.size > ATHLETE_DOCUMENT_PDF_MAX_BYTES
+        ) {
+          throw new HttpError(400, ATHLETE_DOCUMENT_PDF_TOO_LARGE_MESSAGE)
+        }
+        res.json(await repo().createDocumentUpload(auth.athleteId, req.validatedBody))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/me/documents',
+    athleteWriteLimiter,
+    validateBody(registerDocumentSchema),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        if (
+          req.validatedBody.contentType === 'application/pdf' &&
+          req.validatedBody.sizeBytes > ATHLETE_DOCUMENT_PDF_MAX_BYTES
+        ) {
+          throw new HttpError(400, ATHLETE_DOCUMENT_PDF_TOO_LARGE_MESSAGE)
+        }
+        assertAthleteOwnsDocumentPath(
+          auth.athleteId,
+          req.validatedBody.kind,
+          req.validatedBody.storagePath,
+        )
+        if (!isSafeAthleteDocumentPath(req.validatedBody.storagePath, {
+          athleteId: auth.athleteId,
+          kind: req.validatedBody.kind,
+        })) {
+          throw new HttpError(400, 'Ruta de documento inválida.')
+        }
+        const document = await repo().registerDocument(auth.athleteId, req.validatedBody)
+        res.status(201).json({ document })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.get('/me/membership-certificate', athleteWriteLimiter, async (req, res, next) => {
+    try {
+      const auth = await athlete(req)
+      const source = await repo().findMembershipCertificateSource(auth.athleteId)
+      if (!source) throw new HttpError(404, 'Atleta no encontrado.')
+      const issuedAt = new Date()
+      const built = buildMembershipCertificate({
+        athlete: source.athlete,
+        memberships: source.memberships,
+        appUrl,
+        now: membershipCertificateNow(todayInBuenosAires(), issuedAt),
+        issuedAt,
+      })
+      if (!built.ok) {
+        throw new HttpError(
+          409,
+          built.code === MEMBERSHIP_CERTIFICATE_NOT_CURRENT
+            ? 'La constancia se emite solo con una afiliación vigente.'
+            : 'No se puede emitir la constancia.',
+          { code: built.code },
+        )
+      }
+      await repo().recordMembershipCertificateIssued({
+        athleteId: auth.athleteId,
+        membershipId: built.membershipId,
+        memberCode: built.certificate.memberCode,
+      })
+      res.set('Cache-Control', 'private, no-store')
+      res.json(built.certificate)
+    } catch (error) {
+      next(error)
+    }
+  })
+  router.get('/me/documents', athleteWriteLimiter, async (req, res, next) => {
+    try {
+      const auth = await athlete(req)
+      const pack = await repo().findDocumentPack(auth.athleteId)
+      res.json({
+        documents: pack.documents,
+        documentsGrandfathered: pack.documentsGrandfathered,
+      })
+    } catch (error) {
+      next(error)
+    }
+  })
+  router.get('/me/documents/:kind', publicReadLimiter, async (req, res, next) => {
+    try {
+      const auth = await athlete(req)
+      const kind = documentKindSchema.safeParse(req.params.kind)
+      if (!kind.success) throw new HttpError(400, 'Documento inválido.')
+      const supabase = getSupabaseAdmin?.()
+      if (!supabase) throw new HttpError(503, 'Supabase no está configurado en el servidor.')
+      const path = await repo().athleteDocumentPath(auth.athleteId, kind.data)
+      await sendPortraitBinary({
+        req,
+        res,
+        client: supabase,
+        path,
+        bucket: 'athlete-documents',
+        cacheControl: athleteDocumentCacheControl(req),
+      })
+    } catch (error) {
+      next(error)
+    }
+  })
 
   /**
    * Binario del retrato autenticado. URL estable + ETag/LRU: If-None-Match
@@ -2556,6 +3273,189 @@ export function createAthleteRoutes({
     }
   })
 
+  /**
+   * Export CSV/XLS con join real athletes↔inscripciones (no el snapshot de 400).
+   * type=lifters → planilla LiftingCast estilada; format=json → readiness.
+   * Permisos: admin.exports.admin / admin.exports.plu_usa.
+   */
+  router.get('/admin/export', ...exportGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const parsed = adminExportQuerySchema.safeParse(req.query)
+      if (!parsed.success) throw new HttpError(400, 'Parámetros de export inválidos.')
+      let {
+        type,
+        format,
+        eventSlug,
+        preset,
+        columns,
+        rowFilter,
+        highlightEmpty,
+        freezeHeader,
+        includeSummarySheet,
+      } = parsed.data
+      if (type === 'lifters' && format === 'csv') format = 'xls'
+
+      const exportPermission =
+        type === 'plu_usa' ? 'admin.exports.plu_usa' : 'admin.exports.admin'
+      if (!hasPermission(req.auth.user, exportPermission)) {
+        throw new HttpError(403, 'Sin permisos para este export.')
+      }
+
+      const dataset = await repo().adminExportDataset({
+        type: type === 'lifters' ? 'admin' : type,
+        eventSlug: eventSlug ?? null,
+      })
+
+      if (type === 'lifters') {
+        const liftersOptions = normalizeLiftersExportOptions({
+          preset,
+          columns,
+          rowFilter,
+          highlightEmpty,
+          freezeHeader,
+          includeSummarySheet,
+        })
+        const liftersRows = buildLiftersExportRows(
+          dataset.registrations,
+          dataset.athletes,
+          dataset.memberships,
+        )
+        if (!liftersRows.length) {
+          throw new HttpError(404, 'No hay datos para exportar con esos filtros.')
+        }
+        const readiness = buildLiftersReadiness(liftersRows)
+        const filteredRows = filterLiftersRowsByCompleteness(
+          liftersRows,
+          liftersOptions.rowFilter,
+        )
+        const exportCheck = validateLifterExport(filteredRows)
+        const meetSummary = summarizeLifterMeet(filteredRows)
+        const importColumnsMissing = liftersImportColumnsMissing(liftersOptions)
+        if (format === 'json') {
+          res.setHeader('Cache-Control', 'no-store')
+          res.json({
+            readiness,
+            exportCheck,
+            meetSummary,
+            importColumnsMissing,
+            rows: liftersRows,
+            options: liftersOptions,
+            truncated: dataset.truncated,
+            event: dataset.event,
+          })
+          return
+        }
+        if (!exportCheck.valid) {
+          throw new HttpError(422, 'Hay atletas con datos que no se pueden exportar.', {
+            code: 'LIFTERS_EXPORT_INVALID',
+            errors: exportCheck.issues.slice(0, 50),
+          })
+        }
+        if (importColumnsMissing) {
+          throw new HttpError(422, 'La plantilla de importación necesita todas las columnas.', {
+            code: 'LIFTERS_EXPORT_COLUMNS',
+          })
+        }
+        const slugPart = dataset.event?.slug
+          ? `-${dataset.event.slug}`
+          : eventSlug
+            ? `-${String(eventSlug).replaceAll(/[^a-z0-9-]+/gi, '-').toLowerCase()}`
+            : ''
+        const sheetName = String(dataset.event?.slug || 'Lifters')
+          .replaceAll(/[[\]:*?/\\]/g, ' ')
+          .trim()
+          .slice(0, 31) || 'Lifters'
+        const columnKeys = resolveLiftersColumnKeys(liftersOptions)
+        const body =
+          format === 'xls'
+            ? serializeLiftersSpreadsheet(liftersRows, sheetName, liftersOptions)
+            : serializeCsv(liftersRowsForSpreadsheet(filteredRows, columnKeys))
+        if (!body) throw new HttpError(404, 'No hay datos para exportar con esos filtros.')
+        const filename = `lifters-export${slugPart}.${format === 'xls' ? 'xls' : 'csv'}`
+        res.setHeader(
+          'Content-Type',
+          format === 'xls'
+            ? 'application/vnd.ms-excel; charset=utf-8'
+            : 'text/csv; charset=utf-8',
+        )
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+        res.setHeader('Cache-Control', 'no-store')
+        res.setHeader('X-PLU-Export-Incomplete', String(readiness.incomplete))
+        res.setHeader('X-PLU-Export-Division-Mismatch', String(readiness.divisionMismatch ?? 0))
+        res.setHeader(
+          'X-PLU-Export-Division-Open-Upgrade',
+          String(readiness.divisionOpenUpgrade ?? 0),
+        )
+        if (dataset.truncated) {
+          res.setHeader('X-PLU-Export-Truncated', '1')
+          res.setHeader('X-PLU-Export-Row-Count', String(liftersRows.length))
+        }
+        res.send(body)
+        return
+      }
+
+      const rows =
+        type === 'plu_usa'
+          ? buildPluUsaExportRows(dataset.athletes, dataset.memberships, dataset.registrations)
+          : buildAdminExportRows(
+              dataset.registrations,
+              dataset.athletes,
+              dataset.memberships,
+              dataset.payments,
+            )
+
+      if (!rows.length) {
+        throw new HttpError(404, 'No hay datos para exportar con esos filtros.')
+      }
+
+      if (format === 'json') {
+        throw new HttpError(400, 'format=json sólo aplica a type=lifters.')
+      }
+
+      let mismatchCount = 0
+      let openUpgradeCount = 0
+      const mismatchKey = type === 'plu_usa' ? 'division_mismatch' : 'division_desajuste'
+      const upgradeKey = 'division_open_upgrade'
+      for (const row of rows) {
+        if (row[mismatchKey] === '1') mismatchCount += 1
+        if (row[upgradeKey] === '1') openUpgradeCount += 1
+      }
+
+      const slugPart = dataset.event?.slug
+        ? `-${dataset.event.slug}`
+        : eventSlug
+          ? `-${String(eventSlug).replaceAll(/[^a-z0-9-]+/gi, '-').toLowerCase()}`
+          : ''
+      const baseName =
+        type === 'plu_usa' ? `plu-usa-export${slugPart}` : `plu-arg-admin-export${slugPart}`
+      const filename = `${baseName}.${format}`
+      const body =
+        format === 'xls'
+          ? serializeSpreadsheet(rows, type === 'plu_usa' ? 'PLU USA' : 'Inscripciones')
+          : serializeCsv(rows)
+
+      if (!body) throw new HttpError(404, 'No hay datos para exportar con esos filtros.')
+
+      res.setHeader(
+        'Content-Type',
+        format === 'xls'
+          ? 'application/vnd.ms-excel; charset=utf-8'
+          : 'text/csv; charset=utf-8',
+      )
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+      res.setHeader('Cache-Control', 'no-store')
+      res.setHeader('X-PLU-Export-Division-Mismatch', String(mismatchCount))
+      res.setHeader('X-PLU-Export-Division-Open-Upgrade', String(openUpgradeCount))
+      if (dataset.truncated) {
+        res.setHeader('X-PLU-Export-Truncated', '1')
+        res.setHeader('X-PLU-Export-Row-Count', String(rows.length))
+      }
+      res.send(body)
+    } catch (error) {
+      next(error)
+    }
+  })
+
   router.post(
     '/admin/photo-urls',
     ...adminGuard,
@@ -2665,13 +3565,14 @@ export function createAthleteRoutes({
 
   router.post(
     '/admin/payment-orders/:orderId/reject',
-    ...financeGuard,
+    ...scopedFinanceGuard,
     staffLimiter,
     validateBody(rejectPaymentSchema),
     async (req, res, next) => {
       const orderId = z.string().uuid().safeParse(req.params.orderId)
       try {
         if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        await assertAthleteOrderInScope(req, getSupabaseAdmin?.(), orderId.data)
         await assertOrderValidationEnabled(orderId.data)
         const result = await repo().rejectPayment(
           orderId.data,
@@ -2752,12 +3653,13 @@ export function createAthleteRoutes({
   )
   router.get(
     '/admin/payment-orders/:orderId/proof-url',
-    ...financeReadGuard,
+    ...scopedFinanceReadGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
         const orderId = z.string().uuid().safeParse(req.params.orderId)
         if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        await assertAthleteOrderInScope(req, getSupabaseAdmin?.(), orderId.data)
         res.json({ url: await repo().paymentProofUrl(orderId.data) })
       } catch (error) {
         next(error)
@@ -2766,7 +3668,7 @@ export function createAthleteRoutes({
   )
   router.get(
     '/admin/payment-orders/:orderId/proof',
-    ...financeReadGuard,
+    ...scopedFinanceReadGuard,
     staffLimiter,
     async (req, res, next) => {
       try {
@@ -2777,6 +3679,7 @@ export function createAthleteRoutes({
         if (!supabase) {
           throw new HttpError(503, 'Supabase no está configurado en el servidor.')
         }
+        await assertAthleteOrderInScope(req, supabase, orderId.data)
 
         const path = await repo().paymentProofPath(orderId.data)
         // Best-effort: registro de acceso para auditoría de retención.
@@ -2890,13 +3793,14 @@ export function createAthleteRoutes({
   )
   router.post(
     '/admin/payment-orders/:orderId/approve',
-    ...financeGuard,
+    ...scopedFinanceGuard,
     staffLimiter,
     validateBody(approvePaymentSchema),
     async (req, res, next) => {
       const orderId = z.string().uuid().safeParse(req.params.orderId)
       try {
         if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        await assertAthleteOrderInScope(req, getSupabaseAdmin?.(), orderId.data)
         await assertOrderValidationEnabled(orderId.data)
         const overrideReason = req.validatedBody?.overrideReason ?? null
         const result = await repo().approvePayment(orderId.data, actorLabel(req), {
@@ -3018,14 +3922,17 @@ export function createAthleteRoutes({
       try {
         const registrationId = z.string().uuid().safeParse(req.params.registrationId)
         if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
-        res.json(
-          await repo().setRegistrationStatus(
-            registrationId.data,
-            req.validatedBody.status,
-            req.validatedBody.reason,
-            actorLabel(req),
-          ),
+        const updated = await repo().setRegistrationStatus(
+          registrationId.data,
+          req.validatedBody.status,
+          req.validatedBody.reason,
+          actorLabel(req),
         )
+        // Confirmar a mano no avisaba nada: ahora sale la credencial con el QR.
+        if (req.validatedBody.status === 'confirmada') {
+          await sendCredentialBestEffort(registrationId.data)
+        }
+        res.json(updated)
       } catch (error) {
         next(error)
       }
@@ -3051,6 +3958,7 @@ export function createAthleteRoutes({
         for (const registrationId of registrationIds) {
           try {
             await repo().setRegistrationStatus(registrationId, status, reason, actorLabel(req))
+            if (status === 'confirmada') await sendCredentialBestEffort(registrationId)
             results.push({ registrationId, status: 'updated' })
           } catch (error) {
             results.push({
@@ -3065,6 +3973,35 @@ export function createAthleteRoutes({
           updated: results.filter((row) => row.status === 'updated').length,
           failed: results.filter((row) => row.status === 'failed').length,
         })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * "Enviar credenciales": el mail con el QR a todos los confirmados del
+   * evento que todavía no lo recibieron. `dryRun` devuelve el conteo para el
+   * diálogo de confirmación sin mandar nada; `resend` vuelve a mandarlo a
+   * todos (una vez por día como máximo).
+   */
+  router.post(
+    '/admin/events/:eventSlug/credentials/send',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(eventCredentialSendSchema),
+    async (req, res, next) => {
+      try {
+        const eventSlug = z.string().trim().min(1).max(160).safeParse(req.params.eventSlug)
+        if (!eventSlug.success) throw new HttpError(400, 'Evento inválido.')
+        const mailer = credentialMailer()
+        if (!mailer) throw new HttpError(503, 'Supabase Admin no está configurado.')
+        res.json(
+          await mailer.sendForEvent({
+            eventSlug: eventSlug.data,
+            dryRun: req.validatedBody.dryRun,
+            resend: req.validatedBody.resend,
+          }),
+        )
       } catch (error) {
         next(error)
       }
@@ -3509,6 +4446,307 @@ export function createAthleteRoutes({
       }
     },
   )
+  const weightClassField = z
+    .string({
+      error: 'Seleccioná la categoría de peso en la que vas a competir.',
+    })
+    .trim()
+    .min(1, 'Seleccioná la categoría de peso en la que vas a competir.')
+
+  router.post(
+    '/admin/events/:eventSlug/roster-freeze',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(z.object({ frozen: z.boolean() })),
+    async (req, res, next) => {
+      try {
+        const eventSlug = String(req.params.eventSlug ?? '').trim()
+        if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(eventSlug)) {
+          throw new HttpError(400, 'El identificador del evento es inválido.')
+        }
+        const event = await repo().setEventRosterFrozen(eventSlug, req.validatedBody.frozen)
+        if (!event) throw new HttpError(404, 'Evento no encontrado.')
+        await recordOperationalAuditEvent(auditClient(), {
+          source: 'identity',
+          action: req.validatedBody.frozen ? 'event.roster_frozen' : 'event.roster_reopened',
+          entityType: 'event',
+          entityId: event.id,
+          actorType: 'staff',
+          actorId: actorLabel(req),
+          status: req.validatedBody.frozen ? 'frozen' : 'open',
+          severity: 'warning',
+          metadata: requestAuditMetadata(req, { slug: event.slug }),
+        })
+        res.json({ event })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Planilla de inscripciones (.xlsx) de vuelta: `apply: false` devuelve qué
+   * cambiaría cada fila; `apply: true` aplica las válidas. El archivo se lee
+   * en el navegador y llega en tandas (`REGISTRATION_IMPORT_BATCH_SIZE`).
+   */
+  router.post(
+    '/admin/registrations/import',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(
+      z.object({
+        apply: z.boolean().default(false),
+        eventSlug: z.string().trim().min(1).max(160).nullable().optional(),
+        rows: z
+          .array(
+            z.object({
+              row: z.number().int().min(1).max(1_000_000),
+              registrationId: z.string().uuid(),
+              values: z
+                .object({
+                  division: z.string().trim().max(40).optional(),
+                  category: z.string().trim().max(40).optional(),
+                  modalities: z.array(z.string().trim().max(30)).max(10).optional(),
+                  declaredWeightClass: z.string().trim().max(20).optional(),
+                  bodyweightKg: z.number().nullable().optional(),
+                })
+                .strict(),
+            }),
+          )
+          .min(1)
+          .max(REGISTRATION_IMPORT_BATCH_SIZE),
+      }),
+    ),
+    async (req, res, next) => {
+      try {
+        const { apply, eventSlug = null, rows } = req.validatedBody
+        const result = await runRegistrationSheetImport({
+          repository: repo(),
+          rows,
+          apply,
+          eventSlug,
+          actor: actorLabel(req),
+        })
+        if (apply && result.summary.applied + result.summary.failed > 0) {
+          await recordOperationalAuditEvent(auditClient(), {
+            source: 'identity',
+            action: 'registration.sheet_import',
+            entityType: 'event_registration',
+            entityId: 'bulk',
+            actorType: 'staff',
+            actorId: actorLabel(req),
+            status: result.summary.failed ? 'partial' : 'updated',
+            severity: result.summary.failed ? 'warning' : 'info',
+            metadata: requestAuditMetadata(req, {
+              eventSlug,
+              applied: result.summary.applied,
+              failed: result.summary.failed,
+              registrationIds: result.rows
+                .filter((row) => row.state === 'applied')
+                .map((row) => row.registrationId),
+            }),
+          })
+        }
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/admin/registrations/weight-class/bulk',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(
+      z.object({
+        registrationIds: z.array(z.string().uuid()).min(1).max(100),
+        declaredWeightClass: weightClassField,
+      }),
+    ),
+    async (req, res, next) => {
+      try {
+        const ids = [...new Set(req.validatedBody.registrationIds)]
+        const rows = await repo().findRegistrationWeightClassContexts(ids)
+        if (!rows || rows.length !== ids.length) {
+          throw new HttpError(404, 'Alguna inscripción no existe.')
+        }
+        const frozen = rows
+          .map((row) => embeddedRelation(row.event))
+          .filter((event) => event?.roster_frozen_at)
+        if (frozen.length) {
+          throw new HttpError(409, 'El padrón de este evento está cerrado después del pesaje.', {
+            code: 'ROSTER_FROZEN',
+          })
+        }
+        const invalid = []
+        let canonical = ''
+        for (const row of rows) {
+          try {
+            canonical = assertDeclaredWeightClass(
+              embeddedRelation(row.athlete)?.sex,
+              req.validatedBody.declaredWeightClass,
+            )
+          } catch (error) {
+            invalid.push({
+              registrationId: row.id,
+              message: error.message,
+            })
+          }
+        }
+        if (invalid.length) {
+          throw new HttpError(422, 'Seleccioná la categoría de peso en la que vas a competir.', {
+            code: 'WEIGHT_CLASS_INVALID',
+            errors: invalid,
+          })
+        }
+        const updated = await repo().updateDeclaredWeightClasses(ids, canonical, actorLabel(req))
+        await recordOperationalAuditEvent(auditClient(), {
+          source: 'identity',
+          action: 'registration.declared_weight_class_bulk',
+          entityType: 'event_registration',
+          entityId: 'bulk',
+          actorType: 'staff',
+          actorId: actorLabel(req),
+          status: 'updated',
+          severity: 'info',
+          metadata: requestAuditMetadata(req, {
+            count: updated?.length ?? ids.length,
+            declaredWeightClass: canonical,
+          }),
+        })
+        res.json({ updated })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/admin/registrations/:registrationId/weight-class',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(
+      z.object({
+        declaredWeightClass: z
+          .string({
+            error: 'Seleccioná la categoría de peso en la que vas a competir.',
+          })
+          .trim()
+          .min(1, 'Seleccioná la categoría de peso en la que vas a competir.'),
+      }),
+    ),
+    async (req, res, next) => {
+      try {
+        const registrationId = z.string().uuid().safeParse(req.params.registrationId)
+        if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
+        const current = await repo().findRegistrationWeightClassContext(registrationId.data)
+        if (!current) throw new HttpError(404, 'Inscripción no encontrada.')
+        assertRosterOpen(embeddedRelation(current.event))
+        const declaredWeightClass = assertDeclaredWeightClass(
+          embeddedRelation(current.athlete)?.sex,
+          req.validatedBody.declaredWeightClass,
+        )
+        const registration = await repo().updateDeclaredWeightClass(
+          registrationId.data,
+          declaredWeightClass,
+          actorLabel(req),
+        )
+        await recordOperationalAuditEvent(auditClient(), {
+          source: 'identity',
+          action: 'registration.declared_weight_class_updated',
+          entityType: 'event_registration',
+          entityId: registrationId.data,
+          actorType: 'staff',
+          actorId: actorLabel(req),
+          status: 'updated',
+          severity: 'info',
+          metadata: requestAuditMetadata(req, { declaredWeightClass }),
+        })
+        res.json({ registration })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/admin/registrations/:registrationId/weigh-in',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(
+      z.object({
+        weighInBodyweightKg: z.number().min(20).max(400).nullable(),
+      }),
+    ),
+    async (req, res, next) => {
+      try {
+        const registrationId = z.string().uuid().safeParse(req.params.registrationId)
+        if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
+        const current = await repo().findRegistrationWeightClassContext(registrationId.data)
+        if (!current) throw new HttpError(404, 'Inscripción no encontrada.')
+        assertRosterOpen(embeddedRelation(current.event))
+        const registration = await repo().updateWeighInBodyweight(
+          registrationId.data,
+          req.validatedBody.weighInBodyweightKg,
+          actorLabel(req),
+        )
+        await recordOperationalAuditEvent(auditClient(), {
+          source: 'identity',
+          action: 'registration.weigh_in_recorded',
+          entityType: 'event_registration',
+          entityId: registrationId.data,
+          actorType: 'staff',
+          actorId: actorLabel(req),
+          status: req.validatedBody.weighInBodyweightKg == null ? 'cleared' : 'updated',
+          severity: 'info',
+          metadata: requestAuditMetadata(req, {
+            weighInBodyweightKg: req.validatedBody.weighInBodyweightKg,
+          }),
+        })
+        res.json({ registration })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/admin/registrations/:registrationId/official-weight-class',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(
+      z.object({
+        officialWeightClass: z.string().trim().max(8),
+      }),
+    ),
+    async (req, res, next) => {
+      try {
+        const registrationId = z.string().uuid().safeParse(req.params.registrationId)
+        if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
+        const current = await repo().findRegistrationWeightClassContext(registrationId.data)
+        if (!current) throw new HttpError(404, 'Inscripción no encontrada.')
+        const raw = req.validatedBody.officialWeightClass
+        const officialWeightClass = raw
+          ? assertDeclaredWeightClass(embeddedRelation(current.athlete)?.sex, raw)
+          : null
+        const registration = await repo().updateOfficialWeightClass(
+          registrationId.data,
+          officialWeightClass,
+          actorLabel(req),
+        )
+        await recordOperationalAuditEvent(auditClient(), {
+          source: 'identity',
+          action: 'registration.official_weight_class_updated',
+          entityType: 'event_registration',
+          entityId: registrationId.data,
+          actorType: 'staff',
+          actorId: actorLabel(req),
+          status: officialWeightClass ? 'updated' : 'cleared',
+          severity: 'info',
+          metadata: requestAuditMetadata(req, { officialWeightClass }),
+        })
+        res.json({ registration })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   router.post(
     '/admin/registrations/:registrationId/competition-correction',
     ...registrationWriteGuard,
@@ -3524,6 +4762,9 @@ export function createAthleteRoutes({
       try {
         const registrationId = z.string().uuid().safeParse(req.params.registrationId)
         if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
+        const current = await repo().findRegistrationWeightClassContext(registrationId.data)
+        if (!current) throw new HttpError(404, 'Inscripción no encontrada.')
+        assertRosterOpen(embeddedRelation(current.event))
         res.json({
           registration: await repo().correctRegistrationCompetition(
             registrationId.data,
@@ -3593,6 +4834,51 @@ export function createAthleteRoutes({
           }),
         })
         res.status(201).json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.get(
+    '/admin/:athleteId/documents',
+    ...adminGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const athleteId = z.string().uuid().safeParse(req.params.athleteId)
+        if (!athleteId.success) throw new HttpError(400, 'Atleta inválido.')
+        const pack = await repo().findDocumentPack(athleteId.data)
+        res.json({
+          documents: pack.documents,
+          documentsGrandfathered: pack.documentsGrandfathered,
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.get(
+    '/admin/:athleteId/documents/:kind',
+    ...adminGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const athleteId = z.string().uuid().safeParse(req.params.athleteId)
+        const kind = documentKindSchema.safeParse(req.params.kind)
+        if (!athleteId.success) throw new HttpError(400, 'Atleta inválido.')
+        if (!kind.success) throw new HttpError(400, 'Documento inválido.')
+        const supabase = getSupabaseAdmin?.()
+        if (!supabase) throw new HttpError(503, 'Supabase no está configurado en el servidor.')
+        const path = await repo().athleteDocumentPath(athleteId.data, kind.data)
+        await sendPortraitBinary({
+          req,
+          res,
+          client: supabase,
+          path,
+          bucket: 'athlete-documents',
+          cacheControl: athleteDocumentCacheControl(req),
+        })
       } catch (error) {
         next(error)
       }

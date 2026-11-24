@@ -1,4 +1,13 @@
 import { normalizeWeighInWindows } from '../lib/weighInWindows.js'
+import {
+  emptyEventLanding,
+  eventLandingIsPublic,
+  eventLandingFromEvent,
+  landingPayloadForMerge,
+  normalizeEventLanding,
+  syncLandingSlotsFromPublicCopy,
+} from '../lib/eventLanding.js'
+import { withLandingBlockImageUrls } from '../lib/eventLandingLayout.js'
 import { normalizeEventPublicCopy } from '../lib/eventPublicSurface.js'
 import {
   DEFAULT_EVENT_PUBLIC_SURFACE,
@@ -12,11 +21,29 @@ import {
 } from '../lib/eventPricing.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { isRegistrationOpen } from '../lib/status.js'
+import { hiddenLandingTakesRegistrations } from '../../shared/registrationSaleState.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import { ApiError, apiDelete, apiGet, apiPatch, apiPost } from '../lib/api.js'
 import { compressImageFile } from '../lib/compressImageFile.js'
+import { removeImageBackground } from '../lib/removeImageBackground.js'
 import { normalizeTicketCredentials } from '../lib/ticketCredentials.js'
+import { ticketRevealLeadHoursFromMinutes } from '../lib/ticketReveal.js'
 import { normalizeEventPaymentChannelOverrides } from '../lib/eventPaymentChannels.js'
+import { externalFormFromRules, normalizeExternalForm } from '../lib/eventExternalForm.js'
+import {
+  normalizeEventOffering,
+  offeringForStorage,
+  offeringFromRules,
+} from '../../shared/eventOffering.js'
+import {
+  eventModulesForStorage,
+  eventModulesFromRules,
+  isStoredEventModuleOn,
+  normalizeEventModules,
+  normalizeEventPaymentPolicy,
+  paymentPolicyForStorage,
+  paymentPolicyFromRules,
+} from '../../shared/eventModules.js'
 import { normalizeTicketTypePaymentChannels } from '../lib/ticketTypePaymentChannels.js'
 import { catalogPriceFromRow, normalizeTicketTypePrices } from '../lib/ticketTypePrices.js'
 import { TICKET_ACCESS_USAGE_MODE, TICKET_QR_VALIDITY_MODE } from '../lib/ticketValidityPolicy.js'
@@ -97,10 +124,12 @@ export function buildAdminEventDraft(event) {
     description: event.description ?? '',
     dateISO: event.dateISO ?? event.startsAt?.slice(0, 10) ?? '',
     venue: event.venue ?? '',
+    venueAddress: event.venueAddress ?? '',
     location: event.location ?? '',
     status: event.status ?? 'proximamente',
     featured: Boolean(event.featured),
     slots: event.slots ?? DEFAULT_SLOTS,
+    ticketCapacity: event.ticketCapacity ?? '',
     pricing: clonePricing(event.pricing),
     startsAt: toDateTimeLocal(event.startsAt),
     endsAt: toDateTimeLocal(event.endsAt),
@@ -108,6 +137,9 @@ export function buildAdminEventDraft(event) {
     registrationClosesAt: toDateTimeLocal(event.registrationClosesAt),
     ticketSalesOpensAt: toDateTimeLocal(event.ticketSalesOpensAt),
     ticketSalesClosesAt: toDateTimeLocal(event.ticketSalesClosesAt),
+    ticketRevealLeadHours:
+      event.ticketRevealLeadHours ??
+      ticketRevealLeadHoursFromMinutes(event.ticketRevealLeadMinutes),
     eventDays: (event.eventDays ?? []).map((day) => ({ ...day })),
     ticketTypes: (event.ticketTypes ?? []).map((type) => ({
       ...type,
@@ -140,6 +172,7 @@ export function buildAdminEventDraft(event) {
     weighInWindows: normalizeWeighInWindows(event.weighInWindows),
     publicSurface: normalizeEventPublicSurface(event.publicSurface),
     publicCopy: normalizeEventPublicCopy(event.publicCopy),
+    landing: eventLandingFromEvent(event),
     liveStreamUrl: event.liveStreamUrl ?? '',
     liveStreamProvider: event.liveStreamProvider ?? 'youtube',
     liveStatus: event.liveStatus ?? 'offline',
@@ -152,9 +185,24 @@ export function buildAdminEventDraft(event) {
       alias: event.bankTransfer?.alias ?? '',
       cbu: event.bankTransfer?.cbu ?? '',
       holder: event.bankTransfer?.holder ?? '',
+      cuit: event.bankTransfer?.cuit ?? '',
+      bankName: event.bankTransfer?.bankName ?? '',
     },
     bankTransferProfileId: event.bankTransferProfileId ?? null,
     mercadoPagoProfileId: event.mercadoPagoProfileId ?? null,
+    mercadoPagoReadiness: event.mercadoPagoReadiness ?? null,
+    salesIntent: event.salesIntent === 'announce' ? 'announce' : 'charge',
+    cashPayment: {
+      place: event.cashPayment?.place ?? '',
+      notes: event.cashPayment?.notes ?? '',
+      address: event.cashPayment?.address ?? '',
+      hours: event.cashPayment?.hours ?? '',
+      contact: event.cashPayment?.contact ?? '',
+    },
+    externalForm: normalizeExternalForm(event.externalForm),
+    offering: normalizeEventOffering(event.offering),
+    modules: normalizeEventModules(event.modules),
+    paymentPolicy: normalizeEventPaymentPolicy(event.paymentPolicy),
   }
 }
 
@@ -180,6 +228,7 @@ export function mapDraftToPreviewEvent(draft, sourceEvent = null) {
     date: dateISO ? formatEventDate(dateISO) : '—',
     dateISO,
     venue: draft.venue?.trim() || 'Sede del evento',
+    venueAddress: draft.venueAddress?.trim() ?? '',
     location: draft.location?.trim() || 'Ciudad',
     status: draft.status || 'proximamente',
     featured: Boolean(draft.featured),
@@ -188,6 +237,10 @@ export function mapDraftToPreviewEvent(draft, sourceEvent = null) {
     published: draft.published === true,
     requiresMembership: draft.requiresMembership !== false,
     publicCopy: normalizeEventPublicCopy(draft.publicCopy ?? sourceEvent?.publicCopy),
+    landing: normalizeEventLanding(draft.landing ?? sourceEvent?.landing, {
+      publicCopy: draft.publicCopy ?? sourceEvent?.publicCopy,
+      slug: draft.slug ?? sourceEvent?.slug,
+    }),
     slug:
       draft.slug ??
       sourceEvent?.slug ??
@@ -313,9 +366,9 @@ export function eventYearFromIso(dateISO) {
 }
 
 export function listAdminEventYears(events = []) {
-  return [
-    ...new Set(events.map((event) => eventYearFromIso(event.dateISO)).filter(Boolean)),
-  ].sort((left, right) => right.localeCompare(left))
+  return [...new Set(events.map((event) => eventYearFromIso(event.dateISO)).filter(Boolean))].sort(
+    (left, right) => right.localeCompare(left),
+  )
 }
 
 export function defaultAdminEventYear(events = []) {
@@ -392,6 +445,7 @@ export function createAdminEvent(events, payload) {
     updatedAt: createdAt,
     createdOrder: Date.now(),
     slots: Number(payload.slots) || DEFAULT_SLOTS,
+    ticketCapacity: payload.ticketCapacity ?? '',
     registered: 0,
     pricing: normalizeEventPricingInput(payload.pricing),
     startsAt: payload.startsAt ?? '',
@@ -400,6 +454,7 @@ export function createAdminEvent(events, payload) {
     registrationClosesAt: payload.registrationClosesAt ?? '',
     ticketSalesOpensAt: payload.ticketSalesOpensAt ?? '',
     ticketSalesClosesAt: payload.ticketSalesClosesAt ?? '',
+    ticketRevealLeadHours: payload.ticketRevealLeadHours ?? 24,
     eventDays: payload.eventDays ?? [],
     ticketTypes: payload.ticketTypes ?? [],
     weighInWindows: normalizeWeighInWindows(payload.weighInWindows),
@@ -408,6 +463,10 @@ export function createAdminEvent(events, payload) {
     liveStreamUrl: payload.liveStreamUrl ?? '',
     liveStreamProvider: payload.liveStreamProvider ?? 'youtube',
     liveStatus: payload.liveStatus ?? 'offline',
+    externalForm: normalizeExternalForm(payload.externalForm),
+    offering: normalizeEventOffering(payload.offering),
+    modules: normalizeEventModules(payload.modules),
+    paymentPolicy: normalizeEventPaymentPolicy(payload.paymentPolicy),
     published: Boolean(payload.published),
     requiresMembership: payload.requiresMembership !== false,
   }
@@ -449,6 +508,8 @@ export function updateAdminEvent(events, eventId, payload) {
       status: payload.status ?? event.status,
       featured: payload.featured ?? event.featured,
       slots: Number(payload.slots) || event.slots,
+      ticketCapacity:
+        payload.ticketCapacity !== undefined ? payload.ticketCapacity : (event.ticketCapacity ?? ''),
       slug: event.slug ?? slugify(payload.title ?? event.title, dateISO),
       pricing: normalizeEventPricingInput(payload.pricing ?? event.pricing),
       startsAt: payload.startsAt ?? event.startsAt ?? '',
@@ -457,6 +518,7 @@ export function updateAdminEvent(events, eventId, payload) {
       registrationClosesAt: payload.registrationClosesAt ?? event.registrationClosesAt ?? '',
       ticketSalesOpensAt: payload.ticketSalesOpensAt ?? event.ticketSalesOpensAt ?? '',
       ticketSalesClosesAt: payload.ticketSalesClosesAt ?? event.ticketSalesClosesAt ?? '',
+      ticketRevealLeadHours: payload.ticketRevealLeadHours ?? event.ticketRevealLeadHours ?? 24,
       eventDays: payload.eventDays ?? event.eventDays ?? [],
       ticketTypes: payload.ticketTypes ?? event.ticketTypes ?? [],
       weighInWindows: normalizeWeighInWindows(payload.weighInWindows ?? event.weighInWindows),
@@ -465,6 +527,10 @@ export function updateAdminEvent(events, eventId, payload) {
       liveStreamUrl: payload.liveStreamUrl ?? event.liveStreamUrl ?? '',
       liveStreamProvider: payload.liveStreamProvider ?? event.liveStreamProvider ?? 'youtube',
       liveStatus: payload.liveStatus ?? event.liveStatus ?? 'offline',
+      externalForm: normalizeExternalForm(payload.externalForm ?? event.externalForm),
+      offering: normalizeEventOffering(payload.offering ?? event.offering),
+      modules: normalizeEventModules(payload.modules ?? event.modules),
+      paymentPolicy: normalizeEventPaymentPolicy(payload.paymentPolicy ?? event.paymentPolicy),
       published: Boolean(payload.published),
       requiresMembership:
         payload.requiresMembership !== undefined
@@ -590,6 +656,7 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   description: '',
   dateISO: '',
   venue: '',
+  venueAddress: '',
   location: '',
   status: 'proximamente',
   featured: false,
@@ -602,6 +669,8 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   registrationClosesAt: '',
   ticketSalesOpensAt: '',
   ticketSalesClosesAt: '',
+  ticketCapacity: '',
+  ticketRevealLeadHours: 24,
   eventDays: [],
   ticketTypes: [],
   weighInWindows: [],
@@ -613,6 +682,7 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
     inscriptionMark: '',
     inscriptionNote: '',
   },
+  landing: emptyEventLanding('meet'),
   liveStreamUrl: '',
   liveStreamProvider: 'youtube',
   liveStatus: 'offline',
@@ -625,6 +695,13 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   bankTransfer: { alias: '', cbu: '', holder: '' },
   bankTransferProfileId: null,
   mercadoPagoProfileId: null,
+  mercadoPagoReadiness: null,
+  salesIntent: 'charge',
+  cashPayment: { place: '', notes: '', address: '', hours: '', contact: '' },
+  externalForm: { url: '', label: '' },
+  offering: normalizeEventOffering(null),
+  modules: normalizeEventModules(null),
+  paymentPolicy: normalizeEventPaymentPolicy(null),
 }
 
 /** Reconstruye eventDays/ticketTypes desde las filas joineadas de Supabase. */
@@ -725,6 +802,8 @@ export function mapSupabaseEventRow(row) {
     title: row.title,
     description: row.description ?? '',
     venue: row.venue,
+    // Calle y número (20270102110000): Google Maps y Waze.
+    venueAddress: row.venue_address ?? '',
     location: row.location,
     startsAt: row.starts_at,
     endsAt: row.ends_at,
@@ -732,14 +811,18 @@ export function mapSupabaseEventRow(row) {
     registrationClosesAt: row.registration_closes_at,
     ticketSalesOpensAt: row.ticket_sales_opens_at,
     ticketSalesClosesAt: row.ticket_sales_closes_at,
+    ticketRevealLeadMinutes: row.ticket_reveal_lead_minutes ?? null,
+    ticketRevealLeadHours: ticketRevealLeadHoursFromMinutes(row.ticket_reveal_lead_minutes),
     capacity: row.capacity,
     status: row.status,
+    rosterFrozenAt: row.roster_frozen_at ?? row.rosterFrozenAt ?? null,
     published: row.published,
     requiresMembership: row.requires_membership !== false,
     capacityProgressPublic: row.capacity_progress_public !== false,
     capacityTotalPublic: row.capacity_total_public !== false,
     logoPath: row.logo_path ?? null,
     logoUrl: row.logo_url ?? null,
+    heroImageUrl: row.hero_image_url ?? null,
     paymentChannelOverrides: normalizeEventPaymentChannelOverrides(row.payment_channel_overrides),
     bankTransfer: {
       alias: row.bank_transfer_alias ?? '',
@@ -748,6 +831,27 @@ export function mapSupabaseEventRow(row) {
     },
     bankTransferProfileId: row.bank_transfer_profile_id ?? null,
     mercadoPagoProfileId: row.mercado_pago_profile_id ?? null,
+    mercadoPagoReadiness: row.mercado_pago_readiness
+      ? {
+          destination: row.mercado_pago_readiness.destination ?? 'platform',
+          profileId: row.mercado_pago_readiness.profileId ?? null,
+          profileName: row.mercado_pago_readiness.profileName ?? null,
+          connectionStatus: row.mercado_pago_readiness.connectionStatus ?? null,
+          active: row.mercado_pago_readiness.active ?? null,
+        }
+      : null,
+    salesIntent: row.rules?.salesIntent === 'announce' ? 'announce' : 'charge',
+    cashPayment: {
+      place: row.cash_payment_place ?? '',
+      notes: row.cash_payment_notes ?? '',
+      address: row.cash_payment_address ?? '',
+      hours: row.cash_payment_hours ?? '',
+      contact: row.cash_payment_contact ?? '',
+    },
+    externalForm: externalFormFromRules(rules),
+    offering: offeringFromRules(rules),
+    modules: eventModulesFromRules(rules),
+    paymentPolicy: paymentPolicyFromRules(rules),
     comboOffer: comboOfferRow
       ? {
           id: comboOfferRow.id,
@@ -798,6 +902,10 @@ export function mapSupabaseEventRow(row) {
     weighInWindows: normalizeWeighInWindows(rules.weighInWindows),
     publicSurface: normalizeEventPublicSurface(rules.publicSurface),
     publicCopy: normalizeEventPublicCopy(rules.publicCopy),
+    landing: normalizeEventLanding(rules.landing, {
+      publicCopy: rules.publicCopy,
+      slug: row.slug,
+    }),
     pricing: normalizeEventPricingInput({
       registration: row.price,
       registrationManual: row.manual_price,
@@ -825,7 +933,11 @@ export function mapSupabaseEventRow(row) {
  */
 export function mapPublishedEventRow(row, now = new Date()) {
   const event = mapSupabaseEventRow(row)
-  const publicOffer = resolveLiveComboOffer(event, now)
+  // Combo apagado: mismo recorte que `sanitizePublicCatalogEvent` (server),
+  // porque el respaldo a Supabase directo no pasa por él.
+  const publicOffer = isStoredEventModuleOn(event, 'combo')
+    ? resolveLiveComboOffer(event, now)
+    : null
   return {
     ...event,
     comboOffer: publicOffer,
@@ -836,7 +948,7 @@ export function mapPublishedEventRow(row, now = new Date()) {
   }
 }
 
-function mapAdminEventRow(row, index = 0) {
+export function mapAdminEventRow(row, index = 0) {
   const capacity = Object.fromEntries(
     (row.capacityRules ?? []).map((item) => [item.key || 'event', item.limit_count]),
   )
@@ -845,8 +957,48 @@ function mapAdminEventRow(row, index = 0) {
   return {
     ...event,
     date: event.dateISO ? formatEventDate(event.dateISO) : '—',
-    slots: row.capacity ?? capacity.event ?? event.slots ?? DEFAULT_SLOTS,
+    // events.capacity es el cupo de atletas. La regla scope=event (key '')
+    // es el tope de entradas y puede no existir: no se hereda del cupo.
+    slots: row.capacity ?? event.slots ?? DEFAULT_SLOTS,
+    ticketCapacity: capacity.event ?? null,
     createdOrder: row.created_at ? new Date(row.created_at).getTime() : index,
+  }
+}
+
+function constructionLandingRules(event) {
+  const landing = event.landing ?? {}
+  return {
+    templateId: landing.templateId,
+    themeId: landing.themeId,
+    publicVisible: false,
+    ...(landing.layout
+      ? { layout: { palette: landing.layout.palette, motion: landing.layout.motion } }
+      : {}),
+  }
+}
+
+/** Espejo cliente de `underConstructionCatalogEvent` (server): solo slug y título. */
+function underConstructionPublicEvent(event) {
+  return mapSupabaseEventRow({
+    id: event.id,
+    slug: event.slug,
+    title: event.title,
+    published: true,
+    status: 'proximamente',
+    rules: { landing: constructionLandingRules(event) },
+  })
+}
+
+/**
+ * Espejo cliente de `registrationOnlyCatalogEvent` (server): el evento entero
+ * para poder inscribirse, sin la página que todavía se está armando.
+ */
+function registrationOnlyPublicEvent(event) {
+  return {
+    ...event,
+    heroImageUrl: null,
+    publicCopy: normalizeEventPublicCopy(null),
+    landing: normalizeEventLanding(constructionLandingRules(event), { slug: event.slug }),
   }
 }
 
@@ -855,7 +1007,7 @@ export const PUBLISHED_EVENTS_SELECT = `
   starts_at, ends_at,
   registration_opens_at, registration_closes_at,
   ticket_sales_opens_at, ticket_sales_closes_at,
-  capacity, status, published, requires_membership, price, manual_price, currency, rules,
+  capacity, status, published, requires_membership, price, manual_price, currency, rules, logo_path,
   scheduled_price, scheduled_manual_price, price_effective_at,
   live_stream_url, live_stream_provider, live_status, created_at, updated_at,
   eventDays:event_days(id, day_index, label, date),
@@ -893,7 +1045,43 @@ export async function fetchPublishedEvents() {
     .select(PUBLISHED_EVENTS_SELECT)
     .eq('published', true)
   if (error) throw error
-  return (data ?? []).map((row) => mapPublishedEventRow(row))
+  const events = (data ?? []).map((row) => {
+    const logoUrl =
+      row.logo_url ??
+      (row.logo_path
+        ? supabase.storage.from('event-logos').getPublicUrl(row.logo_path).data.publicUrl
+        : null)
+    const heroPath = row.rules?.landing?.slots?.heroImagePath
+    const heroImageUrl =
+      row.hero_image_url ??
+      (heroPath
+        ? supabase.storage.from('event-media').getPublicUrl(heroPath).data.publicUrl
+        : null)
+    const rules = row.rules
+      ? withLandingBlockImageUrls(
+          row.rules,
+          (path) => supabase.storage.from('event-media').getPublicUrl(path).data.publicUrl,
+        )
+      : row.rules
+    return mapPublishedEventRow({ ...row, rules, logo_url: logoUrl, hero_image_url: heroImageUrl })
+  })
+
+  // Si la API no esta disponible, el fallback debe respetar el mismo
+  // interruptor de visibilidad que protege el catalogo del servidor: una landing
+  // apagada queda solo como "en construccion", sin datos del evento.
+  return events.map((event) => {
+    if (eventLandingIsPublic(event)) return event
+    return hiddenLandingTakesRegistrations(event)
+      ? registrationOnlyPublicEvent(event)
+      : underConstructionPublicEvent(event)
+  })
+}
+
+/** Vacío = sin tope de entradas. El número viaja tal cual, incluso 0. */
+function normalizeTicketCapacity(value) {
+  if (value === '' || value == null) return null
+  const number = Number(value)
+  return Number.isFinite(number) ? number : null
 }
 
 /** Guarda el evento completo a través de Express y devuelve el estado
@@ -909,6 +1097,9 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
 
   const response = await apiPost('/api/events/upsert', {
     ...draft,
+    // Siempre viaja: null borra el tope de entradas. Omitirlo conservaría
+    // el cupo de atletas que antes se copiaba a esa fila.
+    ticketCapacity: normalizeTicketCapacity(draft.ticketCapacity),
     id: sourceEvent?.id ?? draft.id,
     expectedUpdatedAt: sourceEvent?.updatedAt ?? draft.expectedUpdatedAt,
     slug,
@@ -918,6 +1109,12 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
     weighInWindows: normalizeWeighInWindows(draft.weighInWindows),
     publicSurface: normalizeEventPublicSurface(draft.publicSurface),
     publicCopy: normalizeEventPublicCopy(draft.publicCopy),
+    landing: landingPayloadForMerge(
+      syncLandingSlotsFromPublicCopy(
+        draft.landing ?? emptyEventLanding('meet'),
+        draft.publicCopy,
+      ),
+    ),
     paymentChannelOverrides: normalizeEventPaymentChannelOverrides(draft.paymentChannelOverrides),
     ticketTypes: (draft.ticketTypes ?? []).map((type) => ({
       ...type,
@@ -928,14 +1125,41 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
       alias: draft.bankTransfer?.alias ?? '',
       cbu: draft.bankTransfer?.cbu ?? '',
       holder: draft.bankTransfer?.holder ?? '',
+      // Van a la cuenta reutilizable que se crea con estos datos, no al evento.
+      cuit: draft.bankTransfer?.cuit ?? '',
+      bankName: draft.bankTransfer?.bankName ?? '',
     },
     bankTransferProfileId: draft.bankTransferProfileId ?? null,
     mercadoPagoProfileId: draft.mercadoPagoProfileId ?? null,
+    salesIntent: draft.salesIntent === 'announce' ? 'announce' : 'charge',
+    cashPayment: {
+      place: String(draft.cashPayment?.place ?? '').trim(),
+      notes: String(draft.cashPayment?.notes ?? '').trim(),
+      address: String(draft.cashPayment?.address ?? '').trim(),
+      hours: String(draft.cashPayment?.hours ?? '').trim(),
+      contact: String(draft.cashPayment?.contact ?? '').trim(),
+    },
+    venueAddress: String(draft.venueAddress ?? '').trim(),
+    // Siempre se manda (aunque esté vacío): el upsert reconstruye `rules`, y sin
+    // este merge un guardado borraría el formulario cargado.
+    externalForm: {
+      url: String(draft.externalForm?.url ?? '').trim(),
+      label: String(draft.externalForm?.label ?? '').trim(),
+    },
+    // También siempre: el upsert reconstruye `rules`. Solo viajan las listas que
+    // restringen algo; `{}` = ofrece todo.
+    offering: offeringForStorage(draft.offering),
+    // También siempre: solo viaja lo apagado y los conceptos con tope de cuotas.
+    modules: eventModulesForStorage(draft.modules),
+    paymentPolicy: paymentPolicyForStorage(draft.paymentPolicy),
   })
 
   return {
     event: mapAdminEventRow(response.event),
     events: (response.events ?? [response.event]).map(mapAdminEventRow),
+    // Lo que se guardó pero queda incompleto (p. ej. transferencia abierta sin
+    // destino de cobro en un evento oculto). No es un error: el evento está.
+    warnings: Array.isArray(response.warnings) ? response.warnings : [],
   }
 }
 
@@ -961,7 +1185,15 @@ export async function fetchAdminEvents() {
  */
 export async function setEventStateRequest(
   slug,
-  { status, published, requiresMembership, capacityProgressPublic } = {},
+  {
+    status,
+    published,
+    requiresMembership,
+    capacityProgressPublic,
+    registrationOpensAt,
+    registrationClosesAt,
+    ticketsEnabled,
+  } = {},
 ) {
   if (!slug) throw new Error('Falta el slug del evento.')
 
@@ -970,6 +1202,10 @@ export async function setEventStateRequest(
   if (published !== undefined) payload.published = published
   if (requiresMembership !== undefined) payload.requiresMembership = requiresMembership
   if (capacityProgressPublic !== undefined) payload.capacityProgressPublic = capacityProgressPublic
+  // Control de venta: ISO fija la fecha, null la borra.
+  if (registrationOpensAt !== undefined) payload.registrationOpensAt = registrationOpensAt
+  if (registrationClosesAt !== undefined) payload.registrationClosesAt = registrationClosesAt
+  if (ticketsEnabled !== undefined) payload.ticketsEnabled = ticketsEnabled === true
 
   const response = await apiPost(`/api/events/${encodeURIComponent(slug)}/state`, payload)
 
@@ -1028,14 +1264,57 @@ export function validateEventLogoFile(file) {
 }
 
 /**
- * Sube la imagen y deja guardado el logo. Devuelve `{ event, events }` ya
- * mapeados; con `file = null` quita el logo.
+ * Deja el logo listo para subir: valida, quita el fondo liso (si se pidió) y lo
+ * baja a WebP. Es lo que ve la vista previa del alta y lo que después se sube,
+ * así que el archivo previsualizado es exactamente el que queda guardado.
+ *
+ * `backgroundReason` explica por qué no se quitó el fondo cuando se pidió
+ * (ver BACKGROUND_REASON); es `null` si no se pidió.
  */
-export async function setEventLogoRequest(slug, file) {
+export async function prepareEventLogoFile(file, { removeBackground = false } = {}) {
+  const validation = validateEventLogoFile(file)
+  if (validation.error) throw new ApiError(validation.error, { status: 400 })
+
+  let source = file
+  let backgroundRemoved = false
+  let backgroundReason = null
+  if (removeBackground) {
+    const outcome = await removeImageBackground(file, { outputEdge: EVENT_LOGO_MAX_EDGE })
+    source = outcome.file
+    backgroundRemoved = outcome.applied
+    backgroundReason = outcome.reason
+    // Ya salió recortado, al tamaño final y en WebP: recomprimirlo solo lo degradaría.
+    if (backgroundRemoved && source.size <= EVENT_LOGO_MAX_BYTES) {
+      return { file: source, backgroundRemoved, backgroundReason }
+    }
+  }
+
+  const prepared = await compressImageFile(source, {
+    maxEdge: EVENT_LOGO_MAX_EDGE,
+    quality: 0.86,
+    targetMaxBytes: EVENT_LOGO_TARGET_BYTES,
+    skipUnderBytes: EVENT_LOGO_TARGET_BYTES,
+  })
+  return { file: prepared, backgroundRemoved, backgroundReason }
+}
+
+/**
+ * Sube la imagen y deja guardado el logo. Devuelve `{ event, events,
+ * backgroundRemoved }` ya mapeados; con `file = null` quita el logo.
+ *
+ * `prepared: true` indica que el archivo ya pasó por `prepareEventLogoFile`
+ * (el alta lo prepara al elegirlo, para mostrarlo): no se procesa dos veces.
+ */
+export async function setEventLogoRequest(
+  slug,
+  file,
+  { removeBackground = false, prepared: alreadyPrepared = false } = {},
+) {
   if (!slug) throw new Error('Falta el slug del evento.')
   const base = `/api/events/${encodeURIComponent(slug)}/logo`
 
   let path = null
+  let backgroundRemoved = false
   if (file) {
     const validation = validateEventLogoFile(file)
     if (validation.error) throw new ApiError(validation.error, { status: 400 })
@@ -1045,21 +1324,19 @@ export async function setEventLogoRequest(slug, file) {
       })
     }
 
-    const prepared = await compressImageFile(file, {
-      maxEdge: EVENT_LOGO_MAX_EDGE,
-      quality: 0.86,
-      targetMaxBytes: EVENT_LOGO_TARGET_BYTES,
-      skipUnderBytes: EVENT_LOGO_TARGET_BYTES,
-    })
+    const prepared = alreadyPrepared
+      ? { file }
+      : await prepareEventLogoFile(file, { removeBackground })
+    backgroundRemoved = Boolean(prepared.backgroundRemoved)
     const upload = await apiPost(`${base}/upload-url`, {
-      contentType: prepared.type,
-      size: prepared.size,
+      contentType: prepared.file.type,
+      size: prepared.file.size,
     })
     const supabase = await getSupabaseClient()
     const { error } = await supabase.storage
       .from('event-logos')
-      .uploadToSignedUrl(upload.path, upload.token, prepared, {
-        contentType: prepared.type,
+      .uploadToSignedUrl(upload.path, upload.token, prepared.file, {
+        contentType: prepared.file.type,
         cacheControl: '31536000',
       })
     if (error) throw new ApiError(error.message || 'No se pudo subir la imagen.', { status: 502 })
@@ -1070,5 +1347,58 @@ export async function setEventLogoRequest(slug, file) {
   return {
     event: mapAdminEventRow(response.event),
     events: (response.events ?? [response.event]).map(mapAdminEventRow),
+    backgroundRemoved,
   }
+}
+
+// ------------------------------------------------------------------ hero landing
+// Imagen hero de la plantilla: se sube a `event-media` y la ruta viaja en
+// `landing.slots.heroImagePath` al guardar el evento (no hay PATCH aparte).
+
+export const EVENT_HERO_MAX_BYTES = 5 * 1024 * 1024
+const EVENT_HERO_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const EVENT_HERO_MAX_EDGE = 1920
+const EVENT_HERO_TARGET_BYTES = 480 * 1024
+
+export function validateEventHeroFile(file) {
+  if (!file) return { error: 'Elegí una imagen.' }
+  if (!EVENT_HERO_MIME_TYPES.has(file.type)) return { error: 'Usá una imagen JPG, PNG o WEBP.' }
+  if (file.size > EVENT_HERO_MAX_BYTES) return { error: 'La imagen supera el límite de 5 MB.' }
+  return { ok: true }
+}
+
+/**
+ * Sube el hero a Storage y devuelve `{ path, url }` para meter en el draft.
+ * No persiste en la base: eso ocurre al guardar el evento con el merge de landing.
+ */
+export async function uploadEventHeroRequest(slug, file) {
+  if (!slug) throw new Error('Falta el slug del evento.')
+  const validation = validateEventHeroFile(file)
+  if (validation.error) throw new ApiError(validation.error, { status: 400 })
+  if (!isSupabaseConfigured) {
+    throw new ApiError('Supabase no está configurado. No se puede subir la imagen.', {
+      status: 503,
+    })
+  }
+
+  const prepared = await compressImageFile(file, {
+    maxEdge: EVENT_HERO_MAX_EDGE,
+    quality: 0.86,
+    targetMaxBytes: EVENT_HERO_TARGET_BYTES,
+    skipUnderBytes: EVENT_HERO_TARGET_BYTES,
+  })
+
+  const upload = await apiPost(`/api/events/${encodeURIComponent(slug)}/hero/upload-url`, {
+    contentType: prepared.type,
+    size: prepared.size,
+  })
+  const supabase = await getSupabaseClient()
+  const { error } = await supabase.storage
+    .from('event-media')
+    .uploadToSignedUrl(upload.path, upload.token, prepared, {
+      contentType: prepared.type,
+      cacheControl: '31536000',
+    })
+  if (error) throw new ApiError(error.message || 'No se pudo subir la imagen.', { status: 502 })
+  return { path: upload.path, url: upload.url ?? null }
 }

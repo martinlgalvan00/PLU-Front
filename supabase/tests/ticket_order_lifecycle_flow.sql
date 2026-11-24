@@ -16,7 +16,6 @@ declare
   v_status text;
   v_ticket_status text;
   v_count int;
-  v_athlete_id uuid;
   v_failed boolean;
 begin
   insert into public.events (slug, title, venue, location, starts_at, ends_at, published, status, currency, rules)
@@ -136,32 +135,40 @@ begin
   end;
   if not v_failed then raise exception 'FALLO: reactivar sin comprobante debía fallar'; end if;
 
-  -- 6. Mis entradas: por DNI siempre; por mail sólo verificado.
-  insert into public.athletes (full_name, document_id, email, email_verified_at)
-  values ('Ana Prueba', '30111222', 'otra@example.com', now())
-  returning id into v_athlete_id;
-  select jsonb_array_length(public.athlete_list_my_tickets(v_athlete_id)) into v_count;
-  if v_count <> 1 then raise exception 'FALLO: mis entradas por DNI = %', v_count; end if;
-  -- El DNI de una cuenta no está verificado: por DNI se ve la entrada, pero
-  -- el QR y el código de puerta no viajan (20261211100000).
-  v_result := public.athlete_list_my_tickets(v_athlete_id) -> 0;
-  if v_result ->> 'qr_token' is not null or v_result ->> 'door_code' is not null
-     or (v_result ->> 'qr_locked')::boolean is not true
-     or v_result ->> 'buyer_email_masked' <> 'a***@example.com' then
-    raise exception 'FALLO: coincidencia por DNI entregó el QR: %', v_result;
-  end if;
+  -- 6. Lo que venció el cron va por Acreditar (staff_settle_cancelled_ticket_order),
+  --    no por volver a aceptar: un caso, un camino.
+  v_result := public.create_ticket_order_v3(
+    'test-lifecycle',
+    jsonb_build_array(jsonb_build_object('fullName', 'Eva Prueba', 'dni', '30111666', 'ticketTypeId', v_type.id)),
+    jsonb_build_object('name', 'Eva', 'email', 'eva@example.com', 'provider', 'manual', 'manualPaymentChannel', 'bank_transfer'),
+    'lifecycle-idem-key-0005', repeat('e', 64), 'staff:test'
+  );
+  v_order_id := (v_result -> 'order' ->> 'id')::uuid;
+  -- Simula el vencimiento del cron: cancelada, sin `cancelled_at`.
+  update public.ticket_orders set status = 'cancelado', payment_proof_path = 'x/eva.png'
+  where id = v_order_id;
+  update public.tickets set status = 'cancelada' where order_id = v_order_id;
+  v_failed := false;
+  begin
+    perform public.staff_reinstate_ticket_order(v_order_id, 'staff:test');
+  exception when sqlstate 'PLU03' then v_failed := true;
+  end;
+  if not v_failed then raise exception 'FALLO: volver a aceptar una vencida del cron debía derivar a Acreditar'; end if;
 
-  insert into public.athletes (full_name, document_id, email, email_verified_at)
-  values ('Beto Cuenta', '29999999', 'beto@example.com', null)
-  returning id into v_athlete_id;
-  select jsonb_array_length(public.athlete_list_my_tickets(v_athlete_id)) into v_count;
-  if v_count <> 0 then raise exception 'FALLO: mail sin verificar no debía ver entradas (%)', v_count; end if;
-  update public.athletes set email_verified_at = now() where id = v_athlete_id;
-  select jsonb_array_length(public.athlete_list_my_tickets(v_athlete_id)) into v_count;
-  if v_count <> 1 then raise exception 'FALLO: mis entradas por mail verificado = %', v_count; end if;
-  v_result := public.athlete_list_my_tickets(v_athlete_id) -> 0;
-  if v_result ->> 'qr_token' is null or (v_result ->> 'qr_locked')::boolean then
-    raise exception 'FALLO: el mail verificado no entregó el QR: %', v_result;
+  -- 6b. Avisos: los cambios de entradas salen en el tópico del equipo, sin datos.
+  if not exists (
+    select 1 from realtime.messages
+    where inserted_at >= now()::timestamp
+      and topic = 'event-checkin:test-lifecycle' and event = 'tickets-changed'
+      and payload - 'id' = jsonb_build_object('eventSlug', 'test-lifecycle')
+  ) then
+    raise exception 'FALLO: no se emitió tickets-changed (o llevó datos)';
+  end if;
+  if not exists (
+    select 1 from realtime.messages
+    where inserted_at >= now()::timestamp and topic = 'ticket-orders' and event = 'orders-changed'
+  ) then
+    raise exception 'FALLO: no se emitió orders-changed';
   end if;
 
   -- 7. Mercado Pago no se cancela a mano.

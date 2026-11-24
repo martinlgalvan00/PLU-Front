@@ -1,4 +1,5 @@
 import { ChevronRight } from 'lucide-react'
+import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 export default function InstitutionalPageHero({
   actions,
@@ -11,6 +12,7 @@ export default function InstitutionalPageHero({
   onHome,
   title,
 }) {
+  const { t } = useI18n()
   const titleId = `institutional-hero-${String(breadcrumb)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')}`
@@ -23,7 +25,7 @@ export default function InstitutionalPageHero({
       <div className="institutional-hero__inner">
         <nav className="institutional-hero__breadcrumb" aria-label="Breadcrumb">
           <button type="button" onClick={onHome}>
-            Home
+            {t('design.home')}
           </button>
           <ChevronRight size={12} aria-hidden />
           <span aria-current="page">{breadcrumb}</span>

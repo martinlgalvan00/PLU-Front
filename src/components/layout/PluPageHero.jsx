@@ -1,3 +1,4 @@
+import { ChevronRight } from 'lucide-react'
 import { m } from 'motion/react'
 
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -43,8 +44,8 @@ export default function PluPageHero({
             <button type="button" onClick={onHome}>
               {t('design.home')}
             </button>
-            <span aria-hidden>/</span>
-            <span>{breadcrumbLabel}</span>
+            <ChevronRight size={12} aria-hidden />
+            <span aria-current="page">{breadcrumbLabel}</span>
           </Breadcrumb>
           {chapter ? (
             <Chapter className="plu-page-hero__chapter" {...itemProps}>

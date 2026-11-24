@@ -138,14 +138,46 @@
   margin: 0;
 }
 
-/* ---- Selector de vista ---- */
+/* ---- Selector de vista ----
+   Una sola regla. El oro marca el modo activo; la pestaña inactiva queda en
+   tinta atenuada, sin pastilla. El cambio no sale de esta página. */
 
-.roles-views {
-  border-bottom: 1px solid var(--admin-hairline);
+.roles-page .roles-views {
+  border-bottom: 0;
+  margin-bottom: calc(var(--space-sm) * -1);
 }
 
-.roles-views .detail-tabs {
-  border-bottom: 0;
+.roles-page .roles-views .detail-tabs--editorial {
+  border-bottom: 1px solid var(--admin-hairline);
+  gap: 8px;
+}
+
+.roles-page .roles-views .detail-tabs--editorial .detail-tabs__tab {
+  background: transparent;
+  border-bottom-width: 2px;
+  border-radius: 0;
+  color: var(--admin-muted);
+  font-size: 15px;
+  font-weight: 550;
+  min-height: 44px;
+  padding: 10px 16px 12px;
+}
+
+.roles-page .roles-views .detail-tabs--editorial .detail-tabs__tab:first-child {
+  padding-left: 0;
+}
+
+.roles-page .roles-views .detail-tabs--editorial .detail-tabs__tab:hover {
+  background: transparent;
+  color: var(--admin-ink);
+}
+
+.roles-page .roles-views .detail-tabs--editorial .detail-tabs__tab.is-active {
+  background: transparent;
+  border-bottom-color: var(--color-brand-gold);
+  box-shadow: none;
+  color: var(--admin-ink);
+  font-weight: 650;
 }
 
 /* ---- Comparar roles ---- */
@@ -310,6 +342,77 @@
   text-transform: uppercase;
 }
 
+.roles-compare__group th {
+  padding: 0;
+}
+
+.roles-compare__group-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 8px;
+  letter-spacing: inherit;
+  min-height: 40px;
+  padding: 0 14px;
+  text-align: left;
+  text-transform: inherit;
+  width: 100%;
+}
+
+.roles-compare__group-toggle:hover {
+  color: var(--admin-ink);
+}
+
+.roles-compare__group-toggle:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: -2px;
+}
+
+.roles-compare__chevron {
+  flex: none;
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.roles-compare__group-toggle[aria-expanded='false'] .roles-compare__chevron {
+  transform: rotate(-90deg);
+}
+
+.roles-compare__group-count {
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-left: auto;
+  text-transform: none;
+}
+
+.roles-compare__fold-all {
+  background: transparent;
+  border: 0;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  min-height: 32px;
+  padding: 0 4px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.roles-compare__fold-all:hover {
+  color: var(--admin-ink);
+}
+
+.roles-compare__fold-all:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
 .roles-compare__group small {
   font-size: 12px;
   font-weight: 400;
@@ -472,9 +575,21 @@
 .roles-rail__name {
   align-items: center;
   display: inline-flex;
+  flex-wrap: wrap;
   font-size: 14px;
   font-weight: 600;
   gap: 6px;
+}
+
+.roles-rail__scope {
+  background: color-mix(in srgb, var(--admin-brand) 14%, transparent);
+  border-radius: 999px;
+  color: var(--admin-brand);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  text-transform: uppercase;
 }
 
 .roles-rail__meta {
@@ -486,6 +601,13 @@
   display: grid;
   gap: var(--space-lg);
   min-width: 0;
+}
+
+.roles-editor__scope-hint {
+  color: var(--admin-brand);
+  font-size: 12.5px;
+  font-weight: 600;
+  margin: 6px 0 0;
 }
 
 .roles-editor__head {
@@ -646,6 +768,86 @@
   display: grid;
   padding: 4px;
   place-items: center;
+}
+
+.roles-packages {
+  border: 1px solid var(--admin-hairline);
+  border-radius: var(--radius-md, 12px);
+  display: grid;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 14px 16px;
+}
+
+.roles-packages__head {
+  display: grid;
+  gap: 2px;
+}
+
+.roles-packages__head strong {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.roles-packages__head span {
+  color: var(--admin-ink-muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.roles-packages__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.roles-packages__item {
+  align-items: center;
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 12px 0 10px;
+}
+
+.roles-packages__item.is-on {
+  background: color-mix(in srgb, var(--admin-brand) 14%, var(--admin-surface));
+  border-color: color-mix(in srgb, var(--admin-brand) 40%, var(--admin-hairline));
+}
+
+.roles-packages__item.is-partial {
+  border-style: dashed;
+}
+
+.roles-packages__item.is-locked {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.roles-packages__item input {
+  accent-color: var(--admin-brand);
+  height: 15px;
+  margin: 0;
+  width: 15px;
+}
+
+.roles-packages__label {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.roles-packages__partial {
+  color: var(--admin-ink-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .roles-editor__presets {
@@ -1286,7 +1488,29 @@
   .roles-pill__box,
   .roles-rail__item,
   .roles-add,
+  .roles-compare__chevron,
   .roles-editor__presets button {
     transition: none;
   }
+}
+
+.roles-editor__users-link {
+  background: none;
+  border: 0;
+  color: var(--admin-muted, var(--color-text-muted));
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.roles-editor__users-link:hover {
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.roles-editor__users-link:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
 }

@@ -1,18 +1,20 @@
-import { act, cleanup, renderHook } from '@testing-library/react'
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import { ApiError } from '../src/lib/api.js'
 
 /**
- * "El QR no escanea": el guardia tipea el número impreso o el DNI. La búsqueda
- * traduce eso a la credencial y el resto es el carril de siempre: el veredicto
- * lo da `resolveCredentialScan` con el token, igual que con la cámara.
+ * El QR no se lee y la persona no tiene su código de puerta: el guardia tipea
+ * el DNI o el número de compra. La búsqueda traduce eso a la credencial y la
+ * manda por el MISMO carril que un escaneo (`handleScan` con la URL del QR), así
+ * pago, vigencia, zona, uso único, reintentos y lista offline se resuelven
+ * igual que con la cámara.
  */
 
 const resolveCredentialScan = vi.fn()
 const lookupCheckinCredentials = vi.fn()
 const findMatchesInAllowlist = vi.fn()
-const reportScanAttempt = vi.fn()
+const findInAllowlist = vi.fn()
 
 vi.mock('../src/services/checkinScanService.js', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -24,12 +26,12 @@ vi.mock('../src/services/ticketApi.js', async (importOriginal) => ({
 }))
 vi.mock('../src/lib/offlineCheckinDb.js', () => ({
   enqueueCheckin: vi.fn(),
-  findInAllowlist: vi.fn(),
+  findInAllowlist: (...args) => findInAllowlist(...args),
   findMatchesInAllowlist: (...args) => findMatchesInAllowlist(...args),
+  getAllowlist: vi.fn(async () => null),
+  downloadAllowlist: vi.fn(async (_eventSlug, data) => data),
 }))
-vi.mock('../src/services/checkinTelemetry.js', () => ({
-  reportScanAttempt: (...args) => reportScanAttempt(...args),
-}))
+vi.mock('../src/services/checkinTelemetry.js', () => ({ reportScanAttempt: vi.fn() }))
 vi.mock('../src/lib/checkinFeedback.js', async (importOriginal) => ({
   ...(await importOriginal()),
   playCheckinFeedback: vi.fn(),
@@ -90,23 +92,8 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-describe('verificación por código en la puerta', () => {
-  it('el código de puerta de 6 dígitos busca la credencial y la valida', async () => {
-    lookupCheckinCredentials.mockResolvedValue([{ ...TICKET_MATCH, doorCode: '482913' }])
-    const { result } = setup()
-
-    await act(() => result.current.handleScan('482 913'))
-
-    expect(lookupCheckinCredentials).toHaveBeenCalledWith('pitbull-classic-2026', {
-      doorCode: '482913',
-    })
-    expect(resolveCredentialScan).toHaveBeenCalledWith(
-      expect.objectContaining({ code: TOKEN, type: 'ticket' }),
-      expect.anything(),
-    )
-  })
-
-  it('el número impreso busca la entrada y sigue por el carril del escaneo', async () => {
+describe('verificación por DNI o número de compra en la puerta', () => {
+  it('el número de compra busca la entrada y sigue por el carril del escaneo', async () => {
     lookupCheckinCredentials.mockResolvedValue([TICKET_MATCH])
     const { result } = setup()
 
@@ -115,11 +102,12 @@ describe('verificación por código en la puerta', () => {
     expect(lookupCheckinCredentials).toHaveBeenCalledWith('pitbull-classic-2026', {
       ticketCode: 'TCK-00000412',
     })
-    expect(resolveCredentialScan).toHaveBeenCalledWith(
-      { code: TOKEN, eventSlug: 'pitbull-classic-2026', type: 'ticket' },
-      expect.objectContaining({ zoneScope: 'gate_tickets' }),
+    await waitFor(() =>
+      expect(resolveCredentialScan).toHaveBeenCalledWith(
+        expect.objectContaining({ code: TOKEN, type: 'ticket' }),
+        expect.anything(),
+      ),
     )
-    expect(result.current.scanResult.outcome).toBe('ready')
   })
 
   it('un DNI con varias credenciales pide elegir, y la elegida se valida', async () => {
@@ -129,17 +117,17 @@ describe('verificación por código en la puerta', () => {
 
     await act(() => result.current.handleScan('30.111.222'))
 
-    expect(lookupCheckinCredentials).toHaveBeenCalledWith('pitbull-classic-2026', {
-      dni: '30111222',
-    })
+    expect(lookupCheckinCredentials).toHaveBeenCalledWith('pitbull-classic-2026', { dni: '30111222' })
     expect(result.current.scanResult.outcome).toBe('multiple_matches')
     expect(result.current.scanResult.matches).toHaveLength(2)
     expect(resolveCredentialScan).not.toHaveBeenCalled()
 
     await act(() => result.current.selectScanMatch(coach))
-    expect(resolveCredentialScan).toHaveBeenCalledWith(
-      expect.objectContaining({ code: coach.code, type: 'ticket' }),
-      expect.anything(),
+    await waitFor(() =>
+      expect(resolveCredentialScan).toHaveBeenCalledWith(
+        expect.objectContaining({ code: coach.code, type: 'ticket' }),
+        expect.anything(),
+      ),
     )
   })
 
@@ -155,51 +143,45 @@ describe('verificación por código en la puerta', () => {
     })
   })
 
-  it('sin red busca en la lista descargada y valida offline', async () => {
-    lookupCheckinCredentials.mockRejectedValue(new ApiError('offline', { status: 0 }))
-    findMatchesInAllowlist.mockResolvedValue([
-      {
-        ...TICKET_MATCH,
-        entry: {
-          qrToken: TOKEN,
-          ticketCode: 'TCK-00000412',
-          status: 'pagada',
-          attendeeName: 'Ana Torres',
-          attendeeDni: '30111222',
-          credentialScopes: ['gate_tickets'],
-        },
-      },
-    ])
-    const { result } = setup()
-
-    await act(() => result.current.handleScan('412'))
-
-    expect(findMatchesInAllowlist).toHaveBeenCalledWith('pitbull-classic-2026', {
-      ticketCode: 'TCK-00000412',
-    })
-    expect(result.current.scanResult).toMatchObject({ outcome: 'ready', offline: true })
-    expect(resolveCredentialScan).not.toHaveBeenCalled()
-  })
-
-  it('sin red y sin lista descargada dice que el servicio no contestó', async () => {
-    lookupCheckinCredentials.mockRejectedValue(new ApiError('offline', { status: 0 }))
-    findMatchesInAllowlist.mockResolvedValue(null)
+  it('un DNI que no es nadie sigue como número de socio (no "no encontrada")', async () => {
+    lookupCheckinCredentials.mockResolvedValue([])
     const { result } = setup()
 
     await act(() => result.current.handleScan('30111222'))
 
+    expect(lookupCheckinCredentials).toHaveBeenCalledWith('pitbull-classic-2026', { dni: '30111222' })
+    // El número pegado también es un socio cantado (año 2030, serial 111222):
+    // sin entradas para ese DNI, el carril del socio decide.
+    await waitFor(() => expect(resolveCredentialScan).toHaveBeenCalled())
+    expect(result.current.scanResult?.manualQuery).toBeUndefined()
+  })
+
+  it('sin red y sin lista, el número de compra dice que el servicio no contestó', async () => {
+    lookupCheckinCredentials.mockRejectedValue(new ApiError('offline', { status: 0 }))
+    findMatchesInAllowlist.mockResolvedValue(null)
+    const { result } = setup()
+
+    await act(() => result.current.handleScan('TCK-00000412'))
+
+    expect(findMatchesInAllowlist).toHaveBeenCalledWith('pitbull-classic-2026', {
+      ticketCode: 'TCK-00000412',
+    })
     expect(result.current.scanResult).toMatchObject({ outcome: 'service_unavailable' })
   })
 
-  it('un código de socio sigue el camino de siempre, sin búsqueda', async () => {
+  it('el socio dictado con espacio no pasa por la búsqueda de DNI', async () => {
     const { result } = setup()
 
-    await act(() => result.current.handleScan('PLU-2026-0042'))
+    await act(() => result.current.handleScan('26 865'))
 
     expect(lookupCheckinCredentials).not.toHaveBeenCalled()
-    expect(resolveCredentialScan).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 'PLU-2026-0042' }),
-      expect.anything(),
-    )
+  })
+
+  it('el código de puerta no pasa por esta búsqueda', async () => {
+    const { result } = setup()
+
+    await act(() => result.current.handleScan('K4M-7QP'))
+
+    expect(lookupCheckinCredentials).not.toHaveBeenCalled()
   })
 })

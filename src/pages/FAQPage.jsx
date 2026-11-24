@@ -4,6 +4,7 @@ import '../styles/pages/institutional-editorial.css'
 import { useMemo, useState } from 'react'
 import { ArrowRight, Search, X } from 'lucide-react'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
+import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
@@ -110,7 +111,7 @@ export default function FAQPage({ onNavigate }) {
           </p>
         </section>
 
-        <div className="faq-results">
+        <MotionContentSwap className="faq-results" swapKey={category}>
           {filteredGroups.length ? (
             filteredGroups.map((group, index) => (
               <section
@@ -145,7 +146,7 @@ export default function FAQPage({ onNavigate }) {
               </button>
             </section>
           )}
-        </div>
+        </MotionContentSwap>
 
         <section className="institutional-closing" aria-labelledby="faq-support-title">
           <div className="institutional-closing__copy">

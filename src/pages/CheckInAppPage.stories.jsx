@@ -57,7 +57,8 @@ const tickets = [
     ticketCode: 'PLU-D1-001',
     qrToken: 'ticket-1',
     ticketTypeId: 'type-day1',
-    ticketTypeName: 'Día 1',
+    ticketTypeName:
+      'Público general 1 día (incluye el ingreso solamente para un día del evento, sea día 1 o día 2)',
     status: 'pagada',
   },
   {

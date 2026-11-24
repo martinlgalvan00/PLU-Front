@@ -5,6 +5,11 @@ import LoadingState from '../../components/ui/LoadingState.jsx'
 import TransferReceipt from '../../components/checkout/TransferReceipt.jsx'
 import ManualPaymentConfirmation from '../../components/checkout/ManualPaymentConfirmation.jsx'
 import { FORM_OPTIONS } from '../../lib/constants.js'
+import {
+  carryDeclaredTotalOnModeChange,
+  isValidDeclaredTotalKg,
+} from '../../../shared/declaredMeetTotal.js'
+import { suggestWeightClass, weightClassLabelsForSex } from '../../../shared/pluWeightClasses.js'
 import { money } from '../../lib/format.js'
 import { computeFinancingRemaining, formatFinancingCountdown } from '../../lib/financingCountdown.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -13,6 +18,19 @@ import {
   savePendingPromotionCode,
 } from '../../services/promotionCodeService.js'
 import '../../styles/components/bundle-section.css'
+
+function initialBundleTotals(athlete) {
+  const carried = carryDeclaredTotalOnModeChange({
+    competition: athlete?.bestTotalKg != null ? String(athlete.bestTotalKg) : '',
+    training: athlete?.trainingBestTotalKg != null ? String(athlete.trainingBestTotalKg) : '',
+    firstMeet: athlete?.isFirstMeet === true,
+  })
+  return {
+    firstMeet: carried.firstMeet,
+    competitionBestTotal: String(carried.competition ?? ''),
+    trainingBestTotal: String(carried.training ?? ''),
+  }
+}
 
 /**
  * SecretBundleSection — la ficha del código-paquete — PLU ARG
@@ -64,6 +82,17 @@ export default function SecretBundleSection({
   const [weight, setWeight] = useState(
     athlete?.estimatedWeight ? String(athlete.estimatedWeight) : '',
   )
+  const [declaredWeightClass, setDeclaredWeightClass] = useState(
+    athlete?.declaredWeightClass ?? '',
+  )
+  const [firstMeet, setFirstMeet] = useState(() => initialBundleTotals(athlete).firstMeet)
+  const [competitionBestTotal, setCompetitionBestTotal] = useState(
+    () => initialBundleTotals(athlete).competitionBestTotal,
+  )
+  const [trainingBestTotal, setTrainingBestTotal] = useState(
+    () => initialBundleTotals(athlete).trainingBestTotal,
+  )
+  const weightClassOptions = weightClassLabelsForSex(athlete?.sex)
   // El canal se guarda, pero el que manda es el que el paquete habilita hoy: la
   // ficha puede haber montado antes de que volviera la lectura de códigos —sin
   // canales todavía— y un estado inicializado en ese hueco dejaba el botón
@@ -130,11 +159,24 @@ export default function SecretBundleSection({
    * Lo usan los dos momentos en que la pasarela es el camino: elegirla desde el
    * formulario, y volver a una orden de Mercado Pago que quedó sin pagar.
    */
-  function goToGateway() {
+  function competitionHandoff() {
+    return {
+      division,
+      category,
+      declaredWeightClass,
+      estimatedWeight: weight,
+      firstMeet,
+      competitionBestTotalKg: firstMeet ? '' : competitionBestTotal,
+      trainingBestTotalKg: firstMeet ? trainingBestTotal : '',
+    }
+  }
+
+  function goToGateway(competition) {
     savePendingPromotionCode(offer.code, {
       surface: 'bundle-gateway',
       destination: { view: 'competition', eventSlug: offer.event?.slug },
       resolved: true,
+      ...(competition ? { competition } : {}),
     })
     if (offer.event?.slug) onSelectEvent?.({ slug: offer.event.slug })
     onNavigate?.('competition', { eventSlug: offer.event?.slug })
@@ -143,14 +185,21 @@ export default function SecretBundleSection({
   async function submit(submitEvent) {
     submitEvent.preventDefault()
     if (submitting || !onStartOfferPayment) return
-    if (!division || !category || !weight) {
+    const declaredTotal = firstMeet ? trainingBestTotal : competitionBestTotal
+    if (
+      !division ||
+      !category ||
+      !declaredWeightClass ||
+      !weight ||
+      !isValidDeclaredTotalKg(declaredTotal)
+    ) {
       setError(t('account.bundle.form.incomplete'))
       return
     }
     // La pasarela se cobra donde vive su brick, no acá: montar un segundo ciclo
     // de pago sería mantener dos veces la parte más delicada del sistema.
     if (method === 'mercado_pago') {
-      goToGateway()
+      goToGateway(competitionHandoff())
       return
     }
     setSubmitting(true)
@@ -162,7 +211,11 @@ export default function SecretBundleSection({
         paymentMethod: apiPaymentMethod(method),
         division,
         category,
+        declaredWeightClass,
         bodyweightKg: Number(String(weight).replace(',', '.')),
+        firstMeet,
+        competitionBestTotalKg: competitionBestTotal,
+        trainingBestTotalKg: trainingBestTotal,
       })
       if (result?.error) {
         setError(result.error)
@@ -226,6 +279,29 @@ export default function SecretBundleSection({
                 </select>
               </label>
               <label>
+                <span>{t('account.bundle.form.weightClass')}</span>
+                <select
+                  value={declaredWeightClass}
+                  onChange={(event) => setDeclaredWeightClass(event.target.value)}
+                  required
+                >
+                  <option value="">{t('account.bundle.form.choose')}</option>
+                  {weightClassOptions.map((item) => (
+                    <option key={item} value={item}>
+                      {item} kg
+                    </option>
+                  ))}
+                </select>
+                {suggestWeightClass(athlete?.sex, weight) &&
+                suggestWeightClass(athlete?.sex, weight) !== declaredWeightClass ? (
+                  <p className="bundle-section__hint">
+                    {t('account.bundle.form.weightClassSuggestion', {
+                      className: suggestWeightClass(athlete?.sex, weight),
+                    })}
+                  </p>
+                ) : null}
+              </label>
+              <label>
                 <span>{t('account.bundle.form.weight')}</span>
                 <input
                   type="number"
@@ -236,6 +312,41 @@ export default function SecretBundleSection({
                   value={weight}
                   onChange={(event) => setWeight(event.target.value)}
                   required
+                />
+              </label>
+              <label className="bundle-section__check">
+                <input
+                  type="checkbox"
+                  checked={firstMeet}
+                  onChange={(event) => {
+                    const carried = carryDeclaredTotalOnModeChange({
+                      competition: competitionBestTotal,
+                      training: trainingBestTotal,
+                      firstMeet: event.target.checked,
+                    })
+                    setFirstMeet(carried.firstMeet)
+                    setCompetitionBestTotal(String(carried.competition ?? ''))
+                    setTrainingBestTotal(String(carried.training ?? ''))
+                  }}
+                />
+                <span>{t('account.bundle.form.firstMeet')}</span>
+              </label>
+              <p className="bundle-section__hint">{t('account.bundle.form.firstMeetNote')}</p>
+              <label>
+                <span>
+                  {firstMeet
+                    ? t('account.bundle.form.trainingBestTotal')
+                    : t('account.bundle.form.competitionBestTotal')}
+                </span>
+                <input
+                  inputMode="decimal"
+                  aria-required="true"
+                  value={firstMeet ? trainingBestTotal : competitionBestTotal}
+                  onChange={(event) =>
+                    firstMeet
+                      ? setTrainingBestTotal(event.target.value)
+                      : setCompetitionBestTotal(event.target.value)
+                  }
                 />
               </label>
             </div>
@@ -296,7 +407,7 @@ export default function SecretBundleSection({
       {state === 'gateway' ? (
         <div className="bundle-section__settle">
           <p className="bundle-section__hint">{t('account.bundle.gatewayNote')}</p>
-          <button type="button" className="bundle-section__action" onClick={goToGateway}>
+          <button type="button" className="bundle-section__action" onClick={() => goToGateway()}>
             {t('account.bundle.resumeGateway')}
             <ArrowRight size={16} aria-hidden />
           </button>

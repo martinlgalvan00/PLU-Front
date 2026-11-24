@@ -15,7 +15,9 @@ vi.mock('../src/components/ui/TicketPassPreview.jsx', () => ({
   default: () => <div data-testid="ticket-pass-preview" />,
 }))
 vi.mock('../src/components/ui/MercadoPagoEmbeddedCheckout.jsx', () => ({
-  default: () => <div data-testid="mp-embedded" />,
+  default: ({ maxInstallments = null }) => (
+    <div data-installments={maxInstallments ?? ''} data-testid="mp-embedded" />
+  ),
 }))
 vi.mock('../src/motion/MotionContentSwap.tsx', () => ({
   default: ({ children }) => <div>{children}</div>,
@@ -69,7 +71,134 @@ describe('medios de pago de la compra de entradas', () => {
 
     renderSection({ cashEnabled: true })
     expect(radio('cash_pitbull')).not.toBeNull()
-    expect(screen.getByText('Efectivo en Pitbull')).toBeTruthy()
+    expect(screen.getByText('Efectivo en el lugar')).toBeTruthy()
+  })
+
+  it('el efectivo indica la sede del evento, no un lugar fijo', () => {
+    renderSection({
+      event: { ...event, venue: 'Virtus Fitness', location: 'Berazategui' },
+      createdOrder: {
+        type: 'tickets',
+        id: 'order-cash',
+        reference: 'TCK-CASH',
+        status: 'pendiente',
+        paymentMethod: 'manual_link',
+        manualPaymentChannel: 'cash_pitbull',
+        quantity: 1,
+        eventTitle: 'Pitbull Classic 2026',
+        tickets: [],
+      },
+    })
+    expect(screen.getByText('Dónde pagar en efectivo')).toBeTruthy()
+    expect(screen.getByText('Virtus Fitness · Berazategui')).toBeTruthy()
+    expect(screen.queryByText(/Pitbull Gym/)).toBeNull()
+    // Sin la demora de una transferencia: el efectivo se acredita en caja.
+    expect(screen.queryByText(/puede demorar hasta 48 horas/)).toBeNull()
+  })
+
+  it('el lugar cargado en el panel manda sobre la sede, con su indicación', () => {
+    renderSection({
+      event: { ...event, venue: 'Virtus Fitness', location: 'Berazategui' },
+      cashPayment: { place: 'Recepción de Virtus', notes: 'Lunes a viernes de 18 a 21.' },
+      createdOrder: {
+        type: 'tickets',
+        id: 'order-cash',
+        reference: 'TCK-CASH',
+        status: 'pendiente',
+        paymentMethod: 'manual_link',
+        manualPaymentChannel: 'cash_pitbull',
+        quantity: 1,
+        eventTitle: 'Pitbull Classic 2026',
+        tickets: [],
+      },
+    })
+    expect(screen.getByText('Recepción de Virtus')).toBeTruthy()
+    expect(screen.getByText('Lunes a viernes de 18 a 21.')).toBeTruthy()
+    expect(screen.queryByText('Virtus Fitness · Berazategui')).toBeNull()
+  })
+
+  it('muestra dirección, horario y Cómo llegar, y no la dirección de otra sede', () => {
+    renderSection({
+      event: {
+        ...event,
+        venue: 'Estadio',
+        location: 'La Plata',
+        venueAddress: 'Av. Siempre Viva 742',
+      },
+      cashPayment: {
+        place: 'Gimnasio Pitbull',
+        address: 'Calle Falsa 123',
+        hours: 'El día del evento desde las 8',
+        contact: 'Agus',
+      },
+      createdOrder: {
+        type: 'tickets',
+        id: 'order-cash',
+        reference: 'TCK-CASH',
+        status: 'pendiente',
+        paymentMethod: 'manual_link',
+        manualPaymentChannel: 'cash_pitbull',
+        quantity: 1,
+        eventTitle: 'Pitbull Classic 2026',
+        tickets: [],
+      },
+    })
+    expect(screen.getByText('Gimnasio Pitbull')).toBeTruthy()
+    expect(screen.getByText('Calle Falsa 123')).toBeTruthy()
+    expect(screen.getByText('El día del evento desde las 8')).toBeTruthy()
+    expect(screen.getByText('Agus')).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Google Maps/ })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Waze/ })).toBeTruthy()
+    expect(screen.queryByText('Av. Siempre Viva 742')).toBeNull()
+    expect(document.querySelector('.ticket-purchase__transfer-panel .cash-place')).not.toBeNull()
+  })
+
+  it('la transferencia deja copiar alias, CBU y muestra el banco y el CUIT', () => {
+    renderSection({
+      accountDetails: {
+        alias: 'plu.cobros',
+        cbu: '0000003100012345678901',
+        holder: 'PLU ARG',
+        bankName: 'Galicia',
+        cuit: '30-71234567-8',
+      },
+      createdOrder: {
+        type: 'tickets',
+        id: 'order-transfer',
+        reference: 'TCK-TR',
+        status: 'pendiente',
+        paymentMethod: 'manual_link',
+        manualPaymentChannel: 'bank_transfer',
+        amount: 20000,
+        currency: 'ARS',
+        quantity: 1,
+        eventTitle: 'Pitbull Classic 2026',
+        tickets: [],
+      },
+    })
+    expect(screen.getByText('plu.cobros')).toBeTruthy()
+    expect(screen.getByText('Galicia')).toBeTruthy()
+    expect(screen.getByText('30-71234567-8')).toBeTruthy()
+    expect(screen.getAllByRole('button', { name: /Copiar/ }).length).toBeGreaterThan(1)
+  })
+
+  it('el checkout de Mercado Pago recibe el tope de cuotas del evento', () => {
+    renderSection({
+      event: { ...event, paymentPolicy: { ticket: { maxInstallments: 3 } } },
+      createdOrder: {
+        type: 'tickets',
+        id: 'order-mp',
+        reference: 'TCK-MP',
+        status: 'pendiente',
+        paymentMethod: 'mercado_pago',
+        amount: 20000,
+        currency: 'ARS',
+        quantity: 1,
+        eventTitle: 'Pitbull Classic 2026',
+        tickets: [],
+      },
+    })
+    expect(screen.getByTestId('mp-embedded').getAttribute('data-installments')).toBe('3')
   })
 
   it('cada celda gobierna sólo su opción', () => {
@@ -139,14 +268,14 @@ describe('instrucciones posteriores a la compra en efectivo', () => {
   it('no pide comprobante: el cobro fue en caja y no genera archivo', () => {
     renderSection({ cashEnabled: true, createdOrder: cashOrder })
     expect(screen.queryByText('Comprobante de pago')).toBeNull()
-    expect(screen.getByText('Dónde pagar')).toBeTruthy()
+    expect(screen.getByText('Dónde pagar en efectivo')).toBeTruthy()
   })
 
   it('la transferencia sí lo sigue pidiendo', () => {
     renderSection({
       createdOrder: { ...cashOrder, manualPaymentChannel: 'bank_transfer' },
     })
-    expect(screen.queryByText('Dónde pagar')).toBeNull()
+    expect(screen.queryByText('Dónde pagar en efectivo')).toBeNull()
     expect(document.querySelector('.ticket-purchase__proof-upload')).not.toBeNull()
   })
 })

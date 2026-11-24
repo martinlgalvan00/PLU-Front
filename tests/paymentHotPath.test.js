@@ -165,6 +165,72 @@ describe('la orden se resuelve una sola vez por pago', () => {
   })
 })
 
+describe('tope de cuotas del evento', () => {
+  it('rechaza más cuotas que el tope antes de reservar el intento', async () => {
+    const { processEmbeddedPayment } =
+      await import('../server/modules/payments/embeddedPaymentWorkflow.js')
+    const order = {
+      id: ORDER_ID,
+      kind: 'athlete',
+      method: 'mercado_pago',
+      status: 'pendiente',
+      maxInstallments: 3,
+    }
+    const repository = { getOrder: vi.fn(), claimEmbeddedAttempt: vi.fn() }
+    const auditTrail = { record: vi.fn(), recordFailure: vi.fn() }
+
+    await expect(
+      processEmbeddedPayment(
+        {
+          paymentOrderId: ORDER_ID,
+          formData: {
+            payment_method_id: 'visa',
+            installments: 6,
+            token: 'tok_123456789',
+            payer: {},
+          },
+        },
+        { repository, mercadoPago: {}, order, auditTrail },
+      ),
+    ).rejects.toMatchObject({ status: 422, details: { code: 'INSTALLMENTS_NOT_ALLOWED' } })
+    expect(repository.claimEmbeddedAttempt).not.toHaveBeenCalled()
+    expect(auditTrail.recordFailure).toHaveBeenCalled()
+  })
+
+  it('dentro del tope sigue al cobro', async () => {
+    const { processEmbeddedPayment } =
+      await import('../server/modules/payments/embeddedPaymentWorkflow.js')
+    const order = {
+      id: ORDER_ID,
+      kind: 'athlete',
+      method: 'mercado_pago',
+      status: 'pendiente',
+      maxInstallments: 3,
+    }
+    const repository = {
+      getOrder: vi.fn(),
+      claimEmbeddedAttempt: vi.fn(async () => {
+        throw new Error('llegó a reservar el intento')
+      }),
+    }
+
+    await expect(
+      processEmbeddedPayment(
+        {
+          paymentOrderId: ORDER_ID,
+          formData: {
+            payment_method_id: 'visa',
+            installments: 3,
+            token: 'tok_123456789',
+            payer: {},
+          },
+        },
+        { repository, mercadoPago: {}, order },
+      ),
+    ).rejects.toThrow('llegó a reservar el intento')
+  })
+})
+
 describe('repositorio de pagos: sin relecturas de descarte', () => {
   it('aplica el pago eligiendo la RPC por el tipo que le pasan', async () => {
     const client = stubClient()

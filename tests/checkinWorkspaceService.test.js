@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  applyServerAdmissions,
   buildCheckinRows,
   filterCheckinRows,
   formatCheckinRowDay,
   mapAllowlistToCheckinSources,
   summarizeCheckinRows,
+  summarizeTicketControl,
 } from '../src/services/checkinWorkspaceService.js'
 
 const athletes = [
@@ -63,6 +65,53 @@ const tickets = [
 ]
 
 describe('checkinWorkspaceService', () => {
+  it('no cuenta como listo al competidor que debe afiliación', () => {
+    const rows = buildCheckinRows({
+      athletes,
+      memberships: [],
+      registrations: [
+        {
+          id: 'reg-1',
+          athleteId: 'ath-1',
+          eventSlug: 'pitbull-2026',
+          status: 'confirmada',
+          requiresMembership: true,
+        },
+      ],
+      tickets: [],
+      eventSlug: 'pitbull-2026',
+      ticketTypes,
+    })
+
+    expect(rows[0].status).toBe('needs_membership')
+    expect(summarizeCheckinRows(rows, eventDays).ready).toBe(0)
+    expect(summarizeCheckinRows(rows, eventDays).pending).toBe(1)
+  })
+
+  it('cuenta como listo al mismo competidor cuando la afiliación está vigente', () => {
+    const rows = buildCheckinRows({
+      athletes,
+      memberships: [
+        { athleteId: 'ath-1', status: 'activa', expirationDate: '2099-01-01' },
+      ],
+      registrations: [
+        {
+          id: 'reg-1',
+          athleteId: 'ath-1',
+          eventSlug: 'pitbull-2026',
+          status: 'confirmada',
+          requiresMembership: true,
+        },
+      ],
+      tickets: [],
+      eventSlug: 'pitbull-2026',
+      ticketTypes,
+    })
+
+    expect(rows[0].status).toBe('pagada')
+    expect(summarizeCheckinRows(rows, eventDays).ready).toBe(1)
+  })
+
   it('limita atletas y entradas al evento asignado', () => {
     const rows = buildCheckinRows({
       athletes,
@@ -106,6 +155,36 @@ describe('checkinWorkspaceService', () => {
     expect(filterCheckinRows(rows, { credential: 'VIP' })).toHaveLength(0)
   })
 
+  it('busca por código de entrada y por DNI escrito con puntos', () => {
+    const rows = buildCheckinRows({
+      athletes,
+      registrations,
+      tickets: [
+        {
+          id: 'tkt-code',
+          eventSlug: 'pitbull-2026',
+          attendeeName: 'Sofía López',
+          attendeeDni: '39111444',
+          ticketCode: 'PLU-D1-001',
+          ticketTypeId: 'day1-type',
+          status: 'pagada',
+        },
+      ],
+      eventSlug: 'pitbull-2026',
+      ticketTypes,
+    })
+
+    expect(filterCheckinRows(rows, { query: 'plu-d1-001' }).map((row) => row.name)).toEqual([
+      'Sofía López',
+    ])
+    expect(filterCheckinRows(rows, { query: '39.111.444' }).map((row) => row.name)).toEqual([
+      'Sofía López',
+    ])
+    expect(filterCheckinRows(rows, { query: '40.111.222' }).map((row) => row.name)).toEqual([
+      'Martina Rivas',
+    ])
+  })
+
   it('arma atletas y entradas desde la allowlist de puerta', () => {
     const sources = mapAllowlistToCheckinSources(
       {
@@ -146,6 +225,26 @@ describe('checkinWorkspaceService', () => {
       validFrom: '2026-08-15T03:00:00.000Z',
       validUntil: '2026-08-16T03:00:00.000Z',
     })
+  })
+
+  it('el ingreso de otro día no marca al competidor como ya ingresado', () => {
+    const sources = mapAllowlistToCheckinSources(
+      {
+        registrations: [
+          {
+            registrationId: 'reg-9',
+            athleteName: 'Martina Rivas',
+            status: 'confirmada',
+            checkedInAt: '2026-08-15T15:00:00.000Z',
+            accessWindowKey: 'event_day:2026-08-15',
+          },
+        ],
+      },
+      'pitbull-2026',
+    )
+    const [row] = buildCheckinRows({ ...sources, eventSlug: 'pitbull-2026', ticketTypes })
+    expect(row.checkedInAt).toBeNull()
+    expect(row.status).toBe('pagada')
   })
 
   it('resuelve el día de acceso de cada ticket vía su tipo de entrada', () => {
@@ -197,22 +296,124 @@ describe('checkinWorkspaceService', () => {
     expect(summarizeCheckinRows(rows, eventDays)).toMatchObject({ ready: 0, pending: 1 })
     expect(filterCheckinRows(rows, { status: 'ready' })).toHaveLength(0)
     expect(filterCheckinRows(rows, { status: 'pending' })).toHaveLength(1)
+    expect(filterCheckinRows(rows, { status: 'blocked' })).toHaveLength(1)
+  })
+
+  it('separa las entradas que seguridad tiene que controlar', () => {
+    const rows = [
+      { type: 'espectador', status: 'pagada' },
+      { type: 'espectador', status: 'usada' },
+      { type: 'espectador', status: 'pendiente_pago' },
+      {
+        type: 'espectador',
+        status: 'pagada',
+        validFrom: '2000-01-01T03:00:00.000Z',
+        validUntil: '2000-01-02T03:00:00.000Z',
+      },
+      { type: 'atleta', status: 'pendiente_pago' },
+    ]
+
+    expect(summarizeTicketControl(rows)).toEqual({
+      total: 4,
+      ready: 1,
+      inside: 1,
+      unpaid: 1,
+      blocked: 1,
+    })
+    expect(filterCheckinRows(rows, { status: 'unpaid' }).map((row) => row.type)).toEqual([
+      'espectador',
+      'atleta',
+    ])
   })
 })
 
 describe('formatCheckinRowDay', () => {
   const t = (key) =>
     ({
-      'admin.checkin.scheduleUnassigned': 'Día a confirmar',
       'admin.checkin.bothDays': 'Ambos',
     })[key] ?? key
 
-  it('nombra el día de la grilla y deja claro cuando no hay asignación', () => {
-    expect(formatCheckinRowDay({ type: 'atleta', dayIndexes: 'all' }, eventDays, t)).toBe(
-      'Día a confirmar',
-    )
+  it('el competidor entra los dos días y la grilla queda como dato de levantamiento', () => {
+    expect(formatCheckinRowDay({ type: 'atleta', dayIndexes: 'all' }, eventDays, t)).toBe('Ambos')
+    expect(
+      formatCheckinRowDay(
+        {
+          type: 'atleta',
+          dayIndexes: 'all',
+          schedule: { dayIndex: 0, sessionName: 'Tanda A' },
+        },
+        eventDays,
+        t,
+      ),
+    ).toBe('Ambos · Día 1 · Tanda A')
     expect(formatCheckinRowDay({ type: 'espectador', dayIndexes: [0, 1] }, eventDays, t)).toBe(
       'Día 1 · Día 2',
     )
+  })
+})
+
+describe('applyServerAdmissions', () => {
+  it('marca en la lista a quien otro puesto ya acreditó', () => {
+    const rows = buildCheckinRows({
+      athletes,
+      registrations,
+      tickets: [
+        ...tickets,
+        {
+          id: 'tkt-ana',
+          eventSlug: 'pitbull-2026',
+          attendeeName: 'Ana Puerta',
+          attendeeDni: '9',
+          qrToken: 'qr-ana',
+          ticketTypeId: 'day1-type',
+          status: 'pagada',
+        },
+      ],
+      eventSlug: 'pitbull-2026',
+      ticketTypes,
+    })
+    const next = applyServerAdmissions(rows, {
+      registrations: [{ id: 'reg-1', checkedInAt: '2026-10-30T18:00:00.000Z' }],
+      tickets: [{ qrToken: 'qr-ana', checkedInAt: '2026-10-30T18:01:00.000Z' }],
+    })
+
+    expect(next.find((row) => row.registrationId === 'reg-1')).toMatchObject({
+      status: 'usada',
+      checkedInAt: '2026-10-30T18:00:00.000Z',
+    })
+    expect(next.find((row) => row.qrToken === 'qr-ana')).toMatchObject({
+      status: 'usada',
+      checkedInAt: '2026-10-30T18:01:00.000Z',
+    })
+    expect(next.find((row) => row.name === 'Bruno')?.status).not.toBe('usada')
+  })
+
+  it('no toma la marca local de un teléfono sin señal ni reabre un ingreso', () => {
+    const rows = buildCheckinRows({
+      athletes,
+      registrations: [
+        ...registrations,
+        {
+          id: 'reg-dentro',
+          athleteId: 'ath-1',
+          eventSlug: 'pitbull-2026',
+          status: 'confirmada',
+          checkedInAt: '2026-10-30T12:00:00.000Z',
+        },
+      ],
+      tickets,
+      eventSlug: 'pitbull-2026',
+      ticketTypes,
+    })
+    const next = applyServerAdmissions(rows, {
+      registrations: [
+        { id: 'reg-1', checkedInAt: 'offline' },
+        { id: 'reg-dentro', checkedInAt: null },
+      ],
+      tickets: [],
+    })
+
+    expect(next.find((row) => row.registrationId === 'reg-1')?.status).not.toBe('usada')
+    expect(next.find((row) => row.registrationId === 'reg-dentro')?.status).toBe('usada')
   })
 })

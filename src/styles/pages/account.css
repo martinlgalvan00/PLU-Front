@@ -117,6 +117,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+.account-hero__meta-fresh {
+  color: rgba(255, 255, 255, 0.78);
+  max-width: 36ch;
+}
+
 .account-hero__meta-sep {
   color: rgba(255, 255, 255, 0.26);
   font-weight: 400;
@@ -224,6 +229,10 @@
 
 [data-theme='light'] .account-hero__meta-regs {
   color: rgba(15, 17, 23, 0.48);
+}
+
+[data-theme='light'] .account-hero__meta-fresh {
+  color: rgba(15, 17, 23, 0.78);
 }
 
 [data-theme='light'] .account-hero__meta-sep {
@@ -1101,7 +1110,7 @@
 }
 
 .account-membership__decision--solo {
-  gap: 26px;
+  gap: 20px;
   grid-template-columns: minmax(0, 1fr);
   margin-inline: auto;
   max-width: 560px;
@@ -1114,8 +1123,8 @@
 }
 
 .account-membership__decision > .account-membership__checkout,
-.account-membership__decision--solo > .account-benefits,
-.account-membership__decision--solo > .account-membership__checkout {
+.account-membership__decision--solo > .account-membership__checkout,
+.account-membership__banner-copy .account-benefits--inline {
   animation: account-membership-rise var(--motion-base, 280ms) var(--ease-out, ease) both;
 }
 
@@ -1137,10 +1146,22 @@
 
 @media (prefers-reduced-motion: reduce) {
   .account-membership__decision > .account-membership__checkout,
-  .account-membership__decision--solo > .account-benefits,
-  .account-membership__decision--solo > .account-membership__checkout {
+  .account-membership__decision--solo > .account-membership__checkout,
+  .account-membership__banner-copy .account-benefits--inline {
     animation: none;
   }
+}
+
+.account-membership__pay-step {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.account-membership__ready {
+  color: var(--color-text-primary);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  margin: 0;
 }
 
 .account-membership__combo {
@@ -1177,51 +1198,61 @@
   padding: 0;
 }
 
-/* Tres datos cortos que introducen el checkout: se leen como una línea de
-   crédito centrada y cierran con una regla breve, no con un borde de ancho
-   completo que los convertía en encabezado de tabla. */
+/* Metadato editorial del título: una línea con puntos medios, alineada al
+   lead. Sin checks dorados ni regla corta centrada — eso se leía como una
+   grilla de features de SaaS colgada entre el encabezado y el cobro. */
 .account-benefits--inline {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 28px;
-  justify-content: center;
-  padding-bottom: 22px;
-  position: relative;
-  text-align: center;
-}
-
-.account-benefits--inline::after {
-  background: var(--color-border-subtle);
-  bottom: 0;
-  content: '';
-  height: 1px;
-  left: 50%;
-  position: absolute;
-  transform: translateX(-50%);
-  width: 72px;
+  gap: 6px 0;
+  justify-content: flex-start;
+  margin: 0;
+  padding: 0;
+  position: static;
+  text-align: left;
 }
 
 .account-benefits li,
 .account-benefits span {
-  align-items: center;
+  align-items: baseline;
   color: var(--color-text-secondary);
   display: flex;
   font-size: 14px;
   font-weight: 400;
   gap: 10px;
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
 .account-benefits--inline li {
   color: var(--color-text-muted);
-  font-size: 12.5px;
-  gap: 7px;
-  letter-spacing: 0.02em;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 0;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
-.account-benefits svg {
-  color: var(--color-brand-gold);
-  flex: none;
+.account-benefits--inline li + li::before {
+  color: color-mix(in srgb, var(--color-text-muted) 55%, transparent);
+  content: '·';
+  font-weight: 400;
+  margin: 0 10px;
+}
+
+@media (max-width: 430px) {
+  .account-benefits--inline {
+    display: grid;
+    gap: 4px;
+  }
+
+  .account-benefits--inline li {
+    white-space: normal;
+  }
+
+  .account-benefits--inline li + li::before {
+    content: none;
+    margin: 0;
+  }
 }
 
 /* Los pasos de configuración (volver, modalidad, descuento) se agrupan con un
@@ -1258,7 +1289,19 @@
    transferencia), pero como clases propias de esta sección. */
 .account-membership__settle {
   display: grid;
-  gap: 20px;
+  gap: 12px;
+}
+
+.account-membership__settle .plu-checkout {
+  gap: 16px;
+}
+
+.account-membership__pay-legend {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  margin: 0 0 8px;
 }
 
 .account-membership__settle-bar {
@@ -1272,23 +1315,20 @@
 .account-membership__settle-back {
   align-items: center;
   background: transparent;
-  border: 1px solid var(--color-border-subtle);
+  border: 0;
   border-radius: var(--border-radius-md);
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   cursor: pointer;
   display: inline-flex;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   gap: 6px;
   min-height: 40px;
-  padding: 0 14px;
-  transition:
-    border-color var(--motion-fast, 160ms) var(--ease-out, ease),
-    color var(--motion-fast, 160ms) var(--ease-out, ease);
+  padding: 0 4px;
+  transition: color var(--motion-fast, 160ms) var(--ease-out, ease);
 }
 
 .account-membership__settle-back:hover {
-  border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
   color: var(--color-text-primary);
 }
 
@@ -2519,7 +2559,6 @@
 
 .account-payment-modal__overlay {
   align-items: center;
-  animation: account-payment-modal-fade var(--motion-base, 280ms) var(--ease-out, ease) both;
   background: rgba(5, 6, 9, 0.76);
   display: flex;
   inset: 0;
@@ -2530,7 +2569,6 @@
 }
 
 .account-payment-modal {
-  animation: account-payment-modal-rise var(--motion-base, 280ms) var(--ease-out, ease) both;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-strong);
   border-radius: 8px;
@@ -2901,27 +2939,6 @@
   padding: 0;
 }
 
-@keyframes account-payment-modal-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes account-payment-modal-rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .account-payment-modal__overlay,
   .account-payment-modal {
@@ -3092,6 +3109,60 @@
   display: grid;
   gap: 16px;
   min-width: 0;
+}
+
+.account-qr__aside {
+  align-content: start;
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+  max-width: 34ch;
+  min-width: 0;
+  padding-top: 6px;
+}
+
+.account-qr__aside-title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.account-qr__aside-note {
+  color: var(--color-text-secondary);
+  font-size: 14.5px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 36ch;
+}
+
+.account-qr__facts {
+  display: grid;
+  margin: 0;
+}
+
+.account-qr__facts > div {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 4px;
+  padding: 12px 0;
+}
+
+.account-qr__facts dt {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.account-qr__facts dd {
+  color: var(--color-text-primary);
+  font-size: 14.5px;
+  margin: 0;
 }
 
 .account-qr__preview-caption {
@@ -4439,6 +4510,40 @@
   max-width: 56ch;
 }
 
+.account-first-meet {
+  align-items: flex-start;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  grid-column: 1 / -1;
+  max-width: 40rem;
+}
+
+.account-first-meet input {
+  accent-color: var(--color-brand-gold);
+  block-size: 1.25rem;
+  flex: 0 0 auto;
+  inline-size: 1.25rem;
+  margin-top: 0.2rem;
+}
+
+.account-first-meet__label,
+.account-first-meet__note {
+  display: block;
+}
+
+.account-first-meet__label {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.account-first-meet__note {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin-top: 2px;
+}
+
 /* Chip circular que antecede cada título de grupo (foto de identidad
    exceptuada): mismo lenguaje visual en el bloque de completar datos
    oficiales y en las tres divulgaciones. */
@@ -4888,6 +4993,7 @@
    ============================================= */
 .account-qr--locked {
   align-items: center;
+  container-type: inline-size;
   display: grid;
   gap: 24px;
   grid-template-columns: 1fr;
@@ -4996,6 +5102,39 @@
   margin: 0;
 }
 
+.account-qr__plate-badge {
+  background: rgba(242, 183, 5, 0.12);
+  border: 1px solid rgba(242, 183, 5, 0.3);
+  border-radius: 99px;
+  color: var(--color-brand-gold);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-left: auto;
+  padding: 2px 8px;
+  text-transform: uppercase;
+}
+
+.account-qr__plate-identity {
+  display: grid;
+  gap: 4px;
+}
+
+.account-qr__plate-name {
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.account-qr__plate--draft .account-qr__plate-frame,
+.account-qr__plate--draft .account-qr__plate-watermark {
+  display: none;
+}
+
 .account-qr__issue {
   display: grid;
   gap: 12px;
@@ -5041,17 +5180,119 @@
   color: var(--color-text-primary);
 }
 
+.account-qr--locked .account-qr__standing {
+  border-top: 1px solid var(--color-border-subtle);
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  padding-top: 16px;
+}
+
+.account-qr__standing {
+  display: grid;
+  gap: 14px;
+  margin-top: 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.account-qr__standing dl {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 12px 20px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding-top: 14px;
+}
+
+@media (max-width: 719px) {
+  .account-qr__standing {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .account-qr__standing dl {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    width: 100%;
+  }
+
+  .account-qr__verify {
+    justify-items: center;
+  }
+}
+
+.account-qr__standing dl > div {
+  display: grid;
+  gap: 2px;
+}
+
+.account-qr__standing dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.account-qr__standing dd {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.account-qr__verify {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.account-qr__verify span,
+.account-qr__verify-pending {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.account-qr__verify strong {
+  color: var(--color-text-primary);
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.1;
+}
+
+.account-qr__verify small {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
 @media (min-width: 720px) {
   .account-qr--locked {
-    align-items: center;
-    gap: clamp(24px, 4vw, 40px);
-    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+    align-items: start;
+    gap: 20px;
     justify-items: stretch;
     text-align: left;
   }
 
   .account-qr--locked .account-qr__plate {
     margin: 0;
+    max-width: 280px;
+  }
+}
+
+@container (min-width: 680px) {
+  .account-qr--locked {
+    align-items: start;
+    gap: clamp(24px, 4vw, 40px);
+    grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+  }
+
+  .account-qr--locked .account-qr__standing {
+    grid-column: 1 / -1;
   }
 }
 
@@ -5427,340 +5668,172 @@
   }
 }
 
-/* ---- Mis entradas ----
-   Misma lectura que el historial: filas separadas por filetes, sin tarjetas.
-   El único acento es el botón del QR, que es la acción de la sección. */
-
-.account-tickets__lead {
-  color: var(--color-text-secondary);
-  font-size: 13.5px;
-  line-height: 1.5;
-  margin: 14px 0 0;
-  max-width: 60ch;
-}
-
-.account-tickets__status {
-  color: var(--color-text-secondary);
-  font-size: 13.5px;
-  margin: 22px 0 0;
-}
-
-.account-tickets__group {
-  margin-top: 26px;
-}
-
-.account-tickets__group h3 {
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  margin: 0 0 6px;
-  text-transform: uppercase;
-}
-
-.account-tickets__list {
+/* ── Tus accesos ──
+   Un renglón por evento con el veredicto que va a dar la puerta. Verde para
+   lo que ya entra, ámbar para lo que falta (pago, afiliación): nada de rojo,
+   no es un error del atleta sino un paso pendiente. */
+.account-passes {
   display: grid;
+  gap: 14px;
+  margin-top: 28px;
 }
 
-.account-tickets__item {
-  align-items: center;
+.account-passes__head h3 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 4px;
+}
+
+.account-passes__head p {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 56ch;
+}
+
+.account-passes__list {
   border-top: 1px solid var(--color-border-subtle);
   display: grid;
-  gap: 18px;
-  /* Columnas fijas para estado y acción: una fila sin QR (ya usada) no puede
-     correr las columnas respecto de las de arriba. */
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) 10rem 9.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.account-passes__item {
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 6px;
   padding: 18px 0;
 }
 
-.account-tickets__event,
-.account-tickets__holder,
-.account-tickets__state {
+.account-passes__verdict {
+  align-items: center;
+  color: var(--color-warning-text);
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3vw, 26px);
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.account-passes__code {
   display: grid;
-  gap: 4px;
-  min-width: 0;
+  gap: 2px;
+  margin: 4px 0 2px;
 }
 
-.account-tickets__event strong,
-.account-tickets__holder strong {
-  color: var(--color-text-primary);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.account-tickets__holder em {
-  color: var(--color-text-secondary);
-  font-style: normal;
-  font-weight: 600;
-}
-
-.account-tickets__event span,
-.account-tickets__holder > span,
-.account-tickets__state small {
-  color: var(--color-text-secondary);
-  font-size: 12.5px;
-  line-height: 1.4;
-}
-
-.account-tickets__mono {
-  font-family: var(--font-mono, ui-monospace, monospace);
+.account-passes__code span {
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
-.account-tickets__state {
-  justify-items: start;
-}
-
-.account-tickets__state .account-tickets__locked {
-  max-width: 28ch;
-}
-
-.account-tickets__qr {
-  align-items: center;
-  background: var(--color-brand-action);
-  border: 0;
-  border-radius: var(--border-radius-md);
-  color: var(--color-brand-action-text);
-  cursor: pointer;
-  display: inline-flex;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  gap: 8px;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0 16px;
-  transition: transform var(--motion-fast, 160ms) var(--ease-out, ease);
-  white-space: nowrap;
-}
-
-.account-tickets__qr:hover {
-  transform: translateY(-1px);
-}
-
-.account-tickets__qr:active {
-  transform: translateY(0);
-}
-
-.account-tickets__qr:focus-visible {
-  outline: 3px solid var(--color-focus-ring);
-  outline-offset: 3px;
-}
-
-.account-tickets__qr-spacer {
-  min-width: 1px;
-}
-
-.account-tickets__group--past .account-tickets__item {
-  opacity: 0.72;
-}
-
-@media (max-width: 720px) {
-  .account-tickets__item {
-    gap: 10px 14px;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .account-tickets__event,
-  .account-tickets__holder {
-    grid-column: 1 / -1;
-  }
-
-  .account-tickets__qr {
-    justify-self: end;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .account-tickets__qr {
-    transition: none;
-  }
-
-  .account-tickets__qr:hover {
-    transform: none;
-  }
-}
-
-/* ---- QR de puerta ----
-   El QR va sobre blanco puro en los dos temas: es lo que lee el escáner,
-   no una pieza decorativa. */
-
-.ticket-door-qr {
-  align-items: center;
-  display: flex;
-  inset: 0;
-  justify-content: center;
-  padding: 16px;
-  position: fixed;
-  z-index: 1000;
-}
-
-.ticket-door-qr__backdrop {
-  background: rgba(5, 6, 9, 0.76);
-  border: 0;
-  cursor: pointer;
-  inset: 0;
-  position: absolute;
-}
-
-.ticket-door-qr__panel {
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-lg, 16px);
-  display: grid;
-  gap: 18px;
-  max-height: calc(100dvh - 32px);
-  max-width: 400px;
-  overflow: auto;
-  padding: 22px;
-  position: relative;
-  width: 100%;
-}
-
-.ticket-door-qr__head {
-  align-items: flex-start;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-}
-
-.ticket-door-qr__head span {
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.ticket-door-qr__head h2 {
+.account-passes__code strong {
   color: var(--color-text-primary);
-  font-size: clamp(20px, 5vw, 24px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-  margin: 4px 0 0;
-}
-
-.ticket-door-qr__close {
-  align-items: center;
-  background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-md);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  display: inline-flex;
-  flex: none;
-  height: 44px;
-  justify-content: center;
-  width: 44px;
-}
-
-.ticket-door-qr__code {
-  align-items: center;
-  aspect-ratio: 1;
-  background: #fff;
-  border-radius: var(--border-radius-md);
-  display: flex;
-  justify-content: center;
-  padding: 14px;
-}
-
-.ticket-door-qr__code img {
-  display: block;
-  height: 100%;
-  width: 100%;
-}
-
-.ticket-door-qr__code p {
-  color: #14181f;
-  font-size: 13px;
-  margin: 0;
-  text-align: center;
-}
-
-.ticket-door-qr__door-code {
-  align-items: baseline;
-  border-bottom: 1px solid var(--color-border-subtle);
-  border-top: 1px solid var(--color-border-subtle);
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  padding: 12px 0;
-}
-
-.ticket-door-qr__door-code span {
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.ticket-door-qr__door-code strong {
-  color: var(--color-text-primary);
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: clamp(26px, 8vw, 32px);
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 550;
   letter-spacing: 0.08em;
-  white-space: nowrap;
 }
 
-.ticket-door-qr__meta {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0;
-}
-
-.ticket-door-qr__meta div {
+.account-passes__event {
   display: grid;
   gap: 2px;
   min-width: 0;
 }
 
-.ticket-door-qr__meta dt {
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.ticket-door-qr__meta dd {
+.account-passes__event strong {
   color: var(--color-text-primary);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  margin: 0;
-  overflow-wrap: anywhere;
 }
 
-.ticket-door-qr__hint {
-  color: var(--color-text-secondary);
+.account-passes__event span {
+  color: var(--color-text-muted);
   font-size: 12.5px;
+}
+
+.account-passes__item[data-state='ready'] .account-passes__verdict,
+.account-passes__item[data-state='checked_in'] .account-passes__verdict {
+  color: var(--color-success-text);
+}
+
+.account-passes__detail {
+  color: var(--color-text-secondary);
+  font-size: 13px;
   line-height: 1.45;
   margin: 0;
 }
 
-.ticket-door-qr__share {
+.account-passes__action {
+  align-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  justify-self: start;
+  margin-top: 4px;
+  min-height: 44px;
+  padding: 0 16px;
+  text-decoration: none;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    background-color var(--motion-fast) var(--ease-out);
+  white-space: nowrap;
+}
+
+.account-passes__action:hover {
+  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
+  border-color: var(--color-brand-celeste);
+}
+
+.account-passes__action:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .account-passes__action {
+    justify-self: start;
+  }
+}
+
+a.account-qr__share {
+  text-decoration: none;
+}
+
+/* Ver la credencial en 3D: acción secundaria debajo de la tarjeta. */
+.account-qr__view3d {
   align-items: center;
   background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--border-radius-pill);
   color: var(--color-text-primary);
   cursor: pointer;
   display: inline-flex;
-  font: inherit;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   gap: 8px;
-  justify-content: center;
+  margin-top: 14px;
   min-height: 44px;
+  padding: 0 18px;
+  transition: border-color var(--motion-fast) var(--ease-out);
 }
 
-.ticket-door-qr__close:focus-visible,
-.ticket-door-qr__share:focus-visible {
-  outline: 3px solid var(--color-focus-ring);
-  outline-offset: 3px;
+.account-qr__view3d:hover {
+  border-color: var(--color-brand-gold);
 }
+
+.account-qr__view3d:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+

@@ -228,3 +228,52 @@ describe('AdminDataTable — densidad y cabecera fija', () => {
     expect(container.querySelector('.data-table-card')).toBeTruthy()
   })
 })
+
+describe('AdminDataTable — página de la puerta', () => {
+  const roster = Array.from({ length: 20 }, (_, index) => ({
+    id: `row-${index}`,
+    name: index < 10 ? `Primera ${index}` : `Segunda ${index}`,
+    document: '30111222',
+    status: 'pagada',
+  }))
+
+  function table(rows, pageResetKey) {
+    return (
+      <AdminDataTable
+        columns={columns}
+        layout="table"
+        pageResetKey={pageResetKey}
+        pageSize={10}
+        rows={rows}
+      />
+    )
+  }
+
+  it('un refresco de las mismas personas no vuelve a la primera página', async () => {
+    setViewportWidth(1280)
+    const { rerender } = renderTable(table(roster, 'dia-1'))
+
+    expect(screen.getByText('Primera 0')).toBeTruthy()
+    fireEvent.click(screen.getByRole('listitem', { name: 'Next Page' }))
+
+    await waitFor(() => expect(screen.getByText('Segunda 10')).toBeTruthy())
+    expect(screen.queryByText('Primera 0')).toBeNull()
+
+    rerender(<I18nProvider>{table(roster.map((row) => ({ ...row })), 'dia-1')}</I18nProvider>)
+
+    expect(screen.getByText('Segunda 10')).toBeTruthy()
+    expect(screen.queryByText('Primera 0')).toBeNull()
+  })
+
+  it('cambiar el filtro sí vuelve a la primera página', async () => {
+    setViewportWidth(1280)
+    const { rerender } = renderTable(table(roster, 'dia-1'))
+    fireEvent.click(screen.getByRole('listitem', { name: 'Next Page' }))
+    await waitFor(() => expect(screen.getByText('Segunda 10')).toBeTruthy())
+
+    rerender(<I18nProvider>{table(roster, 'busqueda')}</I18nProvider>)
+
+    expect(screen.getByText('Primera 0')).toBeTruthy()
+    expect(screen.queryByText('Segunda 10')).toBeNull()
+  })
+})

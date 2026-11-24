@@ -19,8 +19,11 @@ function registerForEvent(baseUrl, cookie, eventSlug) {
     body: JSON.stringify({
       eventSlug,
       division: 'Open',
+      modalities: ['full_power'],
       category: 'Raw',
       bodyweightKg: 83.5,
+      declaredWeightClass: '90',
+      competitionBestTotalKg: 500,
       paymentMethod: 'manual_link',
       idempotencyKey: randomUUID(),
     }),

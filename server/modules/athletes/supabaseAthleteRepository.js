@@ -1,13 +1,24 @@
+import { pickCompetitorCheckInToday } from '../../../src/lib/ticketValidityPolicy.js'
+import { EXPORT_ROW_LIMIT, normalizeExportDate } from '../../../shared/exportRows.js'
+import { memberCodeLookupCandidates } from '../../../shared/spokenMemberCode.js'
 import { HttpError } from '../../lib/errors.js'
 import { PRIMARY_ORGANIZATION_ID } from '../../lib/organizations.js'
 import { authenticatedPortraitUrl } from '../../lib/publicPortraitUrl.js'
 import { forgetPortraitCache } from '../../lib/portraitBinaryCache.js'
-import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseRpc.js'
+import {
+  assertSupabaseResult,
+  isMissingSchemaColumn,
+  requireSupabaseClient,
+} from '../../lib/supabaseRpc.js'
 import { forgetAthleteSessionCache } from '../../services/athleteSessionService.js'
+import { trashFilesOfOrders } from '../payments/paymentProofTrash.js'
 
 const PHOTO_BUCKET = 'athlete-photos'
 const PAYMENT_PROOF_BUCKET = 'athlete-payment-proofs'
 const STAFF_APPLICATION_BUCKET = 'staff-application-documents'
+const DOCUMENT_BUCKET = 'athlete-documents'
+const DOCUMENT_LIST_COLUMNS =
+  'id, athlete_id, kind, storage_path, content_type, size_bytes, original_name, uploaded_at'
 // Tope de la bandeja de validación: más de esto deja de ser una optimización
 // y pasa a ser trabajo especulativo.
 const PAYMENT_PROOF_BATCH_LIMIT = 60
@@ -28,6 +39,13 @@ const ADMIN_PAYMENT_ORDERS_DEFAULT_LIMIT = 500
  * Un `limit` explícito lo puede subir hasta 1000 para exportar o auditar.
  */
 const ADMIN_SNAPSHOT_DEFAULT_LIMIT = 400
+/**
+ * Tope duro de filas para export admin/PLU USA (`EXPORT_ROW_LIMIT` en shared).
+ * Por encima el archivo avisa `truncated` y el operador puede filtrar por evento.
+ * PostgREST pagina de a 1000.
+ */
+const ADMIN_EXPORT_MAX_ROWS = EXPORT_ROW_LIMIT
+const ADMIN_EXPORT_PAGE_SIZE = 1000
 /** PostgREST cuando la tabla todavía no está en el schema cache (migración pendiente). */
 const MISSING_RELATION_CODE = 'PGRST205'
 /** Estados que todavía esperan una decisión de Finanzas. */
@@ -91,6 +109,44 @@ export function createSupabaseAthleteRepository(
   requireSupabaseClient(client)
   const rpc = async (name, args, fallback) =>
     assertSupabaseResult(await client.rpc(name, args), fallback)
+
+  async function listDocumentPackSafe(athleteId, knownAthlete = null) {
+    const empty = { birthDate: null, documentsGrandfathered: false, documents: [], unavailable: false }
+    try {
+      // El snapshot ya trajo la fila del atleta. No la volvemos a leer.
+      const athlete =
+        knownAthlete ??
+        assertSupabaseResult(
+          await client
+            .from('athletes')
+            .select('birth_date, documents_grandfathered')
+            .eq('id', athleteId)
+            .maybeSingle(),
+          'No se pudo leer el perfil.',
+        )
+      if (!athlete) return { ...empty, unavailable: true }
+      const documents = assertSupabaseResult(
+        await client
+          .from('athlete_documents')
+          .select(DOCUMENT_LIST_COLUMNS)
+          .eq('athlete_id', athleteId)
+          .order('kind', { ascending: true }),
+        'No se pudieron leer los documentos.',
+      )
+      return {
+        birthDate: athlete.birth_date ?? athlete.birthDate ?? null,
+        documentsGrandfathered:
+          athlete.documents_grandfathered === true || athlete.documentsGrandfathered === true,
+        documents: documents ?? [],
+        unavailable: false,
+      }
+    } catch (error) {
+      if (error?.details?.code === MISSING_RELATION_CODE || isMissingSchemaColumn(error)) {
+        return { ...empty, documentsGrandfathered: true, unavailable: true }
+      }
+      throw error
+    }
+  }
 
   /**
    * URL estable al proxy autenticado. Sin firma de Storage: el browser cachea
@@ -307,14 +363,21 @@ export function createSupabaseAthleteRepository(
       forgetAthleteSessionCache(athleteId)
       return result
     },
-    snapshot: async (athleteId) =>
-      attachPortraitUrls(
+    snapshot: async (athleteId) => {
+      const payload = attachPortraitUrls(
         await rpc(
           'get_athlete_snapshot',
           { p_athlete_id: athleteId },
           'No se pudo leer el perfil.',
         ),
-      ),
+      )
+      if (payload?.athlete) {
+        const pack = await listDocumentPackSafe(athleteId, payload.athlete)
+        payload.athlete.documents = pack.documents
+        payload.athlete.documents_grandfathered = pack.documentsGrandfathered
+      }
+      return payload
+    },
 
     /**
      * Revision barata del snapshot de un atleta (count + max updated_at por
@@ -394,7 +457,7 @@ export function createSupabaseAthleteRepository(
     },
     async update(athleteId, data) {
       const row = await rpc(
-        'update_athlete_profile_v5',
+        'update_athlete_profile_v7',
         {
           p_athlete_id: athleteId,
           p_email: data.email,
@@ -413,6 +476,10 @@ export function createSupabaseAthleteRepository(
           p_full_name: data.fullName ?? null,
           p_birth_date: data.birthDate ?? null,
           p_country: data.country ?? null,
+          p_street_address: data.streetAddress ?? null,
+          p_postal_code: data.postalCode ?? null,
+          p_is_first_meet: data.firstMeet === true,
+          p_training_best_total_kg: data.trainingBestTotalKg ?? null,
         },
         'No se pudo actualizar el perfil.',
       )
@@ -486,7 +553,7 @@ export function createSupabaseAthleteRepository(
         await client
           .from('events')
           .select(
-            'id, slug, starts_at, price, manual_price, currency, payment_channel_overrides, bank_transfer_alias, bank_transfer_cbu, bank_transfer_holder, bank_transfer_profile_id, mercado_pago_profile_id',
+            'id, slug, venue, location, starts_at, price, manual_price, currency, requires_membership, payment_channel_overrides, bank_transfer_alias, bank_transfer_cbu, bank_transfer_holder, bank_transfer_profile_id, mercado_pago_profile_id',
           )
           .eq('organization_id', organizationId)
           .eq('slug', eventSlug)
@@ -494,8 +561,42 @@ export function createSupabaseAthleteRepository(
         'No se pudo validar el evento.',
       )
       if (!event) return null
-      const wiseResult = await client.from('events').select('wise_price').eq('id', event.id).maybeSingle()
-      return wiseResult.error ? { ...event, wise_price: null } : { ...event, wise_price: wiseResult.data?.wise_price ?? null }
+      // Lecturas opcionales: columnas de migraciones que pueden no haber
+      // corrido todavía. Sin ellas el checkout sigue, con el precio Wise vacío
+      // y el efectivo cobrado en la sede del evento.
+      const [wiseResult, cashResult, freezeResult, rulesResult, placesResult] = await Promise.all([
+        client.from('events').select('wise_price').eq('id', event.id).maybeSingle(),
+        client
+          .from('events')
+          .select('cash_payment_place, cash_payment_notes')
+          .eq('id', event.id)
+          .maybeSingle(),
+        client.from('events').select('roster_frozen_at').eq('id', event.id).maybeSingle(),
+        // `rules.offering`: qué ofrece el evento. Sin lectura = ofrece todo.
+        client.from('events').select('rules').eq('id', event.id).maybeSingle(),
+        // Direcciones para Maps/Waze (20270102110000).
+        client
+          .from('events')
+          .select('venue_address, cash_payment_address, cash_payment_hours, cash_payment_contact')
+          .eq('id', event.id)
+          .maybeSingle(),
+      ])
+      const places = placesResult?.error ? {} : (placesResult?.data ?? {})
+      return {
+        ...event,
+        // Si la lectura de `rules` falla, no se manda la clave: un error de esa
+        // columna opcional no puede cerrar la venta. `rules: null` sí cierra,
+        // porque es una fila leída sin el interruptor, igual que la RPC.
+        ...(rulesResult.error ? {} : { rules: rulesResult.data?.rules ?? null }),
+        wise_price: wiseResult.error ? null : (wiseResult.data?.wise_price ?? null),
+        cash_payment_place: cashResult.error ? null : (cashResult.data?.cash_payment_place ?? null),
+        cash_payment_notes: cashResult.error ? null : (cashResult.data?.cash_payment_notes ?? null),
+        roster_frozen_at: freezeResult.error ? null : (freezeResult.data?.roster_frozen_at ?? null),
+        venue_address: places.venue_address ?? null,
+        cash_payment_address: places.cash_payment_address ?? null,
+        cash_payment_hours: places.cash_payment_hours ?? null,
+        cash_payment_contact: places.cash_payment_contact ?? null,
+      }
     },
     // Precio vigente del combo (afiliación + inscripción) para el preview de
     // cupón: mismo criterio de vigencia (active + ventana starts/ends) que ya
@@ -634,14 +735,15 @@ export function createSupabaseAthleteRepository(
       // canal pedido tiene que estar en su lista.
       return policy.manualChannels.includes(channel)
     },
-    createRegistration: (athleteId, data) =>
-      rpc(
-        'create_competition_registration_checkout',
+    async createRegistration(athleteId, data) {
+      return rpc(
+        'create_competition_registration_checkout_v5',
         {
           p_athlete_id: athleteId,
           p_event_slug: data.eventSlug,
           p_division: data.division,
           p_category: data.category,
+          p_additional_categories: (data.categories ?? []).slice(1),
           p_bodyweight_kg: data.bodyweightKg,
           p_payment_method: data.paymentMethod,
           p_idempotency_key: data.idempotencyKey,
@@ -650,17 +752,25 @@ export function createSupabaseAthleteRepository(
           p_manual_price: data.manualPrice ?? null,
           p_manual_payment_channel: data.manualPaymentChannel,
           p_currency: data.currency ?? null,
+          p_declared_weight_class: data.declaredWeightClass,
+          p_secondary_division: data.secondaryDivision ?? null,
+          p_modalities: data.modalities ?? ['full_power'],
+          p_is_first_meet: data.isFirstMeet === true,
+          p_competition_best_total_kg: data.competitionBestTotalKg ?? null,
+          p_training_best_total_kg: data.trainingBestTotalKg ?? null,
         },
         'No se pudo crear la inscripcion.',
-      ),
-    createRegistrationCombo: (athleteId, data) =>
-      rpc(
-        'create_membership_registration_combo_checkout',
+      )
+    },
+    async createRegistrationCombo(athleteId, data) {
+      return rpc(
+        'create_membership_registration_combo_checkout_v5',
         {
           p_athlete_id: athleteId,
           p_event_slug: data.eventSlug,
           p_division: data.division,
           p_category: data.category,
+          p_additional_categories: (data.categories ?? []).slice(1),
           p_bodyweight_kg: data.bodyweightKg,
           p_payment_method: data.paymentMethod,
           p_idempotency_key: data.idempotencyKey,
@@ -669,9 +779,189 @@ export function createSupabaseAthleteRepository(
           p_manual_payment_channel: data.manualPaymentChannel,
           p_discount_code: data.discountCode || null,
           p_currency: data.currency ?? null,
+          p_declared_weight_class: data.declaredWeightClass,
+          p_secondary_division: data.secondaryDivision ?? null,
+          p_modalities: data.modalities ?? ['full_power'],
+          p_is_first_meet: data.isFirstMeet === true,
+          p_competition_best_total_kg: data.competitionBestTotalKg ?? null,
+          p_training_best_total_kg: data.trainingBestTotalKg ?? null,
         },
         'No se pudo crear el combo de afiliacion e inscripcion.',
-      ),
+      )
+    },
+    async findRegistrationWeightClassContext(registrationId) {
+      return assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .select(
+            'id, bodyweight_kg, declared_weight_class, official_weight_class, athlete:athletes(sex), event:events(id, slug, roster_frozen_at)',
+          )
+          .eq('organization_id', organizationId)
+          .eq('id', registrationId)
+          .maybeSingle(),
+        'No se pudo leer la inscripción.',
+      )
+    },
+    async findRegistrationWeightClassContexts(registrationIds) {
+      return assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .select(
+            'id, bodyweight_kg, declared_weight_class, official_weight_class, athlete:athletes(sex), event:events(id, slug, roster_frozen_at)',
+          )
+          .eq('organization_id', organizationId)
+          .in('id', registrationIds),
+        'No se pudieron leer las inscripciones.',
+      )
+    },
+    async updateDeclaredWeightClass(registrationId, declaredWeightClass, actor) {
+      return assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .update({
+            declared_weight_class: declaredWeightClass,
+            declared_weight_class_set_at: new Date().toISOString(),
+            declared_weight_class_set_by: actor ?? null,
+          })
+          .eq('organization_id', organizationId)
+          .eq('id', registrationId)
+          .select('id, athlete_id, bodyweight_kg, declared_weight_class, official_weight_class')
+          .single(),
+        'No se pudo guardar la categoría de peso.',
+      )
+    },
+    async updateDeclaredWeightClasses(registrationIds, declaredWeightClass, actor) {
+      return assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .update({
+            declared_weight_class: declaredWeightClass,
+            declared_weight_class_set_at: new Date().toISOString(),
+            declared_weight_class_set_by: actor ?? null,
+          })
+          .eq('organization_id', organizationId)
+          .in('id', registrationIds)
+          .select('id, athlete_id, bodyweight_kg, declared_weight_class'),
+        'No se pudo guardar la categoría de peso.',
+      )
+    },
+    /** Lo que necesita la importación de la planilla para comparar y validar. */
+    async findRegistrationImportContexts(registrationIds) {
+      const rows = []
+      // `.in()` viaja en la URL: de a tandas para no pasar el límite de PostgREST.
+      for (let index = 0; index < registrationIds.length; index += 200) {
+        const chunk = registrationIds.slice(index, index + 200)
+        const data = assertSupabaseResult(
+          await client
+            .from('event_registrations')
+            .select(
+              'id, status, division, secondary_division, category, modalities, bodyweight_kg, declared_weight_class, is_first_meet, competition_best_total_kg, training_best_total_kg, athlete:athletes(full_name, sex), event:events(id, slug, title, roster_frozen_at, rules)',
+            )
+            .eq('organization_id', organizationId)
+            .in('id', chunk),
+          'No se pudieron leer las inscripciones.',
+        )
+        rows.push(...(data ?? []))
+      }
+      return rows
+    },
+    // Las modalidades no están bajo el lock de la selección competitiva (solo
+    // división, categoría y peso): se corrigen con un update directo y el
+    // CHECK de la columna valida la combinación.
+    async updateRegistrationDeclaredTotals(registrationId, data) {
+      return rpc(
+        'staff_set_registration_declared_totals',
+        {
+          p_registration_id: registrationId,
+          p_is_first_meet: data.isFirstMeet === true,
+          p_competition_best_total_kg: data.competitionBestTotalKg ?? null,
+          p_training_best_total_kg: data.trainingBestTotalKg ?? null,
+        },
+        'No se pudo guardar el máximo total.',
+      )
+    },
+    async updateRegistrationModalities(registrationId, modalities) {
+      return assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .update({ modalities, updated_at: new Date().toISOString() })
+          .eq('organization_id', organizationId)
+          .eq('id', registrationId)
+          .select('id, modalities')
+          .single(),
+        'No se pudieron guardar las modalidades.',
+      )
+    },
+    async updateOfficialWeightClass(registrationId, officialWeightClass, actor) {
+      return assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .update({
+            official_weight_class: officialWeightClass,
+            official_weight_class_set_at: officialWeightClass ? new Date().toISOString() : null,
+            official_weight_class_set_by: officialWeightClass ? (actor ?? null) : null,
+          })
+          .eq('organization_id', organizationId)
+          .eq('id', registrationId)
+          .select('id, athlete_id, bodyweight_kg, declared_weight_class, official_weight_class')
+          .single(),
+        'No se pudo guardar la categoría oficial.',
+      )
+    },
+    async updateWeighInBodyweight(registrationId, weighInBodyweightKg, actor) {
+      const recorded = weighInBodyweightKg != null
+      return assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .update({
+            weigh_in_bodyweight_kg: weighInBodyweightKg,
+            weigh_in_recorded_at: recorded ? new Date().toISOString() : null,
+            weigh_in_recorded_by: recorded ? (actor ?? null) : null,
+          })
+          .eq('organization_id', organizationId)
+          .eq('id', registrationId)
+          .select('id, athlete_id, bodyweight_kg, weigh_in_bodyweight_kg, declared_weight_class')
+          .single(),
+        'No se pudo guardar el peso del pesaje.',
+      )
+    },
+    async athleteHasFrozenRoster(athleteId) {
+      const rows = assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .select('id, status, event:events(roster_frozen_at)')
+          .eq('organization_id', organizationId)
+          .eq('athlete_id', athleteId),
+        'No se pudo leer el padrón del atleta.',
+      )
+      return (rows ?? []).some((row) => {
+        if (row.status === 'cancelada') return false
+        const event = Array.isArray(row.event) ? row.event[0] : row.event
+        return Boolean(event?.roster_frozen_at)
+      })
+    },
+    async setEventRosterFrozen(eventSlug, frozen) {
+      const event = assertSupabaseResult(
+        await client
+          .from('events')
+          .select('id, slug')
+          .eq('organization_id', organizationId)
+          .eq('slug', eventSlug)
+          .maybeSingle(),
+        'No se pudo leer el evento.',
+      )
+      if (!event) return null
+      return assertSupabaseResult(
+        await client
+          .from('events')
+          .update({ roster_frozen_at: frozen ? new Date().toISOString() : null })
+          .eq('organization_id', organizationId)
+          .eq('id', event.id)
+          .select('id, slug, roster_frozen_at')
+          .single(),
+        'No se pudo cerrar el padrón.',
+      )
+    },
     // Datos mínimos de contacto para notificar. No usa get_athlete_snapshot
     // porque ese arma el perfil completo con URLs firmadas de foto.
     async findContact(athleteId) {
@@ -697,11 +987,51 @@ export function createSupabaseAthleteRepository(
       )
     },
 
-    async findProfileCompleteness(athleteId) {
+    async updateMembershipFile(athleteId, data) {
+      const documentId = String(data.documentId ?? '').replace(/[.\-\s]/g, '')
+      const taken = assertSupabaseResult(
+        await client
+          .from('athletes')
+          .select('id')
+          .eq('document_id', documentId)
+          .neq('id', athleteId)
+          .maybeSingle(),
+        'No se pudo verificar el documento.',
+      )
+      if (taken?.id) {
+        throw new HttpError(409, 'Ese documento ya está en otra cuenta.', { code: 'DOCUMENT_TAKEN' })
+      }
+
+      const row = assertSupabaseResult(
+        await client
+          .from('athletes')
+          .update({
+            full_name: data.fullName,
+            document_id: documentId,
+            birth_date: data.birthDate,
+            sex: data.sex,
+            phone: data.phone,
+            country: data.country,
+            province: data.province,
+            city: data.city,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', athleteId)
+          .select('*')
+          .single(),
+        'No se pudo guardar la ficha de afiliación.',
+      )
+      delete row.password_hash
+      return row
+    },
+
+  async findProfileCompleteness(athleteId) {
       return assertSupabaseResult(
         await client
           .from('athletes')
-          .select('id, phone, city, province, gym, division, category, estimated_weight')
+          .select(
+            'id, full_name, birth_date, sex, country, email, phone, city, province, document_id, street_address, postal_code, gym, division, category, estimated_weight, emergency_contact_name, emergency_contact_phone',
+          )
           .eq('id', athleteId)
           .eq('organization_id', organizationId)
           .maybeSingle(),
@@ -714,7 +1044,9 @@ export function createSupabaseAthleteRepository(
       return assertSupabaseResult(
         await client
           .from('athletes')
-          .select('id, phone, city, province, gym, division, category, estimated_weight')
+          .select(
+            'id, full_name, birth_date, sex, country, email, phone, city, province, document_id, street_address, postal_code, gym, division, category, estimated_weight, emergency_contact_name, emergency_contact_phone',
+          )
           .eq('organization_id', organizationId)
           .in('id', athleteIds),
         'No se pudieron leer los perfiles.',
@@ -852,6 +1184,15 @@ export function createSupabaseAthleteRepository(
       ),
 
     async findEventSummary(eventId) {
+      const withLead = await client
+        .from('events')
+        .select('id, title, slug, starts_at, venue, ticket_reveal_lead_minutes')
+        .eq('id', eventId)
+        .maybeSingle()
+      if (!withLead.error) return withLead.data ?? null
+      if (!isMissingSchemaColumn(withLead.error)) {
+        return assertSupabaseResult(withLead, 'No se pudo leer el evento.')
+      }
       return assertSupabaseResult(
         await client
           .from('events')
@@ -1078,6 +1419,36 @@ export function createSupabaseAthleteRepository(
      * ordena la deuda financiada por vencimiento — el riesgo del club es la
      * que vence primero, no la última creada.
      */
+    /**
+     * Órdenes de INSCRIPCIÓN de un evento. Cuelgan del evento por
+     * `event_registrations.payment_order_id`. Excluye los combos a propósito: incluyen
+     * la afiliación, que es ingreso de PLU y no del organizador.
+     */
+    async listRegistrationOrdersForEvent(eventId, { limit = 200 } = {}) {
+      const registrations = assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .select('payment_order_id')
+          .eq('event_id', eventId)
+          .not('payment_order_id', 'is', null)
+          .limit(2000),
+        'No se pudieron leer las inscripciones del evento.',
+      )
+      const ids = [...new Set((registrations ?? []).map((row) => row.payment_order_id))]
+      if (ids.length === 0) return []
+      return assertSupabaseResult(
+        await client
+          .from('athlete_payment_orders')
+          .select(PAYMENT_ORDER_LIST_COLUMNS)
+          .eq('organization_id', organizationId)
+          .eq('concept', 'registration')
+          .in('id', ids)
+          .order('created_at', { ascending: false })
+          .limit(limit),
+        'No se pudieron leer las órdenes de inscripción del evento.',
+      )
+    },
+
     async listPaymentOrders({
       status,
       statuses,
@@ -1383,6 +1754,44 @@ export function createSupabaseAthleteRepository(
       if (!membership) throw new HttpError(404, 'Afiliación no encontrada.')
       return membership
     },
+
+    async findMembershipCertificateSource(athleteId) {
+      const athlete = assertSupabaseResult(
+        await client
+          .from('athletes')
+          .select('id, full_name, document_id, credential_token')
+          .eq('id', athleteId)
+          .eq('organization_id', organizationId)
+          .maybeSingle(),
+        'No se pudo leer el perfil.',
+      )
+      if (!athlete) return null
+      const memberships = assertSupabaseResult(
+        await client
+          .from('memberships')
+          .select('id, status, start_date, expiration_date, member_code')
+          .eq('athlete_id', athleteId)
+          .eq('organization_id', organizationId),
+        'No se pudieron leer las afiliaciones.',
+      )
+      return { athlete, memberships: memberships ?? [] }
+    },
+
+    async recordMembershipCertificateIssued({ athleteId, membershipId, memberCode }) {
+      assertSupabaseResult(
+        await client.from('domain_audit_logs').insert({
+          organization_id: organizationId,
+          action: 'membership_certificate.issued',
+          entity_type: 'membership',
+          entity_id: String(membershipId),
+          actor_type: 'athlete',
+          actor_id: String(athleteId),
+          metadata: { memberCode: memberCode ?? null },
+        }),
+        'No se pudo registrar la constancia.',
+      )
+    },
+
     rotateMembershipQrToken: (membershipId, actor) =>
       rpc(
         'staff_rotate_membership_qr_token',
@@ -1488,15 +1897,27 @@ export function createSupabaseAthleteRepository(
      * documento (el member_code es enumerable), pero en la puerta el operador
      * tiene que cotejar el DNI físico.
      */
-    staffCredential: (code, eventSlug) =>
-      rpc(
-        'staff_get_membership_by_code_or_token',
-        {
-          p_code: code,
-          p_event_slug: eventSlug ?? null,
-        },
-        'No se pudo leer la credencial.',
-      ),
+    staffCredential: async (code, eventSlug) => {
+      const candidates = memberCodeLookupCandidates(code)
+      const list = candidates.length > 0 ? candidates : [String(code ?? '')]
+      let lastError = new HttpError(404, 'No se pudo leer la credencial.')
+      for (const candidate of list) {
+        try {
+          return await rpc(
+            'staff_get_membership_by_code_or_token',
+            {
+              p_code: candidate,
+              p_event_slug: eventSlug ?? null,
+            },
+            'No se pudo leer la credencial.',
+          )
+        } catch (error) {
+          lastError = error
+          if (!(error instanceof HttpError) || error.status !== 404) throw error
+        }
+      }
+      throw lastError
+    },
 
     /**
      * Path de foto para verificación QR (sin firmar Storage).
@@ -1638,6 +2059,65 @@ export function createSupabaseAthleteRepository(
       if (!application?.[column]) throw new HttpError(404, 'Archivo no encontrado.')
       return application[column]
     },
+
+    async findDocumentPack(athleteId) {
+      return listDocumentPackSafe(athleteId)
+    },
+
+    async listAthleteDocuments(athleteId) {
+      const pack = await listDocumentPackSafe(athleteId)
+      return pack.documents
+    },
+
+    async createDocumentUpload(athleteId, { kind, fileName }) {
+      const safeName = String(fileName)
+        .replace(/[^\w.\-()+ ]/g, '_')
+        .slice(0, 120)
+      const path = `${athleteId}/${kind}/${Date.now()}-${safeName}`
+      const signed = assertSupabaseResult(
+        await client.storage.from(DOCUMENT_BUCKET).createSignedUploadUrl(path),
+        'No se pudo preparar la carga del documento.',
+      )
+      return { path, token: signed.token }
+    },
+
+    async registerDocument(athleteId, { kind, storagePath, contentType, sizeBytes, originalName }) {
+      const result = await rpc(
+        'register_athlete_document',
+        {
+          p_athlete_id: athleteId,
+          p_kind: kind,
+          p_storage_path: storagePath,
+          p_content_type: contentType,
+          p_size_bytes: sizeBytes,
+          p_original_name: originalName ?? null,
+        },
+        'No se pudo registrar el documento.',
+      )
+      const previousPath = result?.previousPath ?? result?.previous_path ?? null
+      if (previousPath && previousPath !== storagePath) {
+        forgetPortraitCache(previousPath)
+        const removal = await client.storage.from(DOCUMENT_BUCKET).remove([previousPath])
+        if (removal.error) {
+          console.warn('No se pudo borrar el documento anterior:', removal.error.message)
+        }
+      }
+      return result?.document ?? result
+    },
+
+    async athleteDocumentPath(athleteId, kind) {
+      const row = assertSupabaseResult(
+        await client
+          .from('athlete_documents')
+          .select('storage_path')
+          .eq('athlete_id', athleteId)
+          .eq('kind', kind)
+          .maybeSingle(),
+        'No se pudo leer el documento.',
+      )
+      if (!row?.storage_path) throw new HttpError(404, 'Documento no encontrado.')
+      return row.storage_path
+    },
     /**
      * Revision barata del padrón admin (count + max updated_at por segmento
      * del scope). Evita bajar atletas/membresías/inscripciones/órdenes en
@@ -1719,7 +2199,7 @@ export function createSupabaseAthleteRepository(
               let query = client
                 .from('athletes')
                 .select(
-                  'id, full_name, document_id, email, birth_date, phone, country, province, city, gym, sex, division, category, estimated_weight, declared_best_total_kg, emergency_contact_name, emergency_contact_phone, instagram_handle, status, created_at, updated_at, photo_path, email_verified_at, credential_token',
+                  'id, full_name, document_id, email, birth_date, phone, country, province, city, street_address, postal_code, gym, sex, division, category, estimated_weight, declared_best_total_kg, is_first_meet, training_best_total_kg, emergency_contact_name, emergency_contact_phone, instagram_handle, status, created_at, updated_at, photo_path, email_verified_at, credential_token, documents_grandfathered',
                   { count: 'exact' },
                 )
                 .eq('organization_id', organizationId)
@@ -1754,10 +2234,10 @@ export function createSupabaseAthleteRepository(
                   .from('event_registrations')
                   .select(
                     `
-                      id, athlete_id, category, division, bodyweight_kg, public_visible, status, payment_order_id, created_at, updated_at,
+                      id, athlete_id, category, additional_categories, division, secondary_division, modalities, bodyweight_kg, is_first_meet, competition_best_total_kg, training_best_total_kg, weigh_in_bodyweight_kg, declared_weight_class, official_weight_class, declared_weight_class_set_at, declared_weight_class_set_by, official_weight_class_set_at, official_weight_class_set_by, weigh_in_recorded_at, weigh_in_recorded_by, public_visible, status, payment_order_id, created_at, updated_at,
                       manual_override_status, manual_override_channel, manual_override_reason, manual_override_by, manual_override_at,
-                      event:events(title, slug, starts_at, ends_at, requires_membership),
-                      checkIn:check_ins(scanned_at),
+                      event:events(id, title, slug, starts_at, ends_at, requires_membership, roster_frozen_at),
+                      checkIn:check_ins(scanned_at, access_window_key),
                       eventDay:event_days(id, day_index, label, date),
                       eventSession:event_sessions(id, name, platform, weigh_in_at, starts_at)
                     `,
@@ -1802,7 +2282,7 @@ export function createSupabaseAthleteRepository(
         ).map((row) => ({
           registration: row,
           event: row.event,
-          checkIn: Array.isArray(row.checkIn) ? row.checkIn[0] : row.checkIn,
+          checkIn: pickCompetitorCheckInToday(row.checkIn),
           schedule: row.eventDay
             ? {
                 day_id: row.eventDay.id,
@@ -1873,6 +2353,33 @@ export function createSupabaseAthleteRepository(
         }
         for (const order of payload.paymentOrders) {
           order.attempts = byOrderId.get(order.id) ?? []
+        }
+      }
+
+      if (payload.athletes?.length) {
+        try {
+          const ids = payload.athletes.map((row) => row.id).filter(Boolean)
+          const documents =
+            assertSupabaseResult(
+              await client
+                .from('athlete_documents')
+                .select(DOCUMENT_LIST_COLUMNS)
+                .in('athlete_id', ids),
+              'No se pudieron leer los documentos.',
+            ) ?? []
+          const byAthlete = new Map()
+          for (const row of documents) {
+            const bucket = byAthlete.get(row.athlete_id)
+            if (bucket) bucket.push(row)
+            else byAthlete.set(row.athlete_id, [row])
+          }
+          for (const athlete of payload.athletes) {
+            athlete.documents = byAthlete.get(athlete.id) ?? []
+          }
+        } catch (error) {
+          if (error?.details?.code !== MISSING_RELATION_CODE && !isMissingSchemaColumn(error)) {
+            throw error
+          }
         }
       }
 
@@ -2023,9 +2530,13 @@ export function createSupabaseAthleteRepository(
     /**
      * Borrado definitivo (solo Super Admin, ver el endpoint). La cascada y la
      * auditoría las resuelve la RPC delete_athlete en una sola transacción;
-     * acá queda lo que SQL no alcanza: el storage. Fotos bajo `<athleteId>/`
-     * y comprobantes bajo `<orderId>/` (ver createPaymentProofUpload). Es
-     * best-effort: si un archivo queda huérfano no revierte el borrado.
+     * acá queda lo que SQL no alcanza: el storage.
+     *
+     * Las fotos (bajo `<athleteId>/`) se borran en el momento. Los comprobantes
+     * NO: pasan a la papelera (`payment_proof_files`) y salen por la purga
+     * normal tras el período de gracia, así que durante ese tiempo todavía se
+     * pueden descargar. Es best-effort: si la baja a la papelera falla, el
+     * barrido de huérfanos recoge esos archivos cuando la orden ya no existe.
      */
     async deleteAthlete(athleteId, actor) {
       const orders = assertSupabaseResult(
@@ -2064,10 +2575,265 @@ export function createSupabaseAthleteRepository(
 
       await Promise.all([
         removePrefix(PHOTO_BUCKET, athleteId),
-        ...(orders ?? []).map((order) => removePrefix(PAYMENT_PROOF_BUCKET, order.id)),
+        trashFilesOfOrders(client, {
+          orderIds: (orders ?? []).map((order) => order.id),
+          actor,
+        }).catch((error) => {
+          console.warn(
+            `No se pudieron mover a la papelera los comprobantes del atleta ${athleteId}:`,
+            error?.message ?? error,
+          )
+        }),
       ])
 
       return deleted
+    },
+
+    /**
+     * Dataset completo para CSV/XLS (join athletes en la misma query de
+     * inscripciones). No usa el techo del snapshot operativo: pagina hasta
+     * ADMIN_EXPORT_MAX_ROWS y marca `truncated` si hay más.
+     */
+    async adminExportDataset({ type = 'admin', eventSlug = null } = {}) {
+      const resolveEvent = async () => {
+        if (!eventSlug) return null
+        const slug = String(eventSlug).trim()
+        if (!slug) return null
+        const bySlug = assertSupabaseResult(
+          await client
+            .from('events')
+            .select('id, title, slug')
+            .eq('organization_id', organizationId)
+            .eq('slug', slug)
+            .maybeSingle(),
+          'No se pudo resolver el evento del export.',
+        )
+        if (bySlug) return bySlug
+        return assertSupabaseResult(
+          await client
+            .from('events')
+            .select('id, title, slug')
+            .eq('organization_id', organizationId)
+            .eq('title', slug)
+            .maybeSingle(),
+          'No se pudo resolver el evento del export.',
+        )
+      }
+
+      const event = await resolveEvent()
+      if (eventSlug && !event) {
+        throw new HttpError(404, 'No se encontró el evento para exportar.')
+      }
+
+      const fetchRegistrationPages = async () => {
+        const rows = []
+        let offset = 0
+        let truncated = false
+        for (;;) {
+          let query = client
+            .from('event_registrations')
+            .select(
+              `
+                id, athlete_id, category, additional_categories, division, secondary_division, modalities, bodyweight_kg, is_first_meet, competition_best_total_kg, training_best_total_kg, weigh_in_bodyweight_kg, declared_weight_class, official_weight_class, status, payment_order_id, created_at,
+                event:events(title, slug, starts_at, roster_frozen_at),
+                eventDay:event_days(label, day_index),
+                eventSession:event_sessions(name, platform, sort_order),
+                athlete:athletes(
+                  id, full_name, document_id, email, birth_date, phone, country, province, city,
+                  street_address, postal_code, gym, sex, division, category, estimated_weight,
+                  emergency_contact_name, emergency_contact_phone, instagram_handle
+                )
+              `,
+            )
+            .eq('organization_id', organizationId)
+            .order('created_at', { ascending: false })
+          if (event) query = query.eq('event_id', event.id)
+          const page = assertSupabaseResult(
+            await query.range(offset, offset + ADMIN_EXPORT_PAGE_SIZE - 1),
+            'No se pudieron leer las inscripciones para exportar.',
+          )
+          rows.push(...(page ?? []))
+          if ((page ?? []).length < ADMIN_EXPORT_PAGE_SIZE) break
+          offset += ADMIN_EXPORT_PAGE_SIZE
+          if (rows.length >= ADMIN_EXPORT_MAX_ROWS) {
+            truncated = true
+            break
+          }
+        }
+        return {
+          rows: rows.slice(0, ADMIN_EXPORT_MAX_ROWS),
+          truncated,
+        }
+      }
+
+      const { rows: registrationRows, truncated: registrationsTruncated } =
+        await fetchRegistrationPages()
+
+      // PLU USA sin filtro de evento: además del padrón de inscriptos, sumamos
+      // atletas del org para no perder socios sin meet.
+      let extraAthletes = []
+      let athletesTruncated = false
+      if (type === 'plu_usa' && !event) {
+        const members = []
+        let offset = 0
+        for (;;) {
+          const page = assertSupabaseResult(
+            await client
+              .from('athletes')
+              .select(
+                'id, full_name, document_id, email, birth_date, phone, country, province, city, street_address, postal_code, gym, sex, division, category, estimated_weight, emergency_contact_name, emergency_contact_phone',
+              )
+              .eq('organization_id', organizationId)
+              .order('created_at', { ascending: false })
+              .range(offset, offset + ADMIN_EXPORT_PAGE_SIZE - 1),
+            'No se pudieron leer los atletas para exportar.',
+          )
+          members.push(...(page ?? []))
+          if ((page ?? []).length < ADMIN_EXPORT_PAGE_SIZE) break
+          offset += ADMIN_EXPORT_PAGE_SIZE
+          if (members.length >= ADMIN_EXPORT_MAX_ROWS) {
+            athletesTruncated = true
+            break
+          }
+        }
+        extraAthletes = members.slice(0, ADMIN_EXPORT_MAX_ROWS)
+      }
+
+      const athletesById = new Map()
+      for (const row of registrationRows) {
+        const athlete = row.athlete
+        if (athlete?.id) athletesById.set(athlete.id, athlete)
+      }
+      for (const athlete of extraAthletes) {
+        if (athlete?.id) athletesById.set(athlete.id, athlete)
+      }
+
+      const allAthleteIds = [...athletesById.keys()]
+      const memberships = []
+      const payments = []
+      for (let index = 0; index < allAthleteIds.length; index += ADMIN_EXPORT_PAGE_SIZE) {
+        const chunk = allAthleteIds.slice(index, index + ADMIN_EXPORT_PAGE_SIZE)
+        if (!chunk.length) continue
+        const [membershipPage, paymentPage] = await Promise.all([
+          assertSupabaseResult(
+            await client
+              .from('memberships')
+              .select(
+                'id, athlete_id, year, status, start_date, expiration_date, member_code, payment_order_id',
+              )
+              .eq('organization_id', organizationId)
+              .in('athlete_id', chunk),
+            'No se pudieron leer las afiliaciones para exportar.',
+          ),
+          assertSupabaseResult(
+            await client
+              .from('athlete_payment_orders')
+              .select('id, athlete_id, status, reference, concept, created_at')
+              .eq('organization_id', organizationId)
+              .in('athlete_id', chunk)
+              .order('created_at', { ascending: false }),
+            'No se pudieron leer los pagos para exportar.',
+          ),
+        ])
+        memberships.push(...(membershipPage ?? []))
+        payments.push(...(paymentPage ?? []))
+      }
+
+      const paymentById = new Map(payments.map((order) => [order.id, order]))
+      // Un pago por atleta: el más reciente (ya vienen ordenados desc).
+      const paymentByAthlete = new Map()
+      for (const order of payments) {
+        if (!paymentByAthlete.has(order.athlete_id)) {
+          paymentByAthlete.set(order.athlete_id, order)
+        }
+      }
+
+      const toCamelAthlete = (row) => ({
+        id: row.id,
+        fullName: row.full_name,
+        documentId: row.document_id,
+        email: row.email,
+        birthDate: row.birth_date,
+        phone: row.phone,
+        country: row.country,
+        province: row.province,
+        city: row.city,
+        streetAddress: row.street_address ?? '',
+        postalCode: row.postal_code ?? '',
+        gym: row.gym,
+        sex: row.sex,
+        division: row.division,
+        category: row.category,
+        estimatedWeight: row.estimated_weight,
+        emergencyContactName: row.emergency_contact_name ?? '',
+        emergencyContactPhone: row.emergency_contact_phone ?? '',
+        instagramHandle: row.instagram_handle ?? '',
+      })
+
+      const registrations = registrationRows.map((row) => {
+        const order = row.payment_order_id ? paymentById.get(row.payment_order_id) : null
+        return {
+          id: row.id,
+          athleteId: row.athlete_id,
+          event: row.event?.title ?? event?.title ?? '',
+          eventSlug: row.event?.slug ?? event?.slug ?? '',
+          eventStartsAt: normalizeExportDate(row.event?.starts_at),
+          category: row.category,
+          categories: [row.category, ...(row.additional_categories ?? [])].filter(Boolean),
+          division: row.division,
+          secondaryDivision: row.secondary_division ?? '',
+          modalities: row.modalities ?? ['full_power'],
+          bodyweight: row.bodyweight_kg,
+          isFirstMeet: row.is_first_meet === true ? true : row.is_first_meet === false ? false : null,
+          competitionBestTotalKg:
+            row.competition_best_total_kg == null ? null : Number(row.competition_best_total_kg),
+          trainingBestTotalKg:
+            row.training_best_total_kg == null ? null : Number(row.training_best_total_kg),
+          declaredWeightClass: row.declared_weight_class ?? '',
+          officialWeightClass: row.official_weight_class ?? '',
+          weighInBodyweight: row.weigh_in_bodyweight_kg ?? null,
+          rosterFrozenAt: row.event?.roster_frozen_at ?? null,
+          platform: row.eventSession?.platform ?? '',
+          meetDay: row.eventDay?.label || (row.eventDay?.day_index != null ? String(row.eventDay.day_index + 1) : ''),
+          flight: row.eventSession?.name ?? '',
+          status: row.status,
+          paymentOrderId: row.payment_order_id,
+          paymentStatus: order?.status ?? null,
+        }
+      })
+
+      const camelAthletes = [...athletesById.values()].map(toCamelAthlete)
+      const camelMemberships = memberships.map((row) => ({
+        id: row.id,
+        athleteId: row.athlete_id,
+        year: row.year,
+        status: row.status,
+        startDate: row.start_date,
+        expirationDate: row.expiration_date,
+        memberCode: row.member_code,
+        paymentOrderId: row.payment_order_id,
+      }))
+      const camelPayments = [...paymentByAthlete.values()].map((row) => ({
+        id: row.id,
+        athleteId: row.athlete_id,
+        status: row.status,
+        reference: row.reference,
+      }))
+
+      return {
+        type,
+        event: event ? { id: event.id, title: event.title, slug: event.slug } : null,
+        athletes: camelAthletes,
+        memberships: camelMemberships,
+        registrations,
+        payments: camelPayments,
+        truncated: registrationsTruncated || athletesTruncated,
+        totals: {
+          athletes: camelAthletes.length,
+          registrations: registrations.length,
+          memberships: camelMemberships.length,
+        },
+      }
     },
   }
 }
@@ -2075,5 +2841,11 @@ export function createSupabaseAthleteRepository(
 export function assertAthleteOwnsPath(athleteId, path) {
   if (!path || !String(path).startsWith(`${athleteId}/`)) {
     throw new HttpError(400, 'Ruta de foto invalida.')
+  }
+}
+
+export function assertAthleteOwnsDocumentPath(athleteId, kind, path) {
+  if (!path || !String(path).startsWith(`${athleteId}/${kind}/`)) {
+    throw new HttpError(400, 'Ruta de documento inválida.')
   }
 }

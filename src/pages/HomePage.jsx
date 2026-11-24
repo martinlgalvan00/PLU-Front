@@ -11,7 +11,6 @@ import HomeResultsTeaser from '../components/ui/HomeResultsTeaser.jsx'
 import HomeRulebookTeaser from '../components/ui/HomeRulebookTeaser.jsx'
 import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
 import PitbullSpotlight from '../components/ui/PitbullSpotlight.jsx'
-import Reveal from '../components/ui/Reveal.jsx'
 import StickyMobileCta from '../components/ui/StickyMobileCta.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
@@ -25,6 +24,7 @@ import { useHelp } from '../providers/HelpProvider.jsx'
 import { resolvePublicRegistrationPhase } from '../lib/publicRegistrationPhase.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import { MOTION_TIER_SCALE } from '../motion/tokens.ts'
+import { findMorphSource, morphNavigate } from '../motion/routeMorph.ts'
 import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
 
@@ -47,6 +47,7 @@ export default function HomePage({
   onNavigate,
   onSelectEvent,
   events = [],
+  underConstructionEvents = [],
   session,
   memberships = [],
   registrations = [],
@@ -91,6 +92,15 @@ export default function HomePage({
     onNavigate?.(featuredDestination.view, featuredDestination.options)
   }
 
+  /** Desde el spotlight: el título del meet viaja hasta el de su ficha (las
+   * fichas de marca muestran el logo y entran con el fundido de siempre). */
+  function openFeaturedEventFromSpotlight() {
+    morphNavigate(
+      findMorphSource(document.getElementById('torneo-destacado'), '.pitbull-spotlight__home-title'),
+      openFeaturedEvent,
+    )
+  }
+
   const TeaserDuo = reducedMotion ? 'div' : m.div
   const teaserDuoProps = reducedMotion
     ? { className: 'home-teaser-duo' }
@@ -130,7 +140,14 @@ export default function HomePage({
 
   return (
     <main className="home-page">
-      <HeroSection onNavigate={onNavigate} event={launchEvent} />
+      <HeroSection
+        onNavigate={onNavigate}
+        onSelectEvent={onSelectEvent}
+        event={launchEvent}
+        events={events}
+        underConstructionEvents={underConstructionEvents}
+        registrationEnabled={registrationCheckoutEnabled}
+      />
 
       {isRegistrationDisabled ? (
         <section
@@ -164,7 +181,7 @@ export default function HomePage({
             athleteStatus={athleteEventStatus}
             capacityStatus={capacityStatus}
             event={launchEvent}
-            onDetail={openFeaturedEvent}
+            onDetail={openFeaturedEventFromSpotlight}
             onRegister={handlePitbullRegister}
             onJoin={() => onNavigate?.('members')}
             onProfile={() => onNavigate?.('profile')}
@@ -214,9 +231,9 @@ export default function HomePage({
       </section>
 
       <section className="home-section home-section--immersive home-section--community">
-        <Reveal className="home-section__inner" variant="fade">
+        <div className="home-section__inner">
           <CommunitySpotlight onNavigate={onNavigate} />
-        </Reveal>
+        </div>
       </section>
 
       <StickyMobileCta onBecameVisible={handleStickyVisible} onNavigate={onNavigate} />

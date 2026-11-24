@@ -1,4 +1,5 @@
 import '../styles/pages/design-phase2.css'
+import '../styles/pages/event-landing-themes.css'
 import '../styles/pages/events.css'
 import '../styles/layout/design-page-notebook.css'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -11,6 +12,7 @@ import EventCalendar from '../components/ui/EventCalendar.jsx'
 import EventCountdown from '../components/ui/EventCountdown.jsx'
 import EventCard from '../components/ui/EventCard.jsx'
 import EventLiveStream from '../components/ui/EventLiveStream.jsx'
+import EventPublicMaterials from '../components/ui/EventPublicMaterials.jsx'
 import EventsTeaser from '../components/ui/EventsTeaser.jsx'
 import PitbullBrandMark from '../components/ui/PitbullBrandMark.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
@@ -23,20 +25,32 @@ import {
   getFeaturedEvent,
   getFeaturedEventDestination,
   getNextUpcomingEvent,
-  getPublicCatalogEvents,
+  getRegistrableCatalogEvents,
   isPitbullClassicEvent,
+  sortEventsForCalendar,
 } from '../lib/eventNavigation.js'
+import {
+  eventHasEditorialLanding,
+  eventLandingFaqItems,
+  eventLandingFromEvent,
+  eventLandingThemeId,
+} from '../lib/eventLanding.js'
+import { landingPaletteStyle } from '../lib/eventLandingPalette.js'
 import EventCalendarActions from '../components/ui/EventCalendarActions.jsx'
 import EventWeighInSchedule, {
   eventHasWeighInWindows,
 } from '../components/ui/EventWeighInSchedule.jsx'
-import { eventShowsPublicWeighIns, eventShowsPublicLivestream } from '../lib/eventPublicSurface.js'
+import {
+  eventShowsPublicFaq,
+  eventShowsPublicLivestream,
+  eventShowsPublicWeighIns,
+} from '../lib/eventPublicSurface.js'
 import { ensureEventCalendarFields } from '../lib/calendar.js'
+import { resolveEventLogo } from '../lib/eventMark.js'
 import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
 import { isStaffSession } from '../lib/roles.js'
 import {
   cheapestTicketTypePrice,
-  eventStatusClosesTicketSales,
   resolveEventPricing,
   ticketPricingFromEvent,
 } from '../lib/eventPricing.js'
@@ -44,6 +58,9 @@ import { money } from '../lib/format.js'
 import { fetchPublishedEvents } from '../services/eventAdminService.js'
 import { fetchSiteTeaser } from '../services/siteTeaserService.js'
 import { env } from '../config/env.js'
+import { canBuyEventTickets, isEventRegistrationOpen } from '../lib/eventPublicActions.js'
+import { ticketOfferCopyKey } from '../lib/ticketSalesState.js'
+import { usePublicTicketOffer } from '../hooks/useTicketAvailability.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { getEventComboAvailability } from '../services/comboOfferService.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
@@ -56,7 +73,6 @@ function EventStatusBadge({ status, t }) {
 
 function EventsDetailPanel({
   event,
-  isFeaturedSelected,
   onRegister,
   onViewEvent,
   registerLabel,
@@ -73,22 +89,6 @@ function EventsDetailPanel({
         className={`events-detail events-detail--empty${minimal ? ' events-detail--minimal' : ''}`}
       >
         <p>{t('pages.events.emptyDetail')}</p>
-      </div>
-    )
-  }
-
-  if (isFeaturedSelected) {
-    return (
-      <div
-        className={`events-detail events-detail--linked${minimal ? ' events-detail--minimal' : ''}`}
-      >
-        <p className="events-detail__linked-copy">{t('pages.events.selectedIsFeatured')}</p>
-        {onViewEvent ? (
-          <button type="button" className="events-detail__text-link" onClick={onViewEvent}>
-            {t('pages.events.viewFull')}
-            <ArrowRight size={14} aria-hidden />
-          </button>
-        ) : null}
       </div>
     )
   }
@@ -116,46 +116,110 @@ function EventsDetailPanel({
   // El combo se muestra solo junto al CTA de inscripción real: si el registro
   // está cerrado o ya se completó, la promo tampoco tiene sentido.
   const showCombo = Boolean(comboOffer) && canRegister
+  const eventLogo = resolveEventLogo(event)
+  const landing = eventLandingFromEvent(event)
+  const faqItems = eventShowsPublicFaq(event) ? eventLandingFaqItems(landing.slots) : []
+  const themeId = eventLandingThemeId(event)
+  const paletteStyle = landingPaletteStyle(landing.layout, { withBackground: false })
 
   if (minimal) {
-    const hasHint =
+    const hintReady =
       Boolean(athleteStatusHint) &&
       athleteStatusHint !== `pages.events.athleteStatusHint.${athleteStatus}`
-    const pitbull = isPitbullClassicEvent(event)
+    // Visitante: el tip de cuenta solo tiene sentido si ya puede inscribirse.
+    // En "próximamente" / cerrado mostramos el estado del meet, no marketing.
+    const showGuestHint = athleteStatus === 'guest' && canRegister && hintReady
+    const showPersonalHint =
+      athleteStatus &&
+      athleteStatus !== 'guest' &&
+      athleteStatus !== 'closed' &&
+      hintReady
+    const showHint = showGuestHint || showPersonalHint
+    const showStatusLine = hasStatusCopy && !showGuestHint
+    const pitbull = eventHasEditorialLanding(event) || isPitbullClassicEvent(event)
+    const [dateDay, dateMonth] = String(event.displayDate ?? '').split(/\s+/, 2)
 
     return (
-      <div className="events-detail events-detail--minimal">
-        <div className="events-detail__head">
-          {pitbull ? (
-            <>
-              <div className="events-detail__brand">
-                <PitbullBrandMark size="sm" label={event.title} />
-              </div>
-              <h3 className="events-detail__title visually-hidden">{event.title}</h3>
-            </>
-          ) : (
-            <h3 className="events-detail__title">{event.title}</h3>
-          )}
-          <EventStatusBadge status={event.status} t={t} />
+      <div
+        className="events-detail events-detail--minimal event-landing-theme"
+        data-event-theme={themeId}
+        style={paletteStyle}
+      >
+        <p className="events-detail__panel-eyebrow">{t('pages.events.detailPanelEyebrow')}</p>
+
+        <div className="events-detail__brief">
+          {dateDay ? (
+            <div className="events-detail__date-hero" aria-hidden>
+              <span className="events-detail__date-day">{dateDay}</span>
+              {dateMonth ? <span className="events-detail__date-month">{dateMonth}</span> : null}
+            </div>
+          ) : null}
+
+          <div className="events-detail__brief-body">
+            <div className="events-detail__head">
+              {pitbull ? (
+                <>
+                  <div className="events-detail__brand">
+                    <PitbullBrandMark size="sm" label={event.title} />
+                  </div>
+                  <h3 className="events-detail__title visually-hidden">{event.title}</h3>
+                </>
+              ) : (
+                <div className="events-detail__identity">
+                  {eventLogo ? (
+                    <span className="events-detail__mark" aria-hidden="true">
+                      <img
+                        src={eventLogo}
+                        alt=""
+                        width={96}
+                        height={96}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </span>
+                  ) : null}
+                  <h3 className="events-detail__title">{event.title}</h3>
+                </div>
+              )}
+              <EventStatusBadge status={event.status} t={t} />
+            </div>
+
+            <p className="events-detail__meta-line">
+              <span className="visually-hidden">{event.displayDate}</span>
+              <span>
+                {event.venue}
+                {event.location ? `, ${event.location}` : ''}
+              </span>
+            </p>
+          </div>
         </div>
 
-        <p className="events-detail__meta-line">
-          <span>{event.displayDate}</span>
-          <span className="events-detail__meta-sep" aria-hidden>
-            ·
-          </span>
-          <span>
-            {event.venue}
-            {event.location ? `, ${event.location}` : ''}
-          </span>
-        </p>
-
-        {hasHint ? <p className="events-detail__athlete-hint">{athleteStatusHint}</p> : null}
+        {showStatusLine ? <p className="events-detail__status-copy">{statusCopy}</p> : null}
+        {showHint ? <p className="events-detail__athlete-hint">{athleteStatusHint}</p> : null}
 
         {eventHasWeighInWindows(event) && eventShowsPublicWeighIns(event) ? (
           <section className="events-detail__weighins" aria-label={t('pages.events.weighInsTitle')}>
             <h4 className="events-detail__weighins-title">{t('pages.events.weighInsTitle')}</h4>
             <EventWeighInSchedule windows={event.weighInWindows} />
+          </section>
+        ) : null}
+
+        {faqItems.length > 0 ? (
+          <section
+            className="events-detail__faq"
+            aria-labelledby="events-detail-faq-title"
+          >
+            <h4 id="events-detail-faq-title" className="events-detail__faq-title">
+              {t('pages.events.landingFaqTitle')}
+            </h4>
+            <dl className="events-detail__faq-list">
+              {faqItems.map((item) => (
+                <div key={item.question} className="events-detail__faq-item">
+                  <dt>{item.question}</dt>
+                  <dd>{item.answer}</dd>
+                </div>
+              ))}
+            </dl>
           </section>
         ) : null}
 
@@ -189,7 +253,7 @@ function EventsDetailPanel({
           {onViewEvent ? (
             <button
               type="button"
-              className="events-detail__text-link motion-icon-shift"
+              className={`events-detail__text-link motion-icon-shift${canRegister ? '' : ' events-detail__text-link--primary'}`}
               onClick={onViewEvent}
             >
               {t('pages.events.viewFull')}
@@ -212,7 +276,7 @@ function EventsDetailPanel({
   }
 
   return (
-    <div className="events-detail">
+    <div className="events-detail event-landing-theme" data-event-theme={themeId} style={paletteStyle}>
       <div className="events-detail__head">
         {isPitbullClassicEvent(event) ? (
           <>
@@ -222,7 +286,21 @@ function EventsDetailPanel({
             <h3 className="events-detail__title visually-hidden">{event.title}</h3>
           </>
         ) : (
-          <h3 className="events-detail__title">{event.title}</h3>
+          <div className="events-detail__identity">
+            {eventLogo ? (
+              <span className="events-detail__mark" aria-hidden="true">
+                <img
+                  src={eventLogo}
+                  alt=""
+                  width={96}
+                  height={96}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </span>
+            ) : null}
+            <h3 className="events-detail__title">{event.title}</h3>
+          </div>
         )}
         <EventStatusBadge status={event.status} t={t} />
       </div>
@@ -238,11 +316,12 @@ function EventsDetailPanel({
       </p>
 
       {hasStatusCopy ? <p className="events-detail__status-copy">{statusCopy}</p> : null}
-      {athleteStatusLabel ? (
+      {athleteStatusLabel && athleteStatus !== 'guest' ? (
         <p className="events-detail__athlete-status">{athleteStatusLabel}</p>
       ) : null}
       {athleteStatusHint &&
-      athleteStatusHint !== `pages.events.athleteStatusHint.${athleteStatus}` ? (
+      athleteStatusHint !== `pages.events.athleteStatusHint.${athleteStatus}` &&
+      (athleteStatus !== 'guest' || canRegister) ? (
         <p className="events-detail__athlete-hint">{athleteStatusHint}</p>
       ) : null}
 
@@ -250,6 +329,24 @@ function EventsDetailPanel({
         <section className="events-detail__weighins" aria-label={t('pages.events.weighInsTitle')}>
           <h4 className="events-detail__weighins-title">{t('pages.events.weighInsTitle')}</h4>
           <EventWeighInSchedule windows={event.weighInWindows} />
+        </section>
+      ) : null}
+
+      <EventPublicMaterials event={event} />
+
+      {faqItems.length > 0 ? (
+        <section className="events-detail__faq" aria-labelledby="events-detail-faq-title">
+          <h4 id="events-detail-faq-title" className="events-detail__faq-title">
+            {t('pages.events.landingFaqTitle')}
+          </h4>
+          <dl className="events-detail__faq-list">
+            {faqItems.map((item) => (
+              <div key={item.question} className="events-detail__faq-item">
+                <dt>{item.question}</dt>
+                <dd>{item.answer}</dd>
+              </div>
+            ))}
+          </dl>
         </section>
       ) : null}
 
@@ -304,22 +401,20 @@ function EventsDetailPanel({
   )
 }
 
-function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = false }) {
+function EventsAudienceTicketsPanel({ event, locale, offer, onBuyTickets, t, minimal = false }) {
   const pricing = ticketPricingFromEvent(event)
   const ticketPrice = cheapestTicketTypePrice(pricing)
-  // El servidor no vende entradas de un evento cerrado o finalizado: se dice
-  // "Venta cerrada" en vez de ofrecer una compra que va a rebotar.
-  const salesClosed = eventStatusClosesTicketSales(event)
-  const hasPublishedPrice =
-    event?.pricing?.ticketsEnabled === true && ticketPrice != null && !salesClosed
-  const closedLabel = t(
-    salesClosed ? 'pages.events.publicTicketsSalesClosed' : 'pages.events.publicTicketsClosed',
-  )
+  // La misma oferta que la página de compra. `pending` no anuncia
+  // "deshabilitadas": el catálogo todavía no asentó.
+  const salesOn = offer?.status === 'open'
+  const hasPublishedPrice = salesOn && ticketPrice != null
+  const closedKey = ticketOfferCopyKey(offer)
+  const closedLabel = closedKey ? t(closedKey) : null
 
   if (minimal) {
     return (
       <section
-        className="events-public-tickets events-public-tickets--minimal"
+        className={`events-public-tickets events-public-tickets--minimal${salesOn ? '' : ' events-public-tickets--closed'}`}
         aria-labelledby="events-public-tickets-title"
       >
         <div className="events-public-tickets__band">
@@ -337,18 +432,21 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = 
                 </span>
               </>
             ) : (
-              <span className="events-public-tickets__price-closed">{closedLabel}</span>
+              <span className="events-public-tickets__price-closed">
+                {salesOn ? t('pages.events.ticketsOnSaleStatus') : closedLabel}
+              </span>
             )}
           </p>
-          <button
-            type="button"
-            className="events-public-tickets__text-link motion-icon-shift"
-            onClick={onBuyTickets}
-            disabled={!hasPublishedPrice}
-          >
-            {t('pages.events.publicTicketsCta')}
-            <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
-          </button>
+          {salesOn ? (
+            <button
+              type="button"
+              className="events-public-tickets__text-link motion-icon-shift"
+              onClick={onBuyTickets}
+            >
+              {t('pages.events.publicTicketsCta')}
+              <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
+            </button>
+          ) : null}
         </div>
       </section>
     )
@@ -367,13 +465,15 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = 
         <p className="events-public-tickets__price">
           {hasPublishedPrice
             ? t('pages.events.publicTicketsFrom', { price: money(ticketPrice, locale) })
-            : closedLabel}
+            : salesOn
+              ? t('pages.events.ticketsOnSaleStatus')
+              : closedLabel}
         </p>
         <Button
           variant="outline"
           className="events-public-tickets__cta motion-icon-shift"
           onClick={onBuyTickets}
-          disabled={!hasPublishedPrice}
+          disabled={!salesOn}
         >
           <Ticket size={14} aria-hidden />
           {t('pages.events.publicTicketsCta')}
@@ -389,10 +489,15 @@ export default function EventsPage({
   onNavigate,
   onSelectEvent,
   events: eventsProp = UPCOMING_EVENTS,
+  // Landings en construcción: solo entran al calendario las que venden.
+  underConstructionEvents = [],
   session,
   memberships = [],
   registrations = [],
   checkoutAvailability = {},
+  // Vista previa del staff: muestra el evento tal cual llega por props, sin
+  // pisarlo con lo guardado en el servidor.
+  disableRemote = false,
 }) {
   const { locale, t } = useI18n()
   // El catálogo (título/venue/pricing) sigue viniendo del prop de arriba
@@ -400,8 +505,15 @@ export default function EventsPage({
   // Supabase (calendario/directo) matcheando por slug — sin bloquear el
   // render si Supabase no responde (queda el evento tal cual vino).
   const [supabaseBySlug, setSupabaseBySlug] = useState({})
+  // La consulta ya respondió (bien o mal): recién ahí un slug ausente es "no existe"
+  // y no "todavía no llegó".
+  const [catalogSettled, setCatalogSettled] = useState(false)
 
   useEffect(() => {
+    if (disableRemote) {
+      setCatalogSettled(true)
+      return undefined
+    }
     let active = true
     fetchPublishedEvents()
       .then((rows) => {
@@ -411,16 +523,20 @@ export default function EventsPage({
       .catch((error) => {
         console.warn('No se pudieron cargar los eventos de Supabase.', error)
       })
+      .finally(() => {
+        if (active) setCatalogSettled(true)
+      })
     return () => {
       active = false
     }
-  }, [])
+  }, [disableRemote])
 
   // Anuncio "Pronto habrá novedades". Arranca apagado y así se queda si la
   // lectura falla: un anuncio de hype no puede aparecer por un error de red.
   const [teaserEnabled, setTeaserEnabled] = useState(false)
 
   useEffect(() => {
+    if (disableRemote) return undefined
     let active = true
     fetchSiteTeaser()
       .then((teaser) => {
@@ -430,7 +546,7 @@ export default function EventsPage({
     return () => {
       active = false
     }
-  }, [])
+  }, [disableRemote])
 
   const dateFormatter = useMemo(
     () =>
@@ -468,15 +584,17 @@ export default function EventsPage({
 
   const events = useMemo(() => {
     const eventsBySlug = new Map()
-    for (const event of eventsProp) {
+    for (const event of [...eventsProp, ...underConstructionEvents]) {
       if (event?.slug) eventsBySlug.set(event.slug, event)
     }
     for (const event of Object.values(supabaseBySlug)) {
       if (event?.slug) eventsBySlug.set(event.slug, { ...eventsBySlug.get(event.slug), ...event })
     }
 
-    return getPublicCatalogEvents([...eventsBySlug.values()], {
-      includeDevelopmentStubs: false,
+    // Una landing en construcción que ya vende se lista: la inscripción no
+    // espera a la página oficial. Cerrada, sigue fuera del calendario.
+    return getRegistrableCatalogEvents([...eventsBySlug.values()], {
+      registrationEnabled: checkoutAvailability.registrationEnabled !== false,
     }).map((event) => {
       const merged = withPublicEventStatus(
         ensureEventCalendarFields({ ...event, ...supabaseBySlug[event.slug] }),
@@ -488,9 +606,15 @@ export default function EventsPage({
         displayDate: formatEventDisplayDate(merged),
       }
     })
-  }, [eventsProp, supabaseBySlug, formatEventDisplayDate, checkoutAvailability.registrationEnabled])
+  }, [
+    eventsProp,
+    underConstructionEvents,
+    supabaseBySlug,
+    formatEventDisplayDate,
+    checkoutAvailability.registrationEnabled,
+  ])
 
-  const pitbull = getFeaturedEvent(events)
+  const spotlightEvent = getFeaturedEvent(events)
   const nextEvent = useMemo(() => getNextUpcomingEvent(events), [events])
   // Se guarda el slug (no el objeto) para que `selected` siempre refleje la
   // versión más reciente del evento en `events` — incluidos los campos que
@@ -500,11 +624,11 @@ export default function EventsPage({
     if (initialEventSlug && eventsProp.some((event) => event.slug === initialEventSlug)) {
       return initialEventSlug
     }
-    return pitbull?.slug ?? null
+    return spotlightEvent?.slug ?? null
   })
   const selected = events.find((event) => event.slug === selectedSlug) ?? null
   const [filter, setFilter] = useState('all')
-  const [calendarFocus, setCalendarFocus] = useState(pitbull?.dateISO ?? '2026-12-01')
+  const [calendarFocus, setCalendarFocus] = useState(spotlightEvent?.dateISO ?? '2026-12-01')
 
   // El catálogo público llega de forma asíncrona. Si el deep-link apunta a
   // un evento que todavía no estaba en el seed inicial, no hay que perder ese
@@ -539,7 +663,7 @@ export default function EventsPage({
   )
 
   const filteredEvents = useMemo(() => {
-    return events.filter((event) => {
+    const shown = events.filter((event) => {
       if (filter === 'open') {
         return event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
       }
@@ -547,6 +671,7 @@ export default function EventsPage({
       if (filter === 'done') return event.status === 'finalizado'
       return event.status !== 'finalizado'
     })
+    return sortEventsForCalendar(shown, { finished: filter === 'done' })
   }, [events, filter])
 
   const listEvents = filteredEvents
@@ -565,9 +690,18 @@ export default function EventsPage({
     }
   }, [listEvents, selectedSlug])
 
-  function focusEvent(event) {
+  function focusEvent(event, { revealPanel = false } = {}) {
     setSelectedSlug(event.slug)
     setCalendarFocus(event.dateISO)
+    if (!revealPanel || typeof window === 'undefined') return
+    if (!window.matchMedia('(max-width: 1023px)').matches) return
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.requestAnimationFrame(() => {
+      document.getElementById('events-selected-panel')?.scrollIntoView({
+        behavior: reduced ? 'auto' : 'smooth',
+        block: 'start',
+      })
+    })
   }
 
   /** Abre la ficha del evento: Pitbull a su página editorial; el resto a /evento/:slug. */
@@ -597,13 +731,8 @@ export default function EventsPage({
     onSelectEvent?.(event)
   }
 
-  function isRegistrationOpen(event) {
-    return (
-      registrationCheckoutEnabled &&
-      isPaidCheckoutOpen(event, env, new Date(), { checkoutKind: 'registration' }) &&
-      (event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados')
-    )
-  }
+  const isRegistrationOpen = (event) =>
+    isEventRegistrationOpen(event, { registrationEnabled: registrationCheckoutEnabled })
 
   const visibleEventCount = listEvents.length
 
@@ -617,11 +746,55 @@ export default function EventsPage({
     { count: '' },
   ).trim()
 
-  const ticketsEvent = selected ?? nextEvent ?? pitbull
+  const ticketsEvent = selected ?? nextEvent ?? spotlightEvent
+  const ticketCheckoutOpen = isPaidCheckoutOpen(ticketsEvent, env, new Date(), {
+    checkoutKind: 'ticket',
+  })
+  const ticketsOffer = usePublicTicketOffer(ticketsEvent, {
+    catalogSettled: disableRemote || catalogSettled,
+    checkoutOpen: ticketCheckoutOpen,
+  })
+
+  function eventTicketsOpen(event) {
+    if (ticketsEvent && event?.slug && event.slug === ticketsEvent.slug) {
+      return ticketsOffer.status === 'open'
+    }
+    return canBuyEventTickets(event, {
+      catalogSettled: disableRemote || catalogSettled,
+      checkoutOpen: ticketCheckoutOpen,
+    })
+  }
+
+  function handleEventCardAction(event) {
+    if (isRegistrationOpen(event)) {
+      handleRegister(event)
+      return
+    }
+    if (eventTicketsOpen(event)) {
+      onNavigate?.('tickets', { eventSlug: event.slug })
+      return
+    }
+    openEvent(event)
+  }
+
+  function eventCardActionLabel(event) {
+    if (isRegistrationOpen(event)) return registerLabel
+    if (eventTicketsOpen(event)) return t('pages.events.publicTicketsCta')
+    return t('pages.events.viewFull')
+  }
+
+  // Link a un evento que el catálogo ya cargado no tiene (despublicado, terminado
+  // o mal tipeado): sin aviso la persona cae en otro evento sin saber por qué.
+  const linkedEventMissing =
+    Boolean(initialEventSlug) &&
+    catalogSettled &&
+    events.length > 0 &&
+    !events.some((event) => event.slug === initialEventSlug)
 
   return (
     <main className="page page--design page--plu-ref events-page--design events-page--plu-ref events-page--list-first">
       <PluPageHero
+        align="start"
         className="events-page__hero"
         breadcrumbLabel={t('pages.events.heroBreadcrumb')}
         chapter={t('pages.events.heroChapter')}
@@ -631,6 +804,11 @@ export default function EventsPage({
       />
 
       <div className="events-page__body">
+        {linkedEventMissing ? (
+          <p className="events-page__notice" role="status">
+            {t('pages.events.eventNotFound', { slug: initialEventSlug })}
+          </p>
+        ) : null}
         <div className="events-page__toolbar">
           <div className="events-page__filters-shell plu-tab-rail__shell">
             <FilterPills
@@ -666,6 +844,8 @@ export default function EventsPage({
                   key={event.slug}
                   date={event.displayDate}
                   title={event.title}
+                  slug={event.slug}
+                  logoUrl={event.logoUrl}
                   venue={event.venue}
                   location={event.location}
                   status={event.status}
@@ -677,13 +857,11 @@ export default function EventsPage({
                     registrations,
                     memberships,
                   })}
-                  onSelect={() => openEvent(event)}
-                  onAction={
-                    isRegistrationOpen(event) ? () => handleRegister(event) : () => openEvent(event)
-                  }
-                  actionLabel={
-                    isRegistrationOpen(event) ? registerLabel : t('pages.events.viewFull')
-                  }
+                  ticketsAvailable={eventTicketsOpen(event)}
+                  onSelect={() => focusEvent(event, { revealPanel: true })}
+                  onAction={() => handleEventCardAction(event)}
+                  actionLabel={eventCardActionLabel(event)}
+                  actionLive={isRegistrationOpen(event) || eventTicketsOpen(event)}
                   variant="minimal"
                 />
               ))}
@@ -715,11 +893,7 @@ export default function EventsPage({
               event={nextEvent}
               className="events-calendar-board__countdown"
               compact
-              onNavigate={
-                pitbull?.slug && nextEvent.slug === pitbull.slug
-                  ? () => openEvent(pitbull)
-                  : () => openEvent(nextEvent)
-              }
+              onNavigate={() => openEvent(nextEvent)}
             />
           ) : (
             <header className="events-calendar-board__head">
@@ -735,14 +909,13 @@ export default function EventsPage({
                 initialDate="2026-12-01"
                 focusDateISO={calendarFocus}
                 selectedEventSlug={selected?.slug}
-                onEventSelect={focusEvent}
+                onEventSelect={(event) => focusEvent(event, { revealPanel: true })}
               />
             </div>
-            <div className="events-calendar-board__panel">
+            <div className="events-calendar-board__panel" id="events-selected-panel">
               <MotionContentSwap swapKey={selected?.slug || 'none'}>
                 <EventsDetailPanel
                   event={selected}
-                  isFeaturedSelected={false}
                   minimal
                   athleteStatus={
                     selected
@@ -768,6 +941,7 @@ export default function EventsPage({
                   event={ticketsEvent}
                   locale={locale}
                   minimal
+                  offer={ticketsOffer}
                   onBuyTickets={() => onNavigate('tickets', { eventSlug: ticketsEvent.slug })}
                   t={t}
                 />

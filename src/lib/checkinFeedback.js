@@ -18,6 +18,9 @@ const FEEDBACK_BY_OUTCOME = {
   not_yet_valid: 'warning',
   service_unavailable: 'warning',
   session_expired: 'error',
+  door_malformed: 'warning',
+  rate_limited: 'warning',
+  needs_online: 'warning',
   multiple_matches: 'warning',
 }
 

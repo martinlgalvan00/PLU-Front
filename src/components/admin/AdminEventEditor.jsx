@@ -17,19 +17,21 @@ import EventCard from '../ui/EventCard.jsx'
 import CapacityBar from '../ui/CapacityBar.jsx'
 import { describePublicCapacity } from '../../lib/eventCapacityPublic.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import {
-  ADMIN_EVENT_STATUS_OPTIONS,
-  EVENT_QUICK_STATUS_VALUES,
   getEventConsistencyWarnings,
   getEventRegistrationAvailability,
   mapDraftToPreviewEvent,
+  uploadEventHeroRequest,
 } from '../../services/eventAdminService.js'
+import { normalizeEventLanding } from '../../lib/eventLanding.js'
+import EventLandingCompositionPreview from './event-editor/EventLandingCompositionPreview.jsx'
 import { validateAdminEventDraft } from '../../lib/schemas/adminEvent.js'
+import usePlatformPaymentChannels from '../../hooks/usePlatformPaymentChannels.js'
+import { platformCellsFor } from '../../lib/platformPaymentChannels.js'
+import { resolveEventPublishChecks } from '../../lib/eventPublishChecks.js'
+import { areaOfDraftField, describeDraftChanges } from '../../lib/eventDraftChanges.js'
 import {
-  allOpenEventPaymentChannelOverrides,
-  normalizeEventPaymentChannelOverrides,
-  openEventChannelsFor,
+  effectiveEventChannelsFor,
 } from '../../lib/eventPaymentChannels.js'
 import { createPaymentProfile, fetchPaymentProfiles } from '../../services/paymentProfileService.js'
 import '../../styles/pages/admin-event-sales.css'
@@ -54,6 +56,8 @@ const SALES_FIELD_KEYS = new Set([
   'registrationClosesAt',
   'ticketSalesOpensAt',
   'ticketSalesClosesAt',
+  'ticketCapacity',
+  'ticketRevealLeadHours',
   // Claves de raíz, sin índice: `ticketsNeedType` y `ticketsNeedDays` las
   // emiten como `ticketTypes` y `eventDays` pelados, y `startsWith('x.')` no
   // los agarra. Sin esto el guardado rebotaba a Datos -- otra pestaña, sin
@@ -64,13 +68,16 @@ const SALES_FIELD_KEYS = new Set([
 
 function resolveSalesChapterForField(key) {
   if (!key) return 'cupo'
+  if (key.startsWith('modules') || key.startsWith('paymentPolicy')) return 'modules'
   if (
     key === 'ticketTypes' ||
     key === 'eventDays' ||
     key.startsWith('ticketTypes.') ||
     key.startsWith('pricing.ticketAddons') ||
     key === 'ticketSalesOpensAt' ||
-    key === 'ticketSalesClosesAt'
+    key === 'ticketSalesClosesAt' ||
+    key === 'ticketCapacity' ||
+    key === 'ticketRevealLeadHours'
   ) {
     // `eventDays` cae acá y no en Estructura a propósito: el error lo dispara
     // haber prendido la venta de entradas, y el capítulo ya ofrece el atajo a
@@ -79,6 +86,7 @@ function resolveSalesChapterForField(key) {
   }
   if (
     key.startsWith('bankTransfer') ||
+    key.startsWith('cashPayment') ||
     key.startsWith('paymentChannel') ||
     key === 'mercadoPagoProfileId' ||
     key === 'bankTransferProfileId'
@@ -105,24 +113,46 @@ function resolveTabForField(key) {
     key.startsWith('eventDays.') ||
     key.startsWith('ticketTypes.') ||
     key.startsWith('paymentChannelOverrides') ||
+    key.startsWith('bankTransfer') ||
+    key.startsWith('cashPayment') ||
+    key.startsWith('modules') ||
+    key.startsWith('paymentPolicy') ||
+    key === 'mercadoPagoProfileId' ||
     SALES_FIELD_KEYS.has(key)
   )
     return 'sales'
-  if (VISIBILITY_FIELD_KEYS.has(key) || key.startsWith('publicCopy.')) return 'visibility'
+  if (
+    VISIBILITY_FIELD_KEYS.has(key) ||
+    key.startsWith('publicCopy.') ||
+    key.startsWith('externalForm') ||
+    key.startsWith('landing.')
+  ) {
+    return 'visibility'
+  }
   return 'basics'
 }
 
 /** Campos de Publicación que viven en el bloque colapsado "Avanzado". */
 function isAdvancedVisibilityField(key) {
-  return key.startsWith('publicCopy.') || key.startsWith('liveStream') || key === 'liveStatus'
+  return (
+    key.startsWith('publicCopy.') ||
+    key.startsWith('landing.') ||
+    key.startsWith('externalForm') ||
+    key.startsWith('liveStream') ||
+    key === 'liveStatus'
+  )
 }
 
 /** Abre "Avanzado" solo si el evento ya trae algo cargado ahí. */
 function hasAdvancedVisibilityContent(draft) {
   const copy = draft.publicCopy ?? {}
+  const slots = draft.landing?.slots ?? {}
   return (
     Object.values(copy).some((value) => String(value ?? '').trim() !== '') ||
+    Object.values(slots).some((value) => String(value ?? '').trim() !== '') ||
+    ['editorial', 'submission', 'builder'].includes(draft.landing?.templateId) ||
     Boolean(draft.liveStreamUrl?.trim?.()) ||
+    Boolean(draft.externalForm?.url?.trim?.()) ||
     (draft.liveStatus ?? 'offline') !== 'offline'
   )
 }
@@ -132,6 +162,12 @@ function AdminEventLivePreview({
   embedded = false,
   live = false,
   showReadiness = false,
+  /**
+   * Solo "Así se ve en el sitio" (landing + Google). En el Resumen, la card,
+   * el estado, el cupo, la fecha, la sede y el checklist ya están en el
+   * control de venta y en la cabecera del evento: repetirlos era ruido.
+   */
+  compact = false,
   sourceEvent,
 }) {
   const { t } = useI18n()
@@ -147,6 +183,21 @@ function AdminEventLivePreview({
     (draft?.ticketTypes ?? sourceEvent?.ticketTypes)?.filter(
       (ticketType) => ticketType.active !== false,
     ).length ?? 0
+  const composeEvent = useMemo(
+    () => ({ ...sourceEvent, ...previewEvent, ...draft }),
+    [draft, previewEvent, sourceEvent],
+  )
+
+  if (compact) {
+    return (
+      <div className="admin-event-preview admin-event-preview--embedded admin-event-preview--compact">
+        <p className="admin-event-preview__site-caption">
+          {t('admin.eventEditor.sitePreviewCaption')}
+        </p>
+        <EventLandingCompositionPreview event={composeEvent} t={t} />
+      </div>
+    )
+  }
 
   const readinessItems = showReadiness
     ? [
@@ -169,7 +220,12 @@ function AdminEventLivePreview({
           ok: activeTicketTypes > 0,
           label:
             activeTicketTypes > 0
-              ? t('admin.eventEditor.readinessTickets', { count: activeTicketTypes })
+              ? t(
+                  activeTicketTypes === 1
+                    ? 'admin.eventEditor.readinessTickets_one'
+                    : 'admin.eventEditor.readinessTickets',
+                  { count: activeTicketTypes },
+                )
               : t('admin.eventEditor.readinessTicketsMissing'),
         },
       ]
@@ -215,6 +271,8 @@ function AdminEventLivePreview({
           {t('admin.eventEditor.liveHint')}
         </p>
       ) : null}
+
+      <EventLandingCompositionPreview event={composeEvent} t={t} />
 
       <div className="admin-event-preview__card">
         <EventCard
@@ -349,6 +407,10 @@ function useWorkspaceSaveHost(enabled) {
 
 export default function AdminEventEditor({
   canEdit,
+  /** Otros eventos, para "Copiar de otro evento" en la landing. */
+  landingSourceEvents = [],
+  // Cuenta por evento (organizador): ver EventSalesSection / EventVisibilitySection.
+  eventScoped = false,
   draft,
   /** Sin portal ni shell propio: el formulario vive dentro de la consola. */
   embedded = false,
@@ -379,6 +441,16 @@ export default function AdminEventEditor({
   extraDirty = false,
   onExtraSave = null,
   onExtraDiscard = null,
+  /** "Seguir editando" en la confirmación de descarte: el destino pendiente se cancela. */
+  onKeepEditing = null,
+  /**
+   * Acordeón: el tablero de Módulos lleva a otro capítulo de Venta o a otra
+   * sección del workspace (Estructura, Zonas). Ver EventSalesSection.
+   */
+  onRequestChapter = null,
+  onRequestWorkspaceSection = null,
+  workspaceSections = [],
+  onSaved = null,
   /**
    * Precio de inscripción programado: mismo contrato que Tarifas. No viaja
    * en el upsert del evento — pisar `price` cancela la programación.
@@ -394,21 +466,32 @@ export default function AdminEventEditor({
   // de perfil MP. El catálogo de entradas (ventanas, tipos, precios) sí viaja
   // acá: es el único lugar para configurar la venta de un evento ya creado.
   const essentials = accordion
+  const platformChannels = usePlatformPaymentChannels()
   const [syncError, setSyncError] = useState(null)
+  // Dónde está el problema de un guardado rechazado (campo que marcó el
+  // servidor) y qué sí alcanzó a guardarse antes de fallar.
+  const [syncErrorField, setSyncErrorField] = useState(null)
+  const [syncExtraSaved, setSyncExtraSaved] = useState(false)
+  // Avisos de un guardado que salió bien pero quedó incompleto.
+  const [saveWarnings, setSaveWarnings] = useState([])
   const [syncing, setSyncing] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [activeTab, setActiveTab] = useState('basics')
-  const [salesChapter, setSalesChapter] = useState('cupo')
+  // Módulos abre Venta: es la vista de conjunto (qué se vende y cómo se cobra).
+  const [salesChapter, setSalesChapter] = useState('modules')
   const [advancedOpen, setAdvancedOpen] = useState(() => hasAdvancedVisibilityContent(draft))
   const [bankProfiles, setBankProfiles] = useState([])
   const [bankProfilesLoading, setBankProfilesLoading] = useState(false)
   const [mpProfiles, setMpProfiles] = useState([])
   const [mpProfilesLoading, setMpProfilesLoading] = useState(false)
   const [mpSecretsKeyConfigured, setMpSecretsKeyConfigured] = useState(true)
+  const [mpOAuthAvailable, setMpOAuthAvailable] = useState(false)
   const [mpCreateOpen, setMpCreateOpen] = useState(false)
   const [mpCreating, setMpCreating] = useState(false)
   const [mpCreateError, setMpCreateError] = useState(null)
+  const [heroUploading, setHeroUploading] = useState(false)
+  const [heroPreviewUrl, setHeroPreviewUrl] = useState(null)
   const [mpDraft, setMpDraft] = useState({
     name: '',
     publicKey: '',
@@ -451,6 +534,7 @@ export default function AdminEventEditor({
         setBankProfiles(bank.profiles)
         setMpProfiles(mp.profiles)
         setMpSecretsKeyConfigured(mp.secretsKeyConfigured !== false)
+        setMpOAuthAvailable(mp.mercadoPagoOAuth?.available === true)
       })
       .catch(() => {
         if (!active) return
@@ -497,6 +581,8 @@ export default function AdminEventEditor({
         alias: profile.config?.alias ?? '',
         cbu: profile.config?.cbu ?? '',
         holder: profile.config?.holder ?? '',
+        cuit: profile.config?.cuit ?? '',
+        bankName: profile.config?.bankName ?? '',
       },
     })
   }
@@ -506,6 +592,25 @@ export default function AdminEventEditor({
       ...draft,
       mercadoPagoProfileId: profileId || null,
     })
+  }
+
+  // La vinculación vuelve por otra ventana, después de un rato: se patchea
+  // sobre el borrador vigente en ese momento, no sobre el del click.
+  const latestDraftRef = useRef(draft)
+  latestDraftRef.current = draft
+
+  /** Cuenta recién vinculada (o reconectada) con Mercado Pago: queda elegida. */
+  async function handleMpProfileConnected({ profileId }) {
+    if (!profileId) return
+    try {
+      // La cuenta se vinculó en otra ventana: la lista cacheada no la tiene.
+      const mp = await fetchPaymentProfiles({ kind: 'mercado_pago', fresh: true })
+      setMpProfiles(mp.profiles)
+    } catch {
+      // La lista vieja sigue sirviendo; el id igual queda elegido.
+    }
+    patchDraft({ ...latestDraftRef.current, mercadoPagoProfileId: profileId })
+    setMpCreateOpen(false)
   }
 
   async function handleCreateMpProfile() {
@@ -536,7 +641,7 @@ export default function AdminEventEditor({
         collectorId: '',
       })
     } catch (error) {
-      setMpCreateError(error?.message ?? t('admin.eventEditor.mercadoPagoSecretsKeyMissing'))
+      setMpCreateError(error?.message || t('admin.eventEditor.mercadoPagoProfileCreateFailed'))
     } finally {
       setMpCreating(false)
     }
@@ -545,16 +650,6 @@ export default function AdminEventEditor({
   // `agotado` lo pone y lo saca la base según el cupo; solo se ofrece como
   // opción cuando el evento ya está en ese estado (mismo criterio que el
   // control rápido de la lista).
-  const statusOptions = useMemo(
-    () =>
-      translateFilterOptions(
-        ADMIN_EVENT_STATUS_OPTIONS.filter(
-          ([value]) => EVENT_QUICK_STATUS_VALUES.includes(value) || value === draft.status,
-        ),
-        t,
-      ),
-    [t, draft.status],
-  )
 
   // Mismo par de opciones y mismo copy que la consola de operación del panel:
   // el requisito de afiliación se decide en los dos lugares y no puede leerse
@@ -605,10 +700,17 @@ export default function AdminEventEditor({
     () => getEventConsistencyWarnings(draft, sourceEvent),
     [draft, sourceEvent],
   )
+  const publishChecks = useMemo(
+    () => resolveEventPublishChecks(draft, platformChannels.platform, { mpProfiles }),
+    [draft, platformChannels.platform, mpProfiles],
+  )
 
   useEffect(() => {
     function handleKeyDown(event) {
-      if (event.key === 'Escape') {
+      // Embebido en el workspace el editor es parte de una página, no un
+      // diálogo: Escape no lo cierra (ni lo saca de la pestaña). Así tampoco
+      // le roba el Escape a los diálogos que se abren encima, como la vista previa.
+      if (event.key === 'Escape' && !embedded) {
         event.preventDefault()
         event.stopPropagation()
         requestCloseRef.current?.()
@@ -680,7 +782,7 @@ export default function AdminEventEditor({
       setActiveTab(forcedTab)
       if (
         forcedTab === 'sales' &&
-        ['cupo', 'prices', 'tickets', 'payment'].includes(forcedChapter)
+        ['modules', 'cupo', 'prices', 'tickets', 'payment'].includes(forcedChapter)
       ) {
         setSalesChapter(forcedChapter)
       }
@@ -708,25 +810,67 @@ export default function AdminEventEditor({
     return undefined
   }, [forcedChapter, forcedTab, initialFocus])
 
+  async function handleHeroUpload(file) {
+    const slug = draft.slug || sourceEvent?.slug
+    if (!slug || !file) return
+    setHeroUploading(true)
+    try {
+      const uploaded = await uploadEventHeroRequest(slug, file)
+      const landing = normalizeEventLanding(draft.landing, {
+        publicCopy: draft.publicCopy,
+        slug,
+      })
+      patchDraft({
+        ...draft,
+        heroImageUrl: uploaded.url,
+        landing: {
+          ...landing,
+          slots: { ...landing.slots, heroImagePath: uploaded.path },
+        },
+      })
+      setHeroPreviewUrl(uploaded.url)
+    } catch (error) {
+      setSyncError(error?.message ?? t('admin.eventEditor.landingHeroUploadFailed'))
+    } finally {
+      setHeroUploading(false)
+    }
+  }
+
+  /** Sube una imagen para un bloque propio de la landing; el bloque guarda la ruta. */
+  async function handleBlockImageUpload(file) {
+    const slug = draft.slug || sourceEvent?.slug
+    if (!slug || !file) return null
+    setHeroUploading(true)
+    try {
+      return await uploadEventHeroRequest(slug, file)
+    } catch (error) {
+      setSyncError(error?.message ?? t('admin.eventEditor.landingHeroUploadFailed'))
+      return null
+    } finally {
+      setHeroUploading(false)
+    }
+  }
+
   function patchDraft(next) {
     onChange(next)
     setConfirmDiscard(false)
     if (Object.keys(fieldErrors).length) setFieldErrors({})
     if (syncError) setSyncError(null)
+    if (saveWarnings.length) setSaveWarnings([])
   }
 
-  /** Un medio, para un concepto. El resto de la matriz queda como estaba. */
-  function patchPaymentChannel(concept, channel, enabled) {
-    const current =
-      normalizeEventPaymentChannelOverrides(draft.paymentChannelOverrides) ??
-      allOpenEventPaymentChannelOverrides()
-    patchDraft({
-      ...draft,
-      paymentChannelOverrides: {
-        ...current,
-        [concept]: { ...(current[concept] ?? {}), [channel]: enabled },
-      },
-    })
+  /** Lleva a la pestaña y al capítulo donde vive un campo. */
+  function navigateToField(key) {
+    if (!key) return
+    setSalesChapter(resolveSalesChapterForField(key))
+    const targetTab = resolveTabForField(key)
+    if (accordion) {
+      if (forcedTab && targetTab !== forcedTab) onRequestSection?.(targetTab)
+      else setActiveTab(targetTab)
+    } else {
+      setActiveTab(targetTab)
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => focusFirstInvalid(key)))
   }
 
   function requestClose() {
@@ -751,6 +895,24 @@ export default function AdminEventEditor({
     setActiveTab(nextTab)
     formBodyRef.current?.scrollTo?.({ top: 0, behavior: 'auto' })
     requestAnimationFrame(() => activePanelRef.current?.focus?.())
+  }
+
+  /**
+   * «Ir a …» del checklist: lo de la portada vive en el bloque avanzado de
+   * Publicación; cupo y ventana, en el capítulo Cupo de Ventas.
+   */
+  function handleReadinessGoTo(target, key) {
+    if (target === 'visibility') setAdvancedOpen(true)
+    if (target === 'sales') {
+      setSalesChapter(
+        resolveSalesChapterForField(key === 'registrationWindow' ? 'registrationOpensAt' : 'slots'),
+      )
+    }
+    if (accordion && target !== forcedTab) {
+      onRequestSection?.(target)
+      return
+    }
+    handleTabChange(target)
   }
 
   function handleSalesChapterChange(nextChapter) {
@@ -780,6 +942,9 @@ export default function AdminEventEditor({
   async function handleFormSubmit(event) {
     event.preventDefault()
     setSyncError(null)
+    setSyncErrorField(null)
+    setSyncExtraSaved(false)
+    setSaveWarnings([])
 
     const registered = sourceEvent?.registered ?? 0
     if (dirty && draft.id && Number(draft.slots) < registered) {
@@ -833,27 +998,46 @@ export default function AdminEventEditor({
     setFieldErrors({})
     setConfirmDiscard(false)
     setSyncing(true)
+    let extraSaved = false
     try {
       let payload = draft
       if (extraDirty) {
         const synced = await onExtraSave?.()
+        extraSaved = true
         if (synced && typeof synced === 'object') {
           payload = { ...draft, ...synced }
           onChange(payload)
         }
       }
+      let warnings = []
       if (dirty) {
         const result = await onSubmit?.(payload)
         if (result?.error) throw new Error(result.error)
+        warnings = Array.isArray(result?.warnings) ? result.warnings : []
       }
       // El padre suele cerrar el fold al guardar; si no, reseteamos baseline
       // para que el dock vuelva a "Al día" sin remount.
       initialDraftSignatureRef.current = draftSignature(payload)
+      setSaveWarnings(warnings)
+      onSaved?.()
     } catch (error) {
+      // El servidor marca el campo que falta: el mensaje lleva ahí en un clic
+      // en vez de dejar al operador buscándolo entre cinco pestañas.
+      const fields = error?.body?.fields
+      setSyncErrorField(
+        fields && typeof fields === 'object' ? (Object.keys(fields)[0] ?? null) : null,
+      )
+      // El estado y el acceso van por un guardado aparte, antes del evento: si
+      // el segundo falla, el primero ya quedó. Decirlo evita reintentar a ciegas.
+      setSyncExtraSaved(extraSaved)
+      // El servidor ya dice qué pasó (título repetido, día con inscriptos,
+      // versión desactualizada): pisarlo con un único texto de "otra persona
+      // modificó" escondía el motivo real de casi todos los 409.
+      const serverMessage = String(error?.message ?? '').trim()
       setSyncError(
         error?.status === 409
-          ? t('admin.eventEditor.conflictError')
-          : (error?.message ?? t('admin.eventEditor.saveError')),
+          ? serverMessage || t('admin.eventEditor.conflictError')
+          : serverMessage || t('admin.eventEditor.saveError'),
       )
       return
     } finally {
@@ -875,7 +1059,11 @@ export default function AdminEventEditor({
   // obligaban a entrar en las cuatro para saber cuánto cupo hay, a qué precio
   // se inscribe, cuántas entradas existen y con qué se cobran.
   const ticketTypeCount = (draft.ticketTypes ?? []).length
-  const ticketChannelCount = openEventChannelsFor(draft.paymentChannelOverrides, 'ticket').length
+  const ticketChannelCount = effectiveEventChannelsFor(
+    draft.paymentChannelOverrides,
+    'ticket',
+    platformCellsFor(platformChannels.platform, 'ticket'),
+  ).length
   const fillPercent = slotsTotal > 0 ? Math.round((registeredCount / slotsTotal) * 100) : 0
   const publicCapacity = describePublicCapacity({
     progressPublic: draft.capacityProgressPublic !== false,
@@ -898,10 +1086,21 @@ export default function AdminEventEditor({
             remaining: publicCapacity.remaining,
           })
   const activeTabHasError = tabsWithErrors.has(activeTab)
+  // Con el borrador sucio se dice *dónde* están los cambios: "sin guardar" a
+  // secas no deja saber si lo pendiente es el título, un precio o el cobro.
+  const changedAreas = useMemo(
+    () => (dirty ? describeDraftChanges(draft, initialDraftSignatureRef.current) : []),
+    [dirty, draft],
+  )
+  const changedAreasLabel = changedAreas
+    .map((area) => t(`admin.eventEditor.changeAreas.${area}`))
+    .join(', ')
   const saveStateLabel = syncing
     ? t('admin.eventEditor.saving')
     : hasUnsavedChanges
-      ? t('admin.eventEditor.unsavedChanges')
+      ? changedAreasLabel
+        ? t('admin.eventEditor.unsavedChangesIn', { areas: changedAreasLabel })
+        : t('admin.eventEditor.unsavedChanges')
       : t('admin.eventEditor.noPendingChanges')
   const saveStateShortLabel = syncing
     ? t('admin.eventEditor.savingShort')
@@ -1023,6 +1222,7 @@ export default function AdminEventEditor({
 
           {activeTab === 'sales' && (
             <EventSalesSection
+              eventScoped={eventScoped}
               activePanelRef={activePanelRef}
               t={t}
               essentials={essentials}
@@ -1046,7 +1246,7 @@ export default function AdminEventEditor({
               onSetEventRegistrationPrice={onSetEventRegistrationPrice}
               sourceEvent={sourceEvent}
               onClearEventPriceSchedule={onClearEventPriceSchedule}
-              patchPaymentChannel={patchPaymentChannel}
+              platformChannels={platformChannels}
               mpSecretsKeyConfigured={mpSecretsKeyConfigured}
               applyMpProfile={applyMpProfile}
               mpProfilesLoading={mpProfilesLoading}
@@ -1066,33 +1266,91 @@ export default function AdminEventEditor({
               fieldErrors={fieldErrors}
               accordion={accordion}
               onRequestSection={onRequestSection}
+              mpOAuthAvailable={mpOAuthAvailable}
+              onMpProfileConnected={handleMpProfileConnected}
+              onRequestChapter={onRequestChapter}
+              onRequestWorkspaceSection={onRequestWorkspaceSection}
+              workspaceSections={workspaceSections}
             />
           )}
 
           {activeTab === 'visibility' && (
             <EventVisibilitySection
+              eventScoped={eventScoped}
               activePanelRef={activePanelRef}
               t={t}
               essentials={essentials}
               canEdit={canEdit}
               draft={draft}
               patchDraft={patchDraft}
-              statusOptions={statusOptions}
               consistencyWarnings={consistencyWarnings}
+              publishChecks={publishChecks}
               accessOptions={accessOptions}
               advancedOpen={advancedOpen}
               setAdvancedOpen={setAdvancedOpen}
               err={err}
               sourceEvent={sourceEvent}
               publicCapacityPreview={publicCapacityPreview}
+              heroPreviewUrl={heroPreviewUrl || draft.heroImageUrl || sourceEvent?.heroImageUrl}
+              heroUploading={heroUploading}
+              onHeroUpload={handleHeroUpload}
+              onImageUpload={handleBlockImageUpload}
+              platform={platformChannels.platform}
+              mpProfiles={mpProfiles}
+              onGoTo={handleReadinessGoTo}
+              landingSourceEvents={landingSourceEvents}
+              studioSave={{
+                // El editor visual guarda con el mismo formulario (y las mismas
+                // validaciones) que el botón Guardar del evento.
+                onSave: () => formRef.current?.requestSubmit(),
+                dirty: hasUnsavedChanges,
+                syncing,
+                error: syncError,
+              }}
             />
           )}
         </div>
 
         {syncError ? (
-          <p className="admin-event-form__alert admin-event-form__alert--danger" role="alert">
-            {t('admin.eventEditor.supabase.syncError', { message: syncError })}
-          </p>
+          <div className="admin-event-form__alert admin-event-form__alert--danger" role="alert">
+            <p>{t('admin.eventEditor.supabase.syncError', { message: syncError })}</p>
+            {syncExtraSaved ? <p>{t('admin.eventEditor.savePartial')}</p> : null}
+            {syncErrorField ? (
+              <button
+                type="button"
+                className="button button--ghost admin-event-form__alert-action"
+                onClick={() => navigateToField(syncErrorField)}
+              >
+                {t('admin.eventEditor.goToArea', {
+                  area: t(`admin.eventEditor.changeAreas.${areaOfDraftField(syncErrorField)}`),
+                })}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {saveWarnings.length > 0 ? (
+          <div className="admin-event-form__notice" role="status">
+            <p>{t('admin.eventEditor.saveWarningTitle')}</p>
+            <ul>
+              {saveWarnings.map((warning) => (
+                <li key={warning.code}>
+                  {warning.message}{' '}
+                  {warning.field ? (
+                    <button
+                      type="button"
+                      className="button button--ghost admin-event-form__alert-action"
+                      onClick={() => navigateToField(warning.field)}
+                    >
+                      {t('admin.eventEditor.goToArea', {
+                        area: t(`admin.eventEditor.changeAreas.${areaOfDraftField(warning.field)}`),
+                      })}
+                    </button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : null}
 
         {(() => {
@@ -1110,7 +1368,10 @@ export default function AdminEventEditor({
                   type="button"
                   variant="outline"
                   className="btn--small"
-                  onClick={() => setConfirmDiscard(false)}
+                  onClick={() => {
+                    setConfirmDiscard(false)
+                    onKeepEditing?.()
+                  }}
                 >
                   {t('admin.eventEditor.keepEditing')}
                 </Button>

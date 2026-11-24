@@ -2,8 +2,12 @@ import { cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
-vi.mock('../src/services/eventAdminService.js', () => ({
+const { fetchPublishedEvents } = vi.hoisted(() => ({
   fetchPublishedEvents: vi.fn(async () => []),
+}))
+
+vi.mock('../src/services/eventAdminService.js', () => ({
+  fetchPublishedEvents,
 }))
 
 const EventsPage = (await import('../src/pages/EventsPage.jsx')).default
@@ -21,7 +25,11 @@ beforeAll(() => {
   })
 })
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  fetchPublishedEvents.mockReset()
+  fetchPublishedEvents.mockResolvedValue([])
+})
 
 const pitbull = {
   slug: 'pitbull-classic-2026',
@@ -69,11 +77,33 @@ describe('deep-link de eventos con datos asincronos', () => {
     })
 
     expect(container.querySelector('.events-detail__spotlight')).toBeNull()
-    expect(container.querySelector('.events-detail__date-hero')).toBeNull()
+    expect(container.querySelector('.events-detail__date-hero')).not.toBeNull()
     expect(container.textContent).not.toMatch(/Creá tu ficha para inscribirte/)
     expect(container.querySelector('.events-detail__athlete-hint')?.textContent).toMatch(
-      /cuenta de atleta/i,
+      /Creá tu ficha y seguí/i,
     )
+  })
+
+  it('muestra el logo del catálogo al abrir la ficha de un evento nuevo', async () => {
+    const logoUrl = 'https://cdn.test/barbell-submission.webp'
+    fetchPublishedEvents.mockResolvedValue([{ ...linkedEvent, logoUrl }])
+
+    const { container } = render(
+      <I18nProvider>
+        <EventsPage
+          initialEventSlug={linkedEvent.slug}
+          events={[pitbull]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+          session={null}
+        />
+      </I18nProvider>,
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('.events-detail__mark img')?.getAttribute('src')).toBe(logoUrl)
+    })
+    expect(container.querySelector('.events-detail__title')?.textContent).toBe(linkedEvent.title)
   })
 
   it('no lista stubs de desarrollo en el catalogo publico', async () => {
@@ -102,9 +132,52 @@ describe('deep-link de eventos con datos asincronos', () => {
       expect(container.querySelector('.events-detail__title')?.textContent).toBe(pitbull.title)
     })
 
-    const titles = [...container.querySelectorAll('.event-card__title')].map((node) => node.textContent)
+    const titles = [...container.querySelectorAll('.event-card__title')].map(
+      (node) => node.textContent,
+    )
     expect(titles).toEqual([pitbull.title])
     expect(container.textContent).not.toMatch(/\btest\b/i)
+  })
+
+  it('muestra FAQ de landing en la ficha meet cuando hay pares completos', async () => {
+    const meetWithFaq = {
+      slug: 'spring-classic-2027',
+      title: 'Spring Classic',
+      dateISO: '2027-03-20',
+      venue: 'PLU',
+      location: 'Banfield',
+      status: 'inscripcion_abierta',
+      featured: false,
+      landing: {
+        templateId: 'meet',
+        slots: {
+          faq1Question: '¿Hay cupo?',
+          faq1Answer: 'Sí, limitado.',
+          faq2Question: 'Sin respuesta',
+        },
+      },
+    }
+
+    const { container } = render(
+      <I18nProvider>
+        <EventsPage
+          initialEventSlug={meetWithFaq.slug}
+          events={[pitbull, meetWithFaq]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+          session={null}
+        />
+      </I18nProvider>,
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('.events-detail__faq')).not.toBeNull()
+    })
+    expect(container.querySelector('.events-detail__faq')?.textContent).toContain('¿Hay cupo?')
+    expect(container.querySelector('.events-detail__faq')?.textContent).toContain('Sí, limitado.')
+    expect(container.querySelector('.events-detail__faq')?.textContent).not.toContain(
+      'Sin respuesta',
+    )
   })
 
   it('muestra pesajes del evento y los oculta si no hay ventanas', async () => {
@@ -125,7 +198,12 @@ describe('deep-link de eventos con datos asincronos', () => {
 
     const emptyRender = render(
       <I18nProvider>
-        <EventsPage events={[pitbull]} onNavigate={vi.fn()} onSelectEvent={vi.fn()} session={null} />
+        <EventsPage
+          events={[pitbull]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+          session={null}
+        />
       </I18nProvider>,
     )
     expect(emptyRender.container.querySelector('.events-detail__weighins')).toBeNull()
@@ -149,5 +227,51 @@ describe('deep-link de eventos con datos asincronos', () => {
     expect(container.querySelector('.events-detail__weighins')?.textContent).toContain(
       '07:00 — 08:30',
     )
+  })
+
+  it('avisa cuando el slug del link no existe, recién con el catálogo ya cargado', async () => {
+    let resolveCatalog
+    fetchPublishedEvents.mockReturnValue(new Promise((resolve) => (resolveCatalog = resolve)))
+
+    render(
+      <I18nProvider>
+        <EventsPage
+          initialEventSlug="no-existe-2026"
+          events={[pitbull]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+          session={null}
+        />
+      </I18nProvider>,
+    )
+
+    // Mientras el catálogo carga no es un error: todavía puede llegar.
+    expect(document.querySelector('.events-page__notice')).toBeNull()
+
+    resolveCatalog([])
+    await waitFor(() => {
+      expect(document.querySelector('.events-page__notice')?.textContent).toMatch(/no-existe-2026/)
+    })
+  })
+
+  it('no avisa cuando el evento del link sí está en el catálogo', async () => {
+    fetchPublishedEvents.mockResolvedValue([linkedEvent])
+
+    render(
+      <I18nProvider>
+        <EventsPage
+          initialEventSlug={linkedEvent.slug}
+          events={[pitbull]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+          session={null}
+        />
+      </I18nProvider>,
+    )
+
+    await waitFor(() => {
+      expect(document.querySelector('.events-detail__title')?.textContent).toBe(linkedEvent.title)
+    })
+    expect(document.querySelector('.events-page__notice')).toBeNull()
   })
 })

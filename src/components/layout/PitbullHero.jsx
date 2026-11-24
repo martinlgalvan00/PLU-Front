@@ -86,6 +86,7 @@ function PitbullHeroPanel({
   registrationFee,
   registrationPhase,
   t,
+  ticketsOpen = false,
   title,
   motion = false,
 }) {
@@ -120,6 +121,12 @@ function PitbullHeroPanel({
   } else if (isComingSoon) {
     primaryLabel = presentation.primaryCtaLabel || t('pages.pitbull.ctaComingSoon')
     primaryDisabled = true
+  } else if (isClosedOrFull && ticketsOpen) {
+    // La inscripción queda dicha en la línea de estado. El botón dorado es
+    // la venta que sí está abierta.
+    primaryLabel = t('pages.pitbull.heroTickets')
+    primaryDisabled = false
+    showJoinSecondary = presentation.showJoinSecondary
   } else if (isClosedOrFull) {
     primaryLabel = presentation.primaryCtaLabel || t('pages.pitbull.ctaClosed')
     primaryDisabled = true
@@ -239,14 +246,19 @@ const PLATE_RISE = {
 }
 
 /** Collage editorial a sangre: 1 dominante + 2 secundarias (desktop). Mobile: solo LCP. */
-function PitbullHeroFrame({ reducedMotion = false }) {
+function PitbullHeroFrame({ reducedMotion = false, heroImageUrl = null }) {
   const Plate = reducedMotion ? 'div' : m.div
   const finePointer = hasFinePointer()
+  const plates = HERO_COLLAGE.map((plate) =>
+    plate.eager && heroImageUrl
+      ? { ...plate, src: heroImageUrl, avif: undefined, webp: undefined }
+      : plate,
+  )
 
   return (
     <div className="pitbull-hero-masthead__frame" aria-hidden>
       <div className="pitbull-hero-masthead__collage">
-        {HERO_COLLAGE.map((plate, index) => (
+        {plates.map((plate, index) => (
           <Plate
             key={plate.id}
             className={`pitbull-hero-masthead__frame-plate ${plate.className}`}
@@ -287,6 +299,8 @@ export default function PitbullHero({
   canRegister,
   /** Bajada editable desde Vista publica. Vacia cae al copy del diseno. */
   lead = '',
+  /** URL pública del hero (slot landing). Vacía = collage por defecto. */
+  heroImageUrl = null,
   onHome,
   onJoin,
   onRegister,
@@ -299,6 +313,7 @@ export default function PitbullHero({
   registerLabel = '',
   registrationFee,
   registrationPhase,
+  ticketsOpen = false,
   title,
 }) {
   const { t } = useI18n()
@@ -317,12 +332,13 @@ export default function PitbullHero({
       registrationFee={registrationFee}
       registrationPhase={registrationPhase}
       t={t}
+      ticketsOpen={ticketsOpen}
       title={title}
       motion={!reducedMotion}
     />
   )
 
-  const frame = <PitbullHeroFrame reducedMotion={reducedMotion} />
+  const frame = <PitbullHeroFrame heroImageUrl={heroImageUrl} reducedMotion={reducedMotion} />
 
   const className =
     'pitbull-hero-masthead pitbull-hero-masthead--bleed' +

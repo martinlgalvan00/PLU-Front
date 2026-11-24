@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
+import { openActionMenus } from './support/openActionMenus.js'
 import MembershipsSection from '../src/pages/admin/MembershipsSection.jsx'
 
 vi.mock('../src/services/platformSettingsAdminService.js', async (importOriginal) => {
@@ -74,6 +75,7 @@ describe('operación de afiliaciones', () => {
   it('pide confirmación y motivo antes de dar de baja, y ejecuta una sola transición', async () => {
     const onSetMembershipStatus = vi.fn(async () => ({ membership: membership({ status: 'cancelada' }) }))
     renderSection([membership()], { onSetMembershipStatus })
+    openActionMenus()
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Corregir estado' })[0])
     expect(screen.getByRole('dialog')).toBeTruthy()
@@ -139,6 +141,7 @@ describe('operación de afiliaciones', () => {
       throw new Error('Servicio temporalmente no disponible')
     })
     renderSection([membership()], { onSetMembershipStatus })
+    openActionMenus()
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Corregir estado' })[0])
     fillReason()

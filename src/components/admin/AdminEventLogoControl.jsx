@@ -1,18 +1,20 @@
-import { useRef, useState } from 'react'
-import { Camera, ImagePlus, Trash2 } from 'lucide-react'
+import { Camera, Eraser, ImagePlus, Trash2 } from 'lucide-react'
 import AdminEventMark from './AdminEventMark.jsx'
-import useEventLogoUpload, { firstImageFile } from '../../hooks/useEventLogoUpload.js'
+import useEventLogoUpload from '../../hooks/useEventLogoUpload.js'
+import useImageDrop from '../../hooks/useImageDrop.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import '../../styles/pages/admin-event-logo.css'
 
 /**
  * Carga del logo / foto del evento. Tres formas de subir, todas con el mismo
  * resultado inmediato (sin pasar por "Guardar"): elegir archivo, arrastrar y
- * soltar, o pegar desde el portapapeles.
+ * soltar, o pegar desde el portapapeles. Un logo sobre fondo liso se sube ya
+ * sin fondo (con "Restaurar fondo" en el aviso); sobre un logo ya subido, la
+ * acción «Quitar fondo» aparece solo si tiene un fondo que quitar.
  *
  * variant:
  *  - `mark`: el logo de la cabecera de la ficha; al tocarlo abre el selector.
- *  - `field`: bloque propio dentro de Datos, con la ayuda y "Quitar".
+ *  - `field`: bloque propio dentro de Datos, con la ayuda y "Eliminar".
  */
 export default function AdminEventLogoControl({
   canEdit = false,
@@ -21,10 +23,13 @@ export default function AdminEventLogoControl({
   variant = 'field',
 }) {
   const { t } = useI18n()
-  const { busy, upload, remove } = useEventLogoUpload({ event, onSetEventLogo })
-  const inputRef = useRef(null)
-  const [dragging, setDragging] = useState(false)
+  const { busy, canRemoveBackground, remove, removeBackgroundOfCurrent, upload } =
+    useEventLogoUpload({ event, onSetEventLogo })
   const editable = canEdit && Boolean(onSetEventLogo)
+  const { dragging, dropProps, inputProps, inputRef, openPicker } = useImageDrop({
+    disabled: !editable || busy,
+    onFile: (file) => void upload(file),
+  })
 
   if (!editable) {
     return variant === 'mark' ? (
@@ -32,56 +37,7 @@ export default function AdminEventLogoControl({
     ) : null
   }
 
-  function openPicker() {
-    inputRef.current?.click()
-  }
-
-  function handleFile(file) {
-    if (file) void upload(file)
-  }
-
-  const hasFiles = (dragEvent) => [...(dragEvent.dataTransfer?.types ?? [])].includes('Files')
-
-  const dropProps = {
-    onDragEnter: (dragEvent) => {
-      if (!hasFiles(dragEvent)) return
-      dragEvent.preventDefault()
-      setDragging(true)
-    },
-    onDragOver: (dragEvent) => {
-      if (hasFiles(dragEvent)) dragEvent.preventDefault()
-    },
-    onDragLeave: (dragEvent) => {
-      if (!dragEvent.currentTarget.contains(dragEvent.relatedTarget)) setDragging(false)
-    },
-    onDrop: (dragEvent) => {
-      dragEvent.preventDefault()
-      setDragging(false)
-      handleFile(firstImageFile(dragEvent.dataTransfer))
-    },
-    onPaste: (pasteEvent) => {
-      const file = firstImageFile(pasteEvent.clipboardData)
-      if (!file) return
-      pasteEvent.preventDefault()
-      handleFile(file)
-    },
-  }
-
-  const input = (
-    <input
-      ref={inputRef}
-      type="file"
-      accept="image/jpeg,image/png,image/webp"
-      className="visually-hidden"
-      tabIndex={-1}
-      aria-hidden="true"
-      onChange={(changeEvent) => {
-        handleFile(changeEvent.target.files?.[0] ?? null)
-        changeEvent.target.value = ''
-      }}
-    />
-  )
-
+  const input = <input ref={inputRef} {...inputProps} />
   const stateClass = `${dragging ? ' is-dragging' : ''}${busy ? ' is-busy' : ''}`
 
   if (variant === 'mark') {
@@ -138,6 +94,16 @@ export default function AdminEventLogoControl({
                 ? t('admin.eventLogo.change')
                 : t('admin.eventLogo.add')}
           </button>
+          {canRemoveBackground && !busy ? (
+            <button
+              type="button"
+              className="admin-event-logo__action"
+              onClick={() => void removeBackgroundOfCurrent()}
+            >
+              <Eraser size={15} aria-hidden />
+              {t('admin.eventLogo.removeBackground')}
+            </button>
+          ) : null}
           {event.logoUrl && !busy ? (
             <button
               type="button"

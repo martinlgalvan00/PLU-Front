@@ -29,7 +29,12 @@ import {
   clearAdminEventRoute,
   shouldClearAdminEventWorkspace,
 } from '../lib/adminEventRoute.js'
-import { hasAnyPermission, hasPermission } from '../lib/permissions.js'
+import { hasAnyPermission, hasPermission, isEventScopedSession } from '../lib/permissions.js'
+import {
+  canEnableTicketOrders,
+  canManageEventTeam,
+  canOverrideCheckIn,
+} from '../lib/roles.js'
 import { findUnreconciledApprovedPayments } from '../services/paymentReconciliationService.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
@@ -94,6 +99,8 @@ export default function AdminPage({
   onNotifyRegistrations,
   onPreviewRegistrationNotification,
   onApproveTicketPurchase,
+  onReopenTicketOrder,
+  onSettleTicketOrder,
   onRejectTicketOrder,
   onCreateManualTicketOrder,
   onRefreshPendingTicketOrders,
@@ -150,13 +157,17 @@ export default function AdminPage({
   onCreateRole,
   onExportAdmin,
   onExportPluUsa,
+  onExportLifters,
+  onFetchLiftersReadiness,
   onSaveEvent,
   onScheduleAssigned,
   onSetEventState,
   onSetEventLogo,
   onSetFilters,
   onUpdateUserRole,
+  onBulkUpdateUserRole,
   onUpdateUserStatus,
+  onSetUserEventAccess,
   onUpdateRolePermissions,
   onUpdateRoleStatus,
   permissionCatalog,
@@ -184,6 +195,7 @@ export default function AdminPage({
   onRequestEmailChange,
   onResetStaffPassword,
   onExit,
+  onReauthenticate,
 }) {
   const { t } = useI18n()
   const [accountOpen, setAccountOpen] = useState(false)
@@ -204,6 +216,8 @@ export default function AdminPage({
   const [peopleTab, setPeopleTab] = useState('athletes')
   const [paymentEventScope, setPaymentEventScope] = useState('')
   const [paymentFocusId, setPaymentFocusId] = useState(null)
+  // Rol con el que se abre Usuarios cuando se llega desde «Ver usuarios» en Roles.
+  const [usersRoleFilter, setUsersRoleFilter] = useState(null)
   // Evento cuya puerta se está operando. Se fija al entrar desde la consola de
   // Eventos; sin eso, el primero que todavía no terminó.
   const [checkinEventSlug, setCheckinEventSlug] = useState(null)
@@ -301,6 +315,9 @@ export default function AdminPage({
     leaveEventWorkspaceIfNeeded(targetSection)
     if (isPeopleTab) setPeopleTab(nextSection)
     if (nextSection === 'payments') setPaymentEventScope('')
+    // Entrar a Usuarios por el menú los muestra a todos; sólo el atajo de Roles filtra
+    // (y ese no pasa por acá).
+    setUsersRoleFilter(null)
     setPaymentFocusId(nextSection === 'payments' ? focusId : null)
     setSection(targetSection)
     if (targetSection !== 'people') {
@@ -322,7 +339,7 @@ export default function AdminPage({
     if (!allowedSections.includes('registrations')) return
     onSetFilters((current) => ({
       ...current,
-      event: event.title,
+      event: event.slug || event.title,
       query: '',
       status: 'all',
     }))
@@ -334,7 +351,7 @@ export default function AdminPage({
   function handleManageEventPayments(event) {
     if (!allowedSections.includes('payments')) return
     leaveEventWorkspaceIfNeeded('payments')
-    setPaymentEventScope(event.title)
+    setPaymentEventScope(event.slug || event.title || '')
     setSection('payments')
   }
 
@@ -383,9 +400,16 @@ export default function AdminPage({
       if (selectedAthleteId) {
         return (
           <AthleteDetailSection
+            accessRoles={accessRoles}
             detail={getAthleteDetail(selectedAthleteId)}
             onBack={() => setSelectedAthleteId(null)}
             canEdit={hasPermission(authorization, 'admin.athletes.write')}
+            canGrantAccess={Boolean(canManageUsers)}
+            onCreateUser={onCreateUser}
+            onOpenUsers={
+              allowedSections.includes('users') ? () => handleSectionChange('users') : undefined
+            }
+            users={users}
             canRotateCredential={hasPermission(authorization, 'admin.memberships.write')}
             canDelete={canDeleteAthletes && Boolean(onDeleteAthlete)}
             // Acreditar no es editar la ficha: la validación tiene su propio
@@ -480,6 +504,9 @@ export default function AdminPage({
               onSetPublicVisibility={onSetRegistrationPublicVisibility}
               onExportAdmin={onExportAdmin}
               onExportPluUsa={onExportPluUsa}
+              onExportLifters={onExportLifters}
+              onFetchLiftersReadiness={onFetchLiftersReadiness}
+              onNotifyAthletesIncomplete={onNotifyAthletesIncomplete}
               onGoToEvents={() => setSection('events')}
               onRefreshAthleteData={onRefreshAthleteData}
               onScheduleAssigned={onScheduleAssigned}
@@ -496,6 +523,7 @@ export default function AdminPage({
         <ScheduleBoardSection
           adminEvents={adminEvents}
           canEdit={hasPermission(authorization, 'admin.registrations.write')}
+          canEditStructure={hasPermission(authorization, 'admin.events.write')}
           onGoToEvents={() => setSection('events')}
         />
       )
@@ -505,16 +533,26 @@ export default function AdminPage({
       return (
         <EventsSection
           adminEvents={adminEvents}
+          onRefreshAthleteData={onRefreshAthleteData}
           adminEventWorkspaceSlug={adminEventWorkspaceSlug}
           athletes={athletes}
           isLoading={adminEventsLoading}
           loadError={adminEventsError}
           canEdit={hasPermission(authorization, 'admin.events.write')}
+          canReadResults={hasPermission(authorization, 'admin.results.read')}
+          canWriteResults={hasPermission(authorization, 'admin.results.write')}
           canManageUsers={canManageUsers}
+          canManageEventTeam={canManageEventTeam(authorization)}
+          eventScoped={isEventScopedSession(authorization)}
           canViewScanReport={canViewScanReport}
           canValidatePayments={hasPermission(authorization, 'admin.payments.approve')}
+          canSetRegistrationStatus={hasPermission(authorization, 'admin.registrations.write')}
+          users={users}
+          onCreateUser={onCreateUser}
+          onSetEventAccess={onSetUserEventAccess}
           onApprovePayment={onApprovePayment}
           onApproveTicketOrder={onApproveTicketPurchase}
+          onSetRegistrationStatus={onSetRegistrationStatus}
           onCreateSecurityUser={onCreateSecurityUser}
           onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
           onCreateSecurityAccessLink={onCreateSecurityAccessLink}
@@ -547,11 +585,15 @@ export default function AdminPage({
           onFetchDeleteImpact={onFetchEventDeleteImpact}
           onSetEventRegistrationPrice={onSetEventRegistrationPrice}
           onClearEventPriceSchedule={onClearEventPriceSchedule}
-          onSetEventState={onSetEventState}
+          // Publicar, ocultar y abrir/cerrar inscripciones no son del organizador: sin esta
+          // acción desaparecen la barra de estado, el control de Datos y la selección en lote.
+          onSetEventState={isEventScopedSession(authorization) ? undefined : onSetEventState}
           onSetEventLogo={onSetEventLogo}
           onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
+          gatePendingIds={gatePendingIds}
           payments={payments}
           pendingTicketOrders={pendingTicketOrders}
+          registrations={registrations}
           tickets={tickets}
         />
       )
@@ -560,19 +602,28 @@ export default function AdminPage({
     if (section === 'users') {
       return (
         <UsersSection
+          key={usersRoleFilter ?? 'all'}
           accessRoles={accessRoles}
           adminEvents={adminEvents}
+          athletes={athletes}
           canDeleteUsers={canDeleteUsers}
           canManageUsers={canManageUsers}
+          initialRoleFilter={usersRoleFilter}
+          onBulkUpdateRole={onBulkUpdateUserRole}
           onCreateSecurityUser={onCreateSecurityUser}
           onCreateUser={onCreateUser}
           onDeleteUser={onDeleteUser}
           onNavigateRoles={
             allowedSections.includes('roles') ? () => setSection('roles') : undefined
           }
+          onOpenAthlete={
+            allowedSections.includes('athletes') ? handleSelectAthlete : undefined
+          }
           onResetPassword={onResetStaffPassword}
           onUpdateRole={onUpdateUserRole}
           onUpdateStatus={onUpdateUserStatus}
+          onSetEventAccess={onSetUserEventAccess}
+          permissionCatalog={permissionCatalog}
           users={users}
         />
       )
@@ -586,6 +637,14 @@ export default function AdminPage({
           onCreateRole={onCreateRole}
           onUpdatePermissions={onUpdateRolePermissions}
           onUpdateStatus={onUpdateRoleStatus}
+          onViewUsers={
+            allowedSections.includes('users')
+              ? (roleKey) => {
+                  setUsersRoleFilter(roleKey)
+                  setSection('users')
+                }
+              : undefined
+          }
           permissionCatalog={permissionCatalog}
           roles={accessRoles}
         />
@@ -606,6 +665,8 @@ export default function AdminPage({
           onForceSettlePayment={onForceSettlePayment}
           onRejectPayment={onRejectPayment}
           onApproveTicketOrder={onApproveTicketPurchase}
+          onReopenTicketOrder={onReopenTicketOrder}
+          onSettleTicketOrder={onSettleTicketOrder}
           onRejectTicketOrder={onRejectTicketOrder}
           onCreateManualTicketOrder={onCreateManualTicketOrder}
           onRefresh={onRefreshPendingTicketOrders}
@@ -656,6 +717,8 @@ export default function AdminPage({
           onSave={onSaveRegistrationAccessGate}
           onDelete={onDeleteRegistrationAccessGate}
           onToggleSaved={onRefreshCheckoutAvailability}
+          canReadPaymentAccounts={hasPermission(authorization, 'admin.events.read')}
+          canEditPaymentAccounts={hasPermission(authorization, 'admin.events.write')}
         />
       )
     }
@@ -712,19 +775,24 @@ export default function AdminPage({
         <CheckInSection
           athletes={athletes}
           canCheckIn={canCheckIn}
-          // Mismo permiso que Finanzas: la puerta no gana la facultad de
-          // acreditar por estar operando el evento.
+          canEnableTickets={canEnableTicketOrders(authorization)}
+          canForceCheckIn={canOverrideCheckIn(authorization)}
+          // Acreditar una orden de atleta sigue siendo de Finanzas. Las
+          // entradas del evento usan canEnableTickets, más arriba.
           canValidatePayments={hasPermission(authorization, 'admin.payments.approve')}
           eventDays={checkinEvent?.eventDays ?? []}
           eventSlug={checkinEvent?.slug ?? undefined}
           eventTitle={checkinEvent?.title ?? null}
           memberships={enrichedMemberships}
           onApprovePayment={onApprovePayment}
+          onApproveTicketOrder={onApproveTicketPurchase}
           onCheckInRegistration={onCheckInRegistration}
           onCheckInTicket={onCheckInTicket}
+          onReauthenticate={onReauthenticate}
           onRedeemTicketAddon={onRedeemTicketAddon}
           onRefreshTickets={onRefreshTickets}
           onRejectPayment={onRejectPayment}
+          onRejectTicketOrder={onRejectTicketOrder}
           payments={payments}
           registrations={registrations}
           ticketTypes={checkinEvent?.ticketTypes ?? []}

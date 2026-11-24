@@ -155,11 +155,18 @@ export async function fillRequiredProfileFields(page) {
   await page.locator('#account-contact-fields input[name="phone"]').fill('1155559999')
   await page.locator('#account-contact-fields input[name="city"]').fill('CABA')
   await page.locator('#account-contact-fields input[name="province"]').fill('Buenos Aires')
+  // La planilla oficial pide también dirección y contacto de emergencia.
+  await page.locator('#account-contact-fields input[name="streetAddress"]').fill('Av. Siempreviva 742')
+  await page.locator('#account-contact-fields input[name="postalCode"]').fill('1405')
 
+  // La división sale de la edad: el perfil ya no la pide.
   await openGroup('account-competition-fields')
-  await page.locator('#account-competition-fields select[name="division"]').selectOption('Open')
   await page.locator('#account-competition-fields select[name="category"]').selectOption('Raw')
   await page.locator('#account-competition-fields input[name="estimatedWeight"]').fill('93')
+
+  await openGroup('account-emergency-fields')
+  await page.locator('#account-emergency-fields input[name="emergencyContactName"]').fill('Contacto E2E')
+  await page.locator('#account-emergency-fields input[name="emergencyContactPhone"]').fill('1155550000')
 
   await openGroup('account-sports-fields')
   await page.locator('#account-sports-fields input[name="gym"]').fill('PLU Test Team')

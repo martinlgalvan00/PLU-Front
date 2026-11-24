@@ -59,7 +59,9 @@ describe('GET /api/payment-profiles — modo cuenta única (sin PAYMENT_PROFILE_
       // no puede degradar a cuenta global de forma silenciosa.
       expect(response.status).toBe(200)
       const body = await response.json()
-      expect(body).toEqual({ profiles: [], secretsKeyConfigured: false })
+      expect(body).toMatchObject({ profiles: [], secretsKeyConfigured: false })
+      // Sin credenciales de la app de MP la vinculación OAuth no se ofrece.
+      expect(body.mercadoPagoOAuth).toMatchObject({ available: false })
     } finally {
       await target.close()
     }

@@ -44,7 +44,7 @@ export const ReceivedNotice = {
     const canvas = within(canvasElement)
     await expect(canvas.getByText('Datos pendientes')).toBeTruthy()
     await expect(
-      canvas.getByText(/Para inscribirte a un evento oficial faltan: Teléfono, Ciudad, Gimnasio o equipo/),
+      canvas.getByText(/Para competir y armar la planilla oficial faltan: Teléfono, Ciudad, Gimnasio o equipo/),
     ).toBeTruthy()
     await expect(
       canvas.getByText('Completá teléfono, ciudad y gimnasio para poder inscribirte.'),

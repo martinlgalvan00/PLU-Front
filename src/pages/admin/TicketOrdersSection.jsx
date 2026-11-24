@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { BadgeCheck, Ban, Paperclip, Plus, RotateCcw, Ticket } from 'lucide-react'
+import { BadgeCheck, Ban, Eye, Paperclip, Plus, RotateCcw, Ticket } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminEmptyState from '../../components/admin/AdminEmptyState.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
@@ -14,6 +14,7 @@ import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { AdminTableActions, AdminTableActionsEmpty } from '../../components/admin/AdminTableCells.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
+import TicketReopenDialog from '../../components/admin/TicketReopenDialog.jsx'
 import ManualTicketSaleDialog from '../../components/admin/ManualTicketSaleDialog.jsx'
 import TicketOrderLifecycleDialog from '../../components/admin/TicketOrderLifecycleDialog.jsx'
 import {
@@ -21,11 +22,10 @@ import {
   listTicketOrders,
   reinstateTicketOrder,
 } from '../../services/ticketApi.js'
+import { trashOrderProof } from '../../services/paymentProofsAdminService.js'
+import { PROOF_TRASHABLE_STATUSES } from '../../services/paymentValidationService.js'
 
 const OPEN_TICKET_STATUSES = ['creado', 'pendiente']
-// Lo que se puede volver a aceptar. `reembolsado` queda afuera: la plata ya
-// se devolvió por Mercado Pago, y MP nunca pasa por estas acciones.
-const REINSTATABLE_STATUSES = ['rechazado', 'cancelado']
 
 const STATUS_FILTERS = [
   ['pending', 'admin.ticketOrders.filterPending'],
@@ -60,7 +60,11 @@ function formatUploadedAt(value, locale) {
   })
 }
 
-function formatTicketAttendees(order, t) {
+function attendeeVisibleName(line) {
+  return String(line ?? '').replace(/\s+\([^)]*\)\s*$/, '').trim()
+}
+
+function ticketAttendeeLines(order, t) {
   const seen = new Set()
   const people = []
   for (const item of order.attendees ?? []) {
@@ -72,8 +76,39 @@ function formatTicketAttendees(order, t) {
     seen.add(key)
     people.push(dni ? `${name} (${dni})` : name)
   }
-  if (people.length) return people.join(' · ')
-  return order.buyerName || t('admin.ticketOrders.unknownBuyer')
+  if (people.length) return people
+  const buyer = String(order.buyerName ?? '').trim()
+  return [buyer || t('admin.ticketOrders.unknownBuyer')]
+}
+
+function isOpenManualTicketOrder(row) {
+  return row.provider === 'manual' && row.status === 'pendiente'
+}
+
+function canReopenCancelledTicketOrder(row) {
+  return (
+    row.provider === 'manual' &&
+    row.status === 'cancelado' &&
+    Boolean(row.paymentProofPath) &&
+    !row.rejectedAt &&
+    // La canceló una persona (no el vencimiento): no es una retenida con
+    // comprobante, se recupera con "volver a aceptar".
+    !row.cancelledAt
+  )
+}
+
+/**
+ * Volver a aceptar lo que cerró una persona: un rechazo hecho por error o una
+ * cancelación del staff. Lo que venció el cron con comprobante va por Acreditar.
+ */
+function canReinstateTicketOrder(row) {
+  if (row.provider !== 'manual') return false
+  if (row.status === 'rechazado') return true
+  return row.status === 'cancelado' && Boolean(row.cancelledAt)
+}
+
+function ticketNeedsProofOverride(row) {
+  return isOpenManualTicketOrder(row) && !row.cashAtPitbull && !row.paymentProofPath
 }
 
 function channelLabel(order, t) {
@@ -93,10 +128,14 @@ function channelLabel(order, t) {
 export default function TicketOrdersSection({
   canEdit,
   initialQuery = '',
+  /** Filtro duro por slug de evento (desde workspace / deep link). */
+  eventSlugFilter = '',
   pendingTicketOrders = [],
   loadError: pendingError = null,
   events = [],
   onApproveTicketOrder,
+  onReopenTicketOrder,
+  onSettleTicketOrder,
   onRejectTicketOrder,
   onCreateManualTicketOrder,
   onRefresh,
@@ -105,6 +144,7 @@ export default function TicketOrdersSection({
   const [orders, setOrders] = useState(pendingTicketOrders)
   const [status, setStatus] = useState('pending')
   const [channel, setChannel] = useState('all')
+  const [eventSlug, setEventSlug] = useState(eventSlugFilter || 'all')
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(pendingError)
   const [serverCounts, setServerCounts] = useState(null)
@@ -112,6 +152,7 @@ export default function TicketOrdersSection({
   const [actionError, setActionError] = useState(null)
   const [query, setQuery] = useState(initialQuery)
   const [reviewRow, setReviewRow] = useState(null)
+  const [reopenRow, setReopenRow] = useState(null)
   const [manualSaleOpen, setManualSaleOpen] = useState(false)
   const [manualSaleBusy, setManualSaleBusy] = useState(false)
   const [manualSaleError, setManualSaleError] = useState('')
@@ -122,28 +163,47 @@ export default function TicketOrdersSection({
   const loadedRef = useRef(false)
   const statusTouchedRef = useRef(false)
   const loadGenerationRef = useRef(0)
+  const countsReadyRef = useRef(false)
+  const countsEventRef = useRef(null)
 
   useEffect(() => {
     setQuery(initialQuery)
   }, [initialQuery])
 
+  useEffect(() => {
+    setEventSlug(eventSlugFilter || 'all')
+  }, [eventSlugFilter])
+
   const load = useCallback(
-    async (statusFilterKey, channelFilterKey = 'all') => {
+    async (statusFilterKey, channelFilterKey = 'all', eventSlugKey = 'all', { refreshCounts = false } = {}) => {
       const generation = ++loadGenerationRef.current
       if (!loadedRef.current) setLoading(true)
       setLoadError(null)
+      const needsCounts =
+        refreshCounts || !countsReadyRef.current || countsEventRef.current !== eventSlugKey
       try {
         const result = await listTicketOrders({
           limit: 200,
-          statuses: DB_STATUSES_BY_FILTER[statusFilterKey] ?? undefined,
+          statuses:
+            statusFilterKey === 'pending'
+              ? undefined
+              : (DB_STATUSES_BY_FILTER[statusFilterKey] ?? undefined),
           channel: channelFilterKey === 'all' ? undefined : channelFilterKey,
+          eventSlug:
+            eventSlugKey && eventSlugKey !== 'all' ? eventSlugKey : undefined,
           sort: statusFilterKey === 'pending' ? 'aging' : 'recent',
-          withCounts: true,
+          includeHeldProof: statusFilterKey === 'pending',
+          excludeHeldProof: statusFilterKey === 'cancelado',
+          withCounts: needsCounts,
         })
         if (generation !== loadGenerationRef.current) return
         loadedRef.current = true
         setOrders(result.orders)
-        if (result.counts) setServerCounts(result.counts)
+        if (result.counts) {
+          countsReadyRef.current = true
+          countsEventRef.current = eventSlugKey
+          setServerCounts(result.counts)
+        }
       } catch (error) {
         if (generation !== loadGenerationRef.current) return
         setLoadError(error?.message ?? t('admin.ticketOrders.loadError'))
@@ -155,13 +215,14 @@ export default function TicketOrdersSection({
   )
 
   useEffect(() => {
-    void load(status, channel)
-  }, [channel, load, status])
+    void load(status, channel, eventSlug)
+  }, [channel, eventSlug, load, status])
 
   useEffect(() => {
     if (statusTouchedRef.current || !serverCounts) return
     if (status !== 'pending') return
-    if ((serverCounts.pending ?? 0) > 0) return
+    const queueSize = (serverCounts.pending ?? 0) + (serverCounts.heldProof ?? 0)
+    if (queueSize > 0) return
     if ((serverCounts.all ?? 0) === 0) return
     setLoading(true)
     setStatus('all')
@@ -171,6 +232,8 @@ export default function TicketOrdersSection({
   statusRef.current = status
   const channelRef = useRef(channel)
   channelRef.current = channel
+  const eventSlugRef = useRef(eventSlug)
+  eventSlugRef.current = eventSlug
 
   function handleStatusChange(next) {
     statusTouchedRef.current = true
@@ -179,7 +242,7 @@ export default function TicketOrdersSection({
 
   const refreshList = useCallback(async () => {
     await Promise.all([
-      load(statusRef.current, channelRef.current),
+      load(statusRef.current, channelRef.current, eventSlugRef.current, { refreshCounts: true }),
       onRefresh?.() ?? Promise.resolve(),
     ])
   }, [load, onRefresh])
@@ -193,26 +256,63 @@ export default function TicketOrdersSection({
   })
 
   const counts = useMemo(() => {
-    if (serverCounts) return serverCounts
-    const open = orders.filter((order) => OPEN_TICKET_STATUSES.includes(order.status))
-    return {
-      pending: open.length,
+    const heldOnPage = orders.filter(
+      (order) =>
+        order.provider === 'manual' &&
+        order.status === 'cancelado' &&
+        order.paymentProofPath &&
+        !order.rejectedAt,
+    ).length
+    const base = serverCounts ?? {
+      pending: orders.filter((order) => OPEN_TICKET_STATUSES.includes(order.status)).length,
+      heldProof: heldOnPage,
       aprobado: orders.filter((order) => order.status === 'aprobado').length,
       rechazado: orders.filter((order) => order.status === 'rechazado').length,
-      cancelado: orders.filter((order) => order.status === 'cancelado').length,
+      cancelado: orders.filter(
+        (order) =>
+          order.status === 'cancelado' &&
+          !(order.provider === 'manual' && order.paymentProofPath && !order.rejectedAt),
+      ).length,
       all: orders.length,
     }
+    const heldProof = base.heldProof ?? 0
+    return {
+      ...base,
+      heldProof,
+      queue: (base.pending ?? 0) + heldProof,
+    }
   }, [orders, serverCounts])
+
+  const eventFilterOptions = useMemo(() => {
+    const fromCatalog = (events ?? [])
+      .filter((event) => event?.slug)
+      .map((event) => [event.slug, event.title || event.slug])
+    if (fromCatalog.length > 0) {
+      return [['all', t('admin.filters.allEvents')], ...fromCatalog]
+    }
+    const seen = new Map()
+    for (const order of orders) {
+      const slug = String(order.eventSlug ?? '').trim()
+      if (!slug || seen.has(slug)) continue
+      seen.set(slug, order.eventTitle || slug)
+    }
+    return [
+      ['all', t('admin.filters.allEvents')],
+      ...[...seen.entries()].map(([slug, title]) => [slug, title]),
+    ]
+  }, [events, orders, t])
 
   const allRows = useMemo(
     () =>
       orders.map((order) => {
-        const attendees = formatTicketAttendees(order, t)
+        const attendeeLines = ticketAttendeeLines(order, t)
         return {
           id: order.orderId,
           reference: order.reference,
           event: order.eventTitle,
-          attendees,
+          eventSlug: order.eventSlug ?? null,
+          attendees: attendeeLines.join(' · '),
+          attendeeLines,
           buyerEmail: order.buyerEmail,
           ticketCount: order.ticketCount,
           amount: money(order.amount, locale, order.currency),
@@ -230,10 +330,13 @@ export default function TicketOrdersSection({
                 : t('admin.ticketOrders.proofMissing'),
           proofUploadedAt: formatUploadedAt(order.paymentProofUploadedAt, locale),
           status: order.status,
+          rejectedAt: order.rejectedAt ?? null,
           paymentProofPath: order.paymentProofPath,
-          isManual: order.provider === 'manual',
           rejectionReason: order.rejectionReason ?? null,
           cancellationReason: order.cancellationReason ?? null,
+          // Cancelada por una persona (no por el vencimiento): decide entre
+          // "Acreditar" (cron) y "Volver a aceptar" (staff).
+          cancelledAt: order.cancelledAt ?? null,
           cancelledFromStatus: order.cancelledFromStatus ?? null,
         }
       }),
@@ -241,26 +344,87 @@ export default function TicketOrdersSection({
   )
 
   const rows = useMemo(() => {
+    const scoped =
+      !eventSlug || eventSlug === 'all'
+        ? allRows
+        : allRows.filter(
+            (row) =>
+              row.eventSlug === eventSlug ||
+              (!row.eventSlug && row.event && row.event === eventSlug),
+          )
     const normalized = query.trim().toLowerCase()
-    if (!normalized) return allRows
-    return allRows.filter((row) =>
+    if (!normalized) return scoped
+    return scoped.filter((row) =>
       [row.reference, row.event, row.attendees, row.buyerEmail].some((field) =>
         field?.toLowerCase().includes(normalized),
       ),
     )
-  }, [allRows, query])
+  }, [allRows, eventSlug, query])
 
-  async function handleApprove(orderId) {
+  async function handleApprove(orderId, { overrideReason } = {}) {
     if (!canEdit) return
     setApprovingId(orderId)
     setActionError(null)
     try {
-      await onApproveTicketOrder?.(orderId)
+      await onApproveTicketOrder?.(orderId, { overrideReason })
       await refreshList()
       notifySuccess(t('admin.toasts.ticketApproved'))
       return true
     } catch (error) {
       console.error('approve ticket order:', error)
+      const message = error.message ?? t('admin.ticketOrders.approveErrorFallback')
+      setActionError(message)
+      notifyError(message)
+      return false
+    } finally {
+      setApprovingId(null)
+    }
+  }
+
+  async function handleReopen(orderId, reason) {
+    if (!canEdit || !onReopenTicketOrder) return false
+    setApprovingId(orderId)
+    setActionError(null)
+    try {
+      const result = await onReopenTicketOrder(orderId, reason)
+      if (result?.error) {
+        setActionError(result.error)
+        notifyError(result.error)
+        return false
+      }
+      await refreshList()
+      notifySuccess(t('admin.toasts.ticketReopened'))
+      return true
+    } catch (error) {
+      console.error('reopen ticket order:', error)
+      const message = error.message ?? t('admin.ticketOrders.approveErrorFallback')
+      setActionError(message)
+      notifyError(message)
+      return false
+    } finally {
+      setApprovingId(null)
+    }
+  }
+
+  async function handleSettle(orderId, reason) {
+    if (!canEdit || !onSettleTicketOrder) return false
+    setApprovingId(orderId)
+    setActionError(null)
+    try {
+      const result = await onSettleTicketOrder(orderId, reason)
+      if (result?.error) {
+        setActionError(result.error)
+        notifyError(result.error)
+        return false
+      }
+      await refreshList()
+      const mailFailed = result?.mail === 'failed' || result?.mail === 'suppressed'
+      notifySuccess(
+        t(mailFailed ? 'admin.toasts.ticketSettledMailFailed' : 'admin.toasts.ticketSettled'),
+      )
+      return true
+    } catch (error) {
+      console.error('settle ticket order:', error)
       const message = error.message ?? t('admin.ticketOrders.approveErrorFallback')
       setActionError(message)
       notifyError(message)
@@ -360,7 +524,10 @@ export default function TicketOrdersSection({
   }
 
   const narrowingFilters =
-    channel !== 'all' || Boolean(query.trim()) || (status !== 'pending' && status !== 'all')
+    channel !== 'all' ||
+    (eventSlug !== 'all' && Boolean(eventSlug)) ||
+    Boolean(query.trim()) ||
+    (status !== 'pending' && status !== 'all')
   const openingCatalog =
     !statusTouchedRef.current &&
     status === 'pending' &&
@@ -393,6 +560,7 @@ export default function TicketOrdersSection({
             statusTouchedRef.current = true
             setStatus('all')
             setChannel('all')
+            setEventSlug('all')
           }}
         />
       )
@@ -436,39 +604,68 @@ export default function TicketOrdersSection({
       hasProof: Boolean(row.paymentProofPath),
       paymentProofPath: row.paymentProofPath ?? null,
       subject: row.attendees,
+      subjects: row.attendeeLines,
+      method: row.channel || null,
       detail: `${row.event} · ${row.reference}`,
       meta: row.amount,
+      // Transferencia o Wise abierta sin archivo: el diálogo pide el motivo
+      // y la RPC lo vuelve a exigir. Efectivo y Mercado Pago no usan este camino.
+      requiresProofOverride: mode === 'validate' && ticketNeedsProofOverride(row),
+      // Sólo una orden ya resuelta puede dar de baja su comprobante.
+      canTrashProof: canEdit && PROOF_TRASHABLE_STATUSES.includes(row.status),
     })
+  }
+
+  async function trashProof(row) {
+    await trashOrderProof({ source: 'ticket', orderId: row.orderId })
+    setReviewRow(null)
+    await refreshList()
+    notifySuccess(t('admin.toasts.proofTrashed'))
   }
 
   function renderTicketRowActions(row, { compact = false } = {}) {
     const approving = approvingId === row.id
-    const isOpen = OPEN_TICKET_STATUSES.includes(row.status)
-    const canCancel = row.isManual && (isOpen || row.status === 'aprobado')
-    const canReinstate = row.isManual && REINSTATABLE_STATUSES.includes(row.status)
-    if (!canEdit || (!isOpen && !canCancel && !canReinstate)) {
+    // Un camino por caso: Validar la abierta, Acreditar la que venció el cron
+    // con comprobante, Volver a aceptar lo que cerró una persona, Cancelar lo
+    // abierto o acreditado. Mercado Pago no pasa por ninguna (webhook).
+    const validate = canEdit && isOpenManualTicketOrder(row)
+    const settle = canEdit && canReopenCancelledTicketOrder(row)
+    const reinstate = canEdit && canReinstateTicketOrder(row)
+    const cancel =
+      canEdit &&
+      row.provider === 'manual' &&
+      (OPEN_TICKET_STATUSES.includes(row.status) || row.status === 'aprobado')
+    const viewProof = Boolean(row.paymentProofPath) && !validate
+    if (!validate && !settle && !reinstate && !cancel && !viewProof) {
       return compact ? null : <AdminTableActionsEmpty />
     }
 
     return (
       <AdminTableActions>
-        {isOpen ? (
-          !row.paymentProofPath && !row.cashAtPitbull ? (
-            <span className="status-pill status-pill--warning">
-              {t('admin.ticketOrders.proofMissing')}
-            </span>
-          ) : (
-            <AdminIconButton
-              disabled={approving}
-              icon={BadgeCheck}
-              spinning={approving}
-              label={t('admin.actions.validate')}
-              onClick={() => openProof(row)}
-              variant="celeste"
-            />
-          )
+        {validate ? (
+          <AdminIconButton
+            disabled={approving}
+            icon={BadgeCheck}
+            spinning={approving}
+            label={t('admin.actions.validate')}
+            onClick={() => openProof(row)}
+            variant="celeste"
+          />
         ) : null}
-        {canReinstate ? (
+        {settle ? (
+          <AdminIconButton
+            disabled={approving}
+            icon={BadgeCheck}
+            spinning={approving}
+            label={t('admin.ticketOrders.settle')}
+            onClick={() => {
+              setActionError(null)
+              setReopenRow(row)
+            }}
+            variant="celeste"
+          />
+        ) : null}
+        {reinstate ? (
           <AdminIconButton
             icon={RotateCcw}
             label={t('admin.ticketOrders.reinstateAction')}
@@ -476,7 +673,15 @@ export default function TicketOrdersSection({
             variant="celeste"
           />
         ) : null}
-        {canCancel ? (
+        {viewProof ? (
+          <AdminIconButton
+            icon={Eye}
+            label={t('admin.ticketOrders.viewProof')}
+            onClick={() => openProof(row, 'view')}
+            variant="ghost"
+          />
+        ) : null}
+        {cancel ? (
           <AdminIconButton
             disabled={approving}
             icon={Ban}
@@ -500,11 +705,11 @@ export default function TicketOrdersSection({
           <p className="admin-orders-block__lead">{t('admin.ticketOrders.subtitle')}</p>
         </div>
         <div className="admin-orders-block__summary" role="status">
-          <strong className="admin-orders-block__amount-value">{counts.pending ?? 0}</strong>
+          <strong className="admin-orders-block__amount-value">{counts.queue ?? 0}</strong>
           <span className="admin-orders-block__amount-caption">
-            {(counts.pending ?? 0) === 1
+            {(counts.queue ?? 0) === 1
               ? t('admin.ticketOrders.openQueueCaptionOne')
-              : t('admin.ticketOrders.openQueueCaptionMany', { count: counts.pending ?? 0 })}
+              : t('admin.ticketOrders.openQueueCaptionMany', { count: counts.queue ?? 0 })}
           </span>
         </div>
       </header>
@@ -541,7 +746,11 @@ export default function TicketOrdersSection({
             defaultValue="all"
             clearable
             hideEmpty
-            options={STATUS_FILTERS.map(([value, key]) => [value, t(key), counts[value] ?? 0])}
+            options={STATUS_FILTERS.map(([value, key]) => [
+              value,
+              t(key),
+              value === 'pending' ? (counts.queue ?? 0) : (counts[value] ?? 0),
+            ])}
           />
           <AdminFilterSelect
             id="ticket-orders-channel"
@@ -551,14 +760,32 @@ export default function TicketOrdersSection({
             defaultValue="all"
             options={CHANNEL_FILTERS.map(([value, key]) => [value, t(key)])}
           />
+          {eventFilterOptions.length > 1 ? (
+            <AdminFilterSelect
+              id="ticket-orders-event"
+              ariaLabel={t('admin.filters.event')}
+              value={eventSlug}
+              onChange={setEventSlug}
+              defaultValue="all"
+              options={eventFilterOptions}
+            />
+          ) : null}
         </div>
       </div>
+
+      {status === 'pending' && rows.some((row) => row.status === 'cancelado') ? (
+        <p className="admin-orders-block__lead">{t('admin.ticketOrders.heldProofNote')}</p>
+      ) : null}
 
       {actionError && <p className="form-submit-error">{actionError}</p>}
       {showInitialSkeleton ? (
         <TableSkeleton rows={6} columns={7} label={t('admin.ticketOrders.loading')} />
       ) : loadError ? (
-        <ErrorState message={loadError} onRetry={() => void load(status, channel)} retryLabel={t('common.retry')} />
+        <ErrorState
+          message={loadError}
+          onRetry={() => void load(status, channel, eventSlug)}
+          retryLabel={t('common.retry')}
+        />
       ) : queueEmpty ? (
         emptyState()
       ) : (
@@ -573,12 +800,28 @@ export default function TicketOrdersSection({
               label: t('admin.columns.attendee'),
               mobile: 'primary',
               sortable: true,
-              render: (row) => (
-                <div className="admin-orders-block__stack">
-                  <span className="admin-orders-block__concept">{row.attendees}</span>
-                  <span className="data-table__mono admin-orders-block__ref">{row.reference}</span>
-                </div>
-              ),
+              render: (row) => {
+                const extra = Math.max(0, row.attendeeLines.length - 1)
+                return (
+                  <div className="admin-orders-block__stack">
+                    <span
+                      className="admin-orders-block__concept"
+                      title={row.attendees}
+                      aria-label={row.attendees}
+                    >
+                      <span className="admin-orders-block__concept-name">
+                        {attendeeVisibleName(row.attendeeLines[0])}
+                      </span>
+                      {extra > 0 ? (
+                        <span className="admin-orders-block__more">
+                          {t('admin.ticketOrders.moreAttendees', { count: extra })}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="data-table__mono admin-orders-block__ref">{row.reference}</span>
+                  </div>
+                )
+              },
             },
             {
               key: 'event',
@@ -685,6 +928,29 @@ export default function TicketOrdersSection({
         />
       )}
 
+      {reopenRow ? (
+        <TicketReopenDialog
+          order={reopenRow}
+          busy={approvingId === reopenRow.id}
+          error={actionError ?? ''}
+          onCancel={() => {
+            if (approvingId === reopenRow.id) return
+            setReopenRow(null)
+            setActionError(null)
+          }}
+          onSettle={(reason) => {
+            void handleSettle(reopenRow.id, reason).then((done) => {
+              if (done) setReopenRow(null)
+            })
+          }}
+          onReopen={(reason) => {
+            void handleReopen(reopenRow.id, reason).then((done) => {
+              if (done) setReopenRow(null)
+            })
+          }}
+        />
+      ) : null}
+
       {reviewRow ? (
         <PaymentValidationDialog
           item={reviewRow}
@@ -692,8 +958,8 @@ export default function TicketOrdersSection({
           busy={approvingId === reviewRow.orderId}
           error={actionError ?? ''}
           onCancel={() => setReviewRow(null)}
-          onConfirm={() => {
-            void handleApprove(reviewRow.orderId).then((done) => {
+          onConfirm={(payload) => {
+            void handleApprove(reviewRow.orderId, payload ?? {}).then((done) => {
               if (done) setReviewRow(null)
             })
           }}
@@ -702,6 +968,7 @@ export default function TicketOrdersSection({
               if (done) setReviewRow(null)
             })
           }}
+          onTrashProof={reviewRow.canTrashProof ? () => trashProof(reviewRow) : undefined}
         />
       ) : null}
 

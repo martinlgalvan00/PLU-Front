@@ -6,30 +6,84 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useAdminModal } from './useAdminModal.js'
 
 /**
- * Card de credencial de acceso de una cuenta de seguridad: muestra el QR y
- * el link (con token firmado) que deja entrar a la puerta sin contraseña,
- * con opción de copiar o enviar por email. La generación del token vive en
- * el backend (onGenerate) — acá sólo lo pintamos.
+ * Card de credencial de acceso de una cuenta de seguridad: muestra el QR
+ * corto, el código XXX-XXX y el vencimiento. Abrirla no emite otra.
+ * Regenerar sí rota el código. La emisión vive en el backend (onGenerate).
  */
+const EMPTY_CREDENTIAL = {
+  status: 'empty',
+  url: '',
+  expiresAt: null,
+  qr: '',
+  qrFailed: false,
+  code: '',
+  expired: false,
+}
+
+function credentialIsExpired(result, now = Date.now()) {
+  if (result?.expired) return true
+  const time = Date.parse(result?.expiresAt ?? '')
+  return Number.isFinite(time) && time <= now
+}
+
+async function paintCredential(result) {
+  let qr = ''
+  let qrFailed = false
+  if (result?.url) {
+    try {
+      qr = await generateCredentialQr(result.url)
+    } catch {
+      qrFailed = true
+    }
+  }
+  return {
+    status: 'ready',
+    url: result?.url ?? '',
+    expiresAt: result?.expiresAt ?? null,
+    qr,
+    qrFailed,
+    code: result?.code ?? '',
+    expired: credentialIsExpired(result),
+  }
+}
+
 export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
-  const { t } = useI18n()
-  const [state, setState] = useState({ status: 'loading', url: '', expiresAt: null, qr: '' })
+  const { locale, t } = useI18n()
+  const [state, setState] = useState({
+    status: 'loading',
+    url: '',
+    expiresAt: null,
+    qr: '',
+    qrFailed: false,
+    code: '',
+    expired: false,
+  })
   const [expiresAt, setExpiresAt] = useState('')
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState('')
   const [emailState, setEmailState] = useState('idle') // idle | sending | sent | error
+  const [actionError, setActionError] = useState(false)
   const requestedRef = useRef(false)
 
   useEffect(() => {
     if (requestedRef.current) return
     requestedRef.current = true
     let active = true
-    onGenerate({ sendEmail: false })
-      .then(async ({ url, expiresAt }) => {
-        const qr = await generateCredentialQr(url)
-        if (active) setState({ status: 'ready', url, expiresAt, qr })
+    onGenerate({ read: true })
+      .then(async (result) => {
+        if (!active) return
+        if (!result?.url) {
+          setState(EMPTY_CREDENTIAL)
+          return
+        }
+        setState(await paintCredential(result))
       })
-      .catch(() => {
-        if (active) setState((current) => ({ ...current, status: 'error' }))
+      .catch((error) => {
+        if (!active) return
+        if (error?.status === 404) {
+          setState(EMPTY_CREDENTIAL)
+          return
+        }
+        setState((current) => ({ ...current, status: 'error' }))
       })
     return () => {
       active = false
@@ -38,37 +92,64 @@ export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
 
   const panelRef = useAdminModal(onClose)
 
-  async function handleCopy() {
+  async function handleCopy(key, value) {
     try {
-      await navigator.clipboard.writeText(state.url)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(value)
+      setCopied(key)
+      setTimeout(() => setCopied(''), 2000)
     } catch {
-      // Sin clipboard el link ya queda visible para copiar a mano.
+      // Sin clipboard el valor ya queda visible para copiar a mano.
     }
+  }
+
+  function retryRead() {
+    setActionError(false)
+    setState((current) => ({ ...current, status: 'loading' }))
+    onGenerate({ read: true })
+      .then(async (result) => {
+        if (!result?.url) {
+          setState(EMPTY_CREDENTIAL)
+          return
+        }
+        setState(await paintCredential(result))
+      })
+      .catch((error) => {
+        if (error?.status === 404) {
+          setState(EMPTY_CREDENTIAL)
+          return
+        }
+        setState((current) => (current.url ? { ...current, status: 'ready' } : { ...current, status: 'error' }))
+      })
   }
 
   async function handleEmail() {
     setEmailState('sending')
     try {
-      const { emailed } = await onGenerate({ sendEmail: true, expiresAt })
+      const { emailed } = await onGenerate({ sendEmail: true })
       setEmailState(emailed ? 'sent' : 'error')
     } catch {
       setEmailState('error')
     }
   }
 
-  const expiryLabel = state.expiresAt ? new Date(state.expiresAt).toLocaleDateString() : ''
+  const expiryLabel = state.expiresAt
+    ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
+        new Date(state.expiresAt),
+      )
+    : ''
 
   async function handleRegenerate() {
-    setState((current) => ({ ...current, status: 'loading' }))
+    const previous = state
+    setActionError(false)
     setEmailState('idle')
+    setState((current) => ({ ...current, status: 'loading' }))
     try {
-      const result = await onGenerate({ sendEmail: false, expiresAt })
-      const qr = await generateCredentialQr(result.url)
-      setState({ status: 'ready', url: result.url, expiresAt: result.expiresAt, qr })
+      const result = await onGenerate({ sendEmail: false, rotate: true, expiresAt })
+      if (!result?.url) throw new Error('empty-credential')
+      setState(await paintCredential(result))
     } catch {
-      setState((current) => ({ ...current, status: 'error' }))
+      setActionError(true)
+      setState(previous.url ? previous : { ...EMPTY_CREDENTIAL, status: 'error' })
     }
   }
 
@@ -108,20 +189,67 @@ export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
 
         {state.status === 'loading' && (
           <p className="security-credential-modal__note">
-            {t('admin.eventEditor.security.credentialLoading')}
+            {state.url
+              ? t('admin.eventEditor.security.credentialLoading')
+              : t('admin.eventEditor.security.credentialChecking')}
           </p>
         )}
         {state.status === 'error' && (
-          <p className="admin-users__form-error">
-            {t('admin.eventEditor.security.credentialError')}
-          </p>
+          <div className="security-credential-modal__empty">
+            <p className="admin-users__form-error">
+              {t('admin.eventEditor.security.credentialError')}
+            </p>
+            <button
+              type="button"
+              className="admin-event-security__toggle admin-event-security__toggle--celeste"
+              onClick={retryRead}
+            >
+              {t('admin.eventEditor.security.credentialRetry')}
+            </button>
+          </div>
+        )}
+        {state.status === 'empty' && (
+          <div className="security-credential-modal__empty">
+            <p className="security-credential-modal__note">
+              {t('admin.eventEditor.security.credentialEmpty')}
+            </p>
+            <button
+              type="button"
+              className="admin-event-security__toggle admin-event-security__toggle--celeste"
+              onClick={handleRegenerate}
+            >
+              {t('admin.eventEditor.security.credentialGenerate')}
+            </button>
+          </div>
         )}
 
         {state.status === 'ready' && (
           <>
             <div className="security-credential-modal__qr">
-              <img src={state.qr} alt={t('admin.eventEditor.security.credentialQrAlt')} />
+              {state.qr ? (
+                <img src={state.qr} alt={t('admin.eventEditor.security.credentialQrAlt')} />
+              ) : (
+                <p className="security-credential-modal__note">
+                  {t('admin.eventEditor.security.credentialQrFallback')}
+                </p>
+              )}
             </div>
+            {state.code ? (
+              <p className="security-credential-modal__code">
+                <span>{t('admin.eventEditor.security.credentialCodeLabel')}</span>
+                <strong>{state.code}</strong>
+                <button type="button" onClick={() => handleCopy('code', state.code)}>
+                  {copied === 'code' ? (
+                    <Check size={13} aria-hidden />
+                  ) : (
+                    <Copy size={13} aria-hidden />
+                  )}
+                  {copied === 'code'
+                    ? t('admin.eventEditor.security.copied')
+                    : t('admin.eventEditor.security.copyCode')}
+                </button>
+              </p>
+            ) : null}
             <p className="security-credential-modal__lead">
               {t('admin.eventEditor.security.credentialLead')}
             </p>
@@ -130,30 +258,34 @@ export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
               <code>{state.url}</code>
               <button
                 type="button"
-                className={`admin-event-security__copy${copied ? ' admin-event-security__copy--done' : ''}`}
-                onClick={handleCopy}
+                className={`admin-event-security__copy${copied === 'url' ? ' admin-event-security__copy--done' : ''}`}
+                onClick={() => handleCopy('url', state.url)}
               >
-                {copied ? <Check size={13} aria-hidden /> : <Copy size={13} aria-hidden />}
-                {copied
+                {copied === 'url' ? <Check size={13} aria-hidden /> : <Copy size={13} aria-hidden />}
+                {copied === 'url'
                   ? t('admin.eventEditor.security.copied')
                   : t('admin.eventEditor.security.copyLink')}
               </button>
             </div>
 
             {expiryLabel && (
-              <p className="security-credential-modal__expiry">
-                {t('admin.eventEditor.security.credentialExpiry', { date: expiryLabel })}
+              <p
+                className={`security-credential-modal__expiry${state.expired ? ' security-credential-modal__expiry--past' : ''}`}
+              >
+                {state.expired
+                  ? t('admin.eventEditor.security.credentialExpiredNow', { date: expiryLabel })
+                  : t('admin.eventEditor.security.credentialExpiry', { date: expiryLabel })}
               </p>
             )}
 
             <label className="security-credential-modal__expiry-control">
-              <span>Vencimiento personalizado</span>
+              <span>{t('admin.eventEditor.security.credentialExpiryCustom')}</span>
               <input
                 type="datetime-local"
                 value={expiresAt}
                 onChange={(event) => setExpiresAt(event.target.value)}
               />
-              <small>Vacío: usa la ventana segura del evento. No puede extenderse más allá de ella.</small>
+              <small>{t('admin.eventEditor.security.credentialExpiryHint')}</small>
             </label>
 
             <div className="security-credential-modal__actions">
@@ -162,13 +294,13 @@ export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
                 className="admin-event-security__toggle admin-event-security__toggle--celeste"
                 onClick={handleRegenerate}
               >
-                Generar QR
+                {t('admin.eventEditor.security.credentialRegenerate')}
               </button>
               <button
                 type="button"
                 className="admin-event-security__toggle admin-event-security__toggle--celeste"
                 onClick={handleEmail}
-                disabled={emailState === 'sending' || emailState === 'sent'}
+                disabled={state.expired || emailState === 'sending' || emailState === 'sent'}
               >
                 <Mail size={13} aria-hidden />
                 {emailState === 'sending'
@@ -178,6 +310,11 @@ export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
                     : t('admin.eventEditor.security.credentialEmail')}
               </button>
             </div>
+            {actionError && (
+              <p className="admin-users__form-error">
+                {t('admin.eventEditor.security.credentialError')}
+              </p>
+            )}
             {emailState === 'error' && (
               <p className="admin-users__form-error">
                 {t('admin.eventEditor.security.credentialEmailError')}

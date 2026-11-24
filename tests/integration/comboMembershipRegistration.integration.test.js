@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
+import { prepareTestAthleteForCheckout } from './helpers/athleteSession.js'
 import { manualChannelsOpen } from './helpers/platformToggles.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
 
@@ -173,17 +174,17 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
     const athleteBody = await athleteResponse.json()
     expect(athleteResponse.status, JSON.stringify(athleteBody)).toBe(201)
     createdAthleteIds.push(athleteBody.athlete.id)
-    await admin
-      .from('athletes')
-      .update({ email_verified_at: new Date().toISOString() })
-      .eq('id', athleteBody.athlete.id)
+    await prepareTestAthleteForCheckout(admin, athleteBody.athlete.id)
 
     const idempotencyKey = randomUUID()
     const payload = {
       eventSlug: slug,
       division: 'Open',
+      modalities: ['full_power'],
       category: 'Raw',
       bodyweightKg: 90,
+      declaredWeightClass: '90',
+      competitionBestTotalKg: 500,
       paymentMethod: 'manual_link',
       idempotencyKey,
     }
@@ -305,10 +306,7 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
     const athleteBody = await athleteResponse.json()
     expect(athleteResponse.status, JSON.stringify(athleteBody)).toBe(201)
     createdAthleteIds.push(athleteBody.athlete.id)
-    await admin
-      .from('athletes')
-      .update({ email_verified_at: new Date().toISOString() })
-      .eq('id', athleteBody.athlete.id)
+    await prepareTestAthleteForCheckout(admin, athleteBody.athlete.id)
 
     const credentialBeforePayment = await admin
       .from('athletes')
@@ -325,8 +323,11 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
       body: JSON.stringify({
         eventSlug: slug,
         division: 'Open',
+        modalities: ['full_power'],
         category: 'Raw',
         bodyweightKg: 90,
+        declaredWeightClass: '90',
+        competitionBestTotalKg: 500,
         paymentMethod: 'mercado_pago',
         idempotencyKey: randomUUID(),
       }),
@@ -556,10 +557,7 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
     expect(athleteResponse.status, JSON.stringify(athleteBody)).toBe(201)
     const athleteId = athleteBody.athlete.id
     createdAthleteIds.push(athleteId)
-    await admin
-      .from('athletes')
-      .update({ email_verified_at: new Date().toISOString() })
-      .eq('id', athleteId)
+    await prepareTestAthleteForCheckout(admin, athleteId)
 
     const cookie = sessionCookie(athleteResponse)
     const comboResponse = await fetch(`${listenTarget.url}/api/athletes/me/registration-combos`, {
@@ -568,8 +566,11 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
       body: JSON.stringify({
         eventSlug: slug,
         division: 'Open',
+        modalities: ['full_power'],
         category: 'Raw',
         bodyweightKg: 90,
+        declaredWeightClass: '90',
+        competitionBestTotalKg: 500,
         paymentMethod: 'manual_link',
         manualPaymentChannel: 'bank_transfer',
         idempotencyKey: randomUUID(),

@@ -10,6 +10,10 @@ const DECODE_STAGGER_MS = 260
 /** Primer dato: cuando el titular ya terminó de enfocar. */
 const DECODE_START_MS = 900
 const FRAME_MS = 45
+/** Cuando la entrada ya terminó (último dato descifrado) y se puede jugar. */
+const SETTLE_MS = 2800
+/** Cuánto del camino al cursor recorre el parallax por cuadro. */
+const POINTER_EASE = 0.08
 
 const FIELDS = [
   { key: 'date', redacted: true },
@@ -24,7 +28,7 @@ function glyphFor(char) {
 
 /** Texto que se resuelve de izquierda a derecha una sola vez. Sin `active`
  * (o con movimiento reducido) devuelve el texto final tal cual. */
-function useDecodedText(finalText, { active, delayMs }) {
+function useDecodedText(finalText, { active, delayMs, run = 0 }) {
   const [text, setText] = useState(finalText)
 
   useEffect(() => {
@@ -60,21 +64,28 @@ function useDecodedText(finalText, { active, delayMs }) {
       window.clearTimeout(timerId)
       window.cancelAnimationFrame(frameId)
     }
-  }, [active, delayMs, finalText])
+  }, [active, delayMs, finalText, run])
 
   return text
 }
 
 /** Una línea del expediente. Lo que lee un lector de pantalla es el texto
- * real; lo que se ve (descifrándose o tachado) es decoración. */
-function DossierField({ label, value, redacted, animate, index }) {
+ * real; lo que se ve (descifrándose o tachado) es decoración. Con el cursor
+ * encima, el dato vuelve a descifrarse (`replayable`): es un guiño, no un
+ * dato nuevo, el valor final es siempre el mismo. */
+function DossierField({ label, value, redacted, animate, replayable, index }) {
+  const [run, setRun] = useState(0)
   const shown = useDecodedText(value, {
     active: animate,
-    delayMs: DECODE_START_MS + index * DECODE_STAGGER_MS,
+    delayMs: run === 0 ? DECODE_START_MS + index * DECODE_STAGGER_MS : 0,
+    run,
   })
 
   return (
-    <div className="events-teaser__field">
+    <div
+      className="events-teaser__field"
+      onPointerEnter={replayable ? () => setRun((count) => count + 1) : undefined}
+    >
       <dt>{label}</dt>
       <dd>
         <span className="visually-hidden">{value}</span>
@@ -115,6 +126,71 @@ export default function EventsTeaser({ className = '' }) {
   const [inView, setInView] = useState(false)
   const [entered, setEntered] = useState(false)
   const animate = entered && !reducedMotion && tier !== 'low'
+
+  // El expediente sólo se vuelve a descifrar cuando terminó la entrada.
+  const [settled, setSettled] = useState(false)
+  useEffect(() => {
+    if (!animate) return undefined
+    const timer = window.setTimeout(() => setSettled(true), SETTLE_MS)
+    return () => window.clearTimeout(timer)
+  }, [animate])
+
+  // El cielo responde al cursor: parallax por capas y una luz que lo sigue.
+  // Sólo con mouse (no hay "cursor" en touch), a la vista y con movimiento.
+  const interactive = inView && animate
+  useEffect(() => {
+    const node = rootRef.current
+    if (!node || !interactive) return undefined
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return undefined
+
+    const target = { x: 0, y: 0 }
+    const current = { x: 0, y: 0 }
+    let frameId = 0
+    let inside = false
+
+    const paint = () => {
+      current.x += (target.x - current.x) * POINTER_EASE
+      current.y += (target.y - current.y) * POINTER_EASE
+      node.style.setProperty('--teaser-px', current.x.toFixed(4))
+      node.style.setProperty('--teaser-py', current.y.toFixed(4))
+      const moving =
+        Math.abs(target.x - current.x) > 0.001 || Math.abs(target.y - current.y) > 0.001
+      frameId = moving ? window.requestAnimationFrame(paint) : 0
+    }
+    const schedule = () => {
+      if (!frameId) frameId = window.requestAnimationFrame(paint)
+    }
+    const onMove = (event) => {
+      const rect = node.getBoundingClientRect()
+      target.x = ((event.clientX - rect.left) / rect.width - 0.5) * 2
+      target.y = ((event.clientY - rect.top) / rect.height - 0.5) * 2
+      node.style.setProperty('--teaser-mx', `${event.clientX - rect.left}px`)
+      node.style.setProperty('--teaser-my', `${event.clientY - rect.top}px`)
+      if (!inside) {
+        inside = true
+        node.dataset.pointer = 'true'
+      }
+      schedule()
+    }
+    const onLeave = () => {
+      inside = false
+      target.x = 0
+      target.y = 0
+      delete node.dataset.pointer
+      schedule()
+    }
+
+    node.addEventListener('pointermove', onMove)
+    node.addEventListener('pointerleave', onLeave)
+    return () => {
+      node.removeEventListener('pointermove', onMove)
+      node.removeEventListener('pointerleave', onLeave)
+      window.cancelAnimationFrame(frameId)
+      delete node.dataset.pointer
+      node.style.removeProperty('--teaser-px')
+      node.style.removeProperty('--teaser-py')
+    }
+  }, [interactive])
 
   useEffect(() => {
     const node = rootRef.current
@@ -157,6 +233,8 @@ export default function EventsTeaser({ className = '' }) {
         <span className="events-teaser__nebula events-teaser__nebula--b" />
         <span className="events-teaser__stars events-teaser__stars--far" />
         <span className="events-teaser__stars events-teaser__stars--near" />
+        {/* Una sola estrella fugaz al entrar: marca el momento, no se repite. */}
+        <span className="events-teaser__meteor" aria-hidden />
       </div>
 
       {/* Card fantasma: la silueta de una EventCard hecha de bloques, para que el
@@ -174,6 +252,9 @@ export default function EventsTeaser({ className = '' }) {
           </div>
         ))}
       </div>
+
+      {/* Luz que sigue al cursor: ilumina la card fantasma sin revelarla. */}
+      <span className="events-teaser__spot" aria-hidden />
 
       <div className="events-teaser__signal" aria-hidden>
         <span className="events-teaser__static" />
@@ -210,6 +291,7 @@ export default function EventsTeaser({ className = '' }) {
               key={field.key}
               index={index}
               animate={animate}
+              replayable={settled && !field.redacted}
               redacted={field.redacted}
               label={t(`pages.events.teaser.fields.${field.key}`)}
               value={t(`pages.events.teaser.fields.${field.key}Value`)}

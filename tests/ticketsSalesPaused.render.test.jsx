@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
@@ -37,7 +37,7 @@ const event = {
   date: '12 de diciembre',
   venue: 'Maximal Strength Club',
   pricing: { ticketsEnabled: true },
-  eventDays: [],
+  eventDays: [{ dayIndex: 0, label: 'Día 1' }],
   ticketTypes: [{ id: 'ticket-day', name: 'General', price: 10000 }],
 }
 
@@ -51,15 +51,17 @@ beforeEach(() => {
 afterEach(() => cleanup())
 
 describe('TicketsPage con ventas suspendidas', () => {
-  it('comunica Próximamente y no renderiza precios ni el formulario de compra', () => {
+  it('comunica la pausa de plataforma y no renderiza precios ni el formulario de compra', () => {
     render(
       <I18nProvider>
         <TicketsPage event={event} onNavigate={() => {}} />
       </I18nProvider>,
     )
 
-    expect(screen.getAllByText(/próximamente/i).length).toBeGreaterThan(0)
-    expect(screen.queryByTestId('ticket-purchase')).toBeNull()
+    expect(screen.getAllByText(/pausada en la plataforma/i).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/próximamente/i)).toBeNull()
+    expect(screen.queryByText(/elegí tu entrada/i)).toBeNull()
+    expect(screen.queryByText(/reservá tu lugar/i)).toBeNull()
     expect(screen.queryByRole('button', { name: /pagar/i })).toBeNull()
   })
 })
@@ -76,9 +78,15 @@ describe('TicketsPage con ventas habilitadas', () => {
 
     expect(screen.queryByRole('status')).toBeNull()
     // La compra arranca en la misma pantalla: no hay un CTA que mande a
-    // buscar el formulario más abajo.
+    // buscar el formulario más abajo. El tipo se elige dentro del checkout
+    // (primer paso), no en una vidriera aparte.
     expect(screen.queryByRole('link', { name: /comprar entradas/i })).toBeNull()
+    expect(screen.queryByRole('radio', { name: /general/i })).toBeNull()
+    expect(screen.getByText(/reservá tu lugar/i)).toBeTruthy()
     expect(screen.getByTestId('ticket-purchase')).toBeTruthy()
+    const checkout = document.getElementById('checkout')
+    const pass = document.getElementById('pass-preview')
+    expect(checkout.compareDocumentPosition(pass) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('respeta el freno de entorno aunque el panel tenga la venta abierta', () => {
@@ -91,8 +99,8 @@ describe('TicketsPage con ventas habilitadas', () => {
       </I18nProvider>,
     )
 
-    expect(screen.getAllByText(/próximamente/i).length).toBeGreaterThan(0)
-    expect(screen.queryByTestId('ticket-purchase')).toBeNull()
+    expect(screen.getAllByText(/pausada por el momento/i).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('link', { name: /comprar entradas/i })).toBeNull()
   })
 
   it('compara accesos por zona, sin repetir Incluida por cada tipo', () => {
@@ -137,5 +145,90 @@ describe('TicketsPage con ventas habilitadas', () => {
     expect(board.querySelectorAll('.tickets-page__access-cell')).toHaveLength(0)
     expect(board.querySelector('.tickets-page__access-zone--all')).not.toBeNull()
     expect(board.querySelectorAll('.tickets-page__access-opens li').length).toBeGreaterThan(0)
+  })
+
+  it('no abre la venta si el único precio publicado es cero', () => {
+    checkoutState.ticketEnabled = true
+
+    render(
+      <I18nProvider>
+        <TicketsPage
+          event={{
+            ...event,
+            ticketTypes: [{ id: 'ticket-day', name: 'General', price: 0 }],
+          }}
+          onNavigate={() => {}}
+        />
+      </I18nProvider>,
+    )
+
+    expect(screen.queryByRole('link', { name: /comprar entradas/i })).toBeNull()
+    expect(screen.getAllByText(/falta publicar un precio/i).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/próximamente/i)).toBeNull()
+  })
+
+  it('no ofrece como venta un evento sin precio publicado', () => {
+    checkoutState.ticketEnabled = true
+
+    render(
+      <I18nProvider>
+        <TicketsPage
+          event={{ ...event, dateISO: '2026-12-12' }}
+          events={[
+            {
+              id: 'barbell-submission',
+              slug: 'barbell-submission',
+              title: 'Barbell Submission',
+              date: 'Fecha a confirmar',
+              dateISO: '2027-03-01',
+              venue: 'Virtus fitness',
+              pricing: { ticketsEnabled: false },
+              eventDays: [],
+              ticketTypes: [],
+            },
+          ]}
+          onNavigate={() => {}}
+        />
+      </I18nProvider>,
+    )
+
+    const options = document.querySelectorAll('.tickets-page__event-option')
+    expect(options).toHaveLength(2)
+    expect(options[0].textContent).toMatch(/10\.000/)
+    expect(options[0].textContent).toMatch(/por día/i)
+    expect(options[1].textContent).toMatch(/próximamente/i)
+    expect(options[1].textContent).not.toMatch(/disponible/i)
+    expect(options[1].textContent).not.toMatch(/\$\s*0/)
+
+    fireEvent.click(options[1])
+
+    expect(screen.queryByRole('link', { name: /comprar entradas/i })).toBeNull()
+    expect(options[1].textContent).not.toMatch(/\$\s*0/)
+  })
+
+  it('con la entrada paga deja el nombre del evento y abre directo al pase', () => {
+    checkoutState.ticketEnabled = true
+
+    const { container } = render(
+      <I18nProvider>
+        <TicketsPage
+          event={event}
+          createdOrder={{
+            type: 'tickets',
+            status: 'aprobado',
+            eventTitle: event.title,
+            orderId: 'ord-1',
+          }}
+          onNavigate={() => {}}
+        />
+      </I18nProvider>,
+    )
+
+    expect(container.querySelector('main')?.className).toContain('tickets-page--holding')
+    expect(screen.getByRole('heading', { level: 1, name: event.title })).toBeTruthy()
+    expect(screen.queryByText('Sin afiliación. Cargás el DNI, pagás y entrás con QR.')).toBeNull()
+    expect(container.querySelector('.tickets-page__hero-stripe')).toBeNull()
+    expect(container.querySelector('.tickets-page__hero-backdrop')).toBeNull()
+    expect(screen.queryByRole('radio', { name: /general/i })).toBeNull()
   })
 })

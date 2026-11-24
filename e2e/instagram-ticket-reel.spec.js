@@ -103,7 +103,7 @@ test('reel: comprar una entrada VIP y ver el pase reluciente', async ({ page }) 
     /Compra confirmada/i,
     { timeout: 20_000 },
   )
-  const passStage = page.locator('.ticket-purchase__pass-item .ticket-pass-preview__stage').first()
+  const passStage = page.locator('.buyer-tickets-wallet .ticket-pass-preview__stage').first()
   await passStage.scrollIntoViewIfNeeded()
   await page.waitForTimeout(500)
   await sweepTilt(page, passStage, { steps: [0.25, 0.75, 0.5], pauseMs: 700 })
