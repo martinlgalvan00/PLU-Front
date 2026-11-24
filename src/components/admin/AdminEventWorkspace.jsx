@@ -22,6 +22,7 @@ import AdminEventLogoControl from './AdminEventLogoControl.jsx'
 import AdminIconButton from './AdminIconButton.jsx'
 import { AdminEventLivePreview } from './AdminEventEditor.jsx'
 import AdminEventDashboard from './AdminEventDashboard.jsx'
+import AdminEventGuestList from './AdminEventGuestList.jsx'
 import AdminEventQuickActions from './AdminEventQuickActions.jsx'
 import AdminEventStateControl from './AdminEventStateControl.jsx'
 import AdminEventTicketAddonReport from './AdminEventTicketAddonReport.jsx'
@@ -455,6 +456,9 @@ export default function AdminEventWorkspace({
             </div>
           </div>
           {securitySection}
+          {/* Invitados con QR propio: mismo puesto que el equipo, porque es
+              lo que la puerta tiene que dejar pasar además de las ventas. */}
+          {event.slug ? <AdminEventGuestList event={event} canEdit={canEdit} /> : null}
         </div>
       )
     }

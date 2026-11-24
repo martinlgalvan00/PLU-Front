@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { BadgeCheck, Paperclip, Plus, Ticket } from 'lucide-react'
+import { BadgeCheck, Ban, Paperclip, Plus, RotateCcw, Ticket } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminEmptyState from '../../components/admin/AdminEmptyState.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
@@ -8,15 +8,24 @@ import AdminFilterSelect from '../../components/admin/AdminFilterSelect.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import TableSkeleton from '../../components/ui/TableSkeleton.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { useBroadcastTopic } from '../../hooks/useBroadcastTopic.js'
 import { money } from '../../lib/format.js'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { AdminTableActions, AdminTableActionsEmpty } from '../../components/admin/AdminTableCells.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
 import ManualTicketSaleDialog from '../../components/admin/ManualTicketSaleDialog.jsx'
-import { listTicketOrders } from '../../services/ticketApi.js'
+import TicketOrderLifecycleDialog from '../../components/admin/TicketOrderLifecycleDialog.jsx'
+import {
+  cancelTicketOrder,
+  listTicketOrders,
+  reinstateTicketOrder,
+} from '../../services/ticketApi.js'
 
 const OPEN_TICKET_STATUSES = ['creado', 'pendiente']
+// Lo que se puede volver a aceptar. `reembolsado` queda afuera: la plata ya
+// se devolvió por Mercado Pago, y MP nunca pasa por estas acciones.
+const REINSTATABLE_STATUSES = ['rechazado', 'cancelado']
 
 const STATUS_FILTERS = [
   ['pending', 'admin.ticketOrders.filterPending'],
@@ -40,6 +49,7 @@ const CHANNEL_FILTERS = [
   ['cash_pitbull', 'admin.ticketOrders.channelCash'],
   ['wise_transfer', 'admin.ticketOrders.channelWise'],
   ['mercado_pago', 'admin.ticketOrders.channelMercadoPago'],
+  ['courtesy', 'admin.ticketOrders.channelCourtesy'],
 ]
 
 function formatUploadedAt(value, locale) {
@@ -67,6 +77,11 @@ function formatTicketAttendees(order, t) {
 }
 
 function channelLabel(order, t) {
+  if (order.manualPaymentChannel === 'courtesy') {
+    return order.courtesyLabel
+      ? `${t('admin.ticketOrders.channelCourtesy')} · ${order.courtesyLabel}`
+      : t('admin.ticketOrders.channelCourtesy')
+  }
   if (order.manualPaymentChannel === 'wise_transfer') return t('admin.ticketOrders.channelWise')
   if (order.manualPaymentChannel === 'cash_pitbull') return t('admin.ticketOrders.channelCash')
   if (order.manualPaymentChannel === 'bank_transfer') return t('admin.ticketOrders.channelBankTransfer')
@@ -100,6 +115,10 @@ export default function TicketOrdersSection({
   const [manualSaleOpen, setManualSaleOpen] = useState(false)
   const [manualSaleBusy, setManualSaleBusy] = useState(false)
   const [manualSaleError, setManualSaleError] = useState('')
+  // Cancelar / volver a aceptar: { mode: 'cancel' | 'reinstate', row }.
+  const [lifecycle, setLifecycle] = useState(null)
+  const [lifecycleBusy, setLifecycleBusy] = useState(false)
+  const [lifecycleError, setLifecycleError] = useState('')
   const loadedRef = useRef(false)
   const statusTouchedRef = useRef(false)
   const loadGenerationRef = useRef(0)
@@ -165,6 +184,14 @@ export default function TicketOrdersSection({
     ])
   }, [load, onRefresh])
 
+  // Una venta nueva, un comprobante subido o una aprobación desde otra sesión:
+  // la base avisa por `ticket-orders` (sin datos) y se relee con los filtros
+  // activos. Agrupado: una tanda de invitados son decenas de órdenes y un aviso.
+  useBroadcastTopic('ticket-orders', ['orders-changed'], refreshList, {
+    debounceMs: 600,
+    maxWaitMs: 3000,
+  })
+
   const counts = useMemo(() => {
     if (serverCounts) return serverCounts
     const open = orders.filter((order) => OPEN_TICKET_STATUSES.includes(order.status))
@@ -196,12 +223,18 @@ export default function TicketOrdersSection({
             ? t('admin.ticketOrders.proofReceived')
             : order.manualPaymentChannel === 'cash_pitbull'
               ? t('admin.ticketOrders.proofNotApplicable')
+              : order.manualPaymentChannel === 'courtesy'
+                ? t('admin.ticketOrders.proofCourtesy')
               : order.provider === 'mercado_pago'
                 ? '—'
                 : t('admin.ticketOrders.proofMissing'),
           proofUploadedAt: formatUploadedAt(order.paymentProofUploadedAt, locale),
           status: order.status,
           paymentProofPath: order.paymentProofPath,
+          isManual: order.provider === 'manual',
+          rejectionReason: order.rejectionReason ?? null,
+          cancellationReason: order.cancellationReason ?? null,
+          cancelledFromStatus: order.cancelledFromStatus ?? null,
         }
       }),
     [locale, orders, t],
@@ -259,6 +292,37 @@ export default function TicketOrdersSection({
       return false
     } finally {
       setApprovingId(null)
+    }
+  }
+
+  function openLifecycle(mode, row) {
+    if (!canEdit) return
+    setLifecycleError('')
+    setLifecycle({ mode, row })
+  }
+
+  async function handleLifecycleConfirm(reason) {
+    if (!lifecycle || lifecycleBusy) return
+    const { mode, row } = lifecycle
+    setLifecycleBusy(true)
+    setLifecycleError('')
+    try {
+      if (mode === 'cancel') await cancelTicketOrder(row.id, reason)
+      else await reinstateTicketOrder(row.id)
+      await refreshList()
+      notifySuccess(
+        mode === 'cancel'
+          ? t('admin.toasts.ticketCancelled')
+          : t('admin.toasts.ticketReinstated'),
+      )
+      setLifecycle(null)
+    } catch (error) {
+      console.error(`${mode} ticket order:`, error)
+      // El error de cupo (409) trae el detalle de la RPC: "No queda cupo para
+      // General (120 de 120 ocupados)". Es el mensaje útil, se muestra tal cual.
+      setLifecycleError(error?.message ?? t('admin.ticketOrders.lifecycle.errorFallback'))
+    } finally {
+      setLifecycleBusy(false)
     }
   }
 
@@ -380,24 +444,47 @@ export default function TicketOrdersSection({
   function renderTicketRowActions(row, { compact = false } = {}) {
     const approving = approvingId === row.id
     const isOpen = OPEN_TICKET_STATUSES.includes(row.status)
-    if (!canEdit || !isOpen) return compact ? null : <AdminTableActionsEmpty />
+    const canCancel = row.isManual && (isOpen || row.status === 'aprobado')
+    const canReinstate = row.isManual && REINSTATABLE_STATUSES.includes(row.status)
+    if (!canEdit || (!isOpen && !canCancel && !canReinstate)) {
+      return compact ? null : <AdminTableActionsEmpty />
+    }
 
     return (
       <AdminTableActions>
-        {!row.paymentProofPath && !row.cashAtPitbull ? (
-          <span className="status-pill status-pill--warning">
-            {t('admin.ticketOrders.proofMissing')}
-          </span>
-        ) : (
+        {isOpen ? (
+          !row.paymentProofPath && !row.cashAtPitbull ? (
+            <span className="status-pill status-pill--warning">
+              {t('admin.ticketOrders.proofMissing')}
+            </span>
+          ) : (
+            <AdminIconButton
+              disabled={approving}
+              icon={BadgeCheck}
+              spinning={approving}
+              label={t('admin.actions.validate')}
+              onClick={() => openProof(row)}
+              variant="celeste"
+            />
+          )
+        ) : null}
+        {canReinstate ? (
           <AdminIconButton
-            disabled={approving}
-            icon={BadgeCheck}
-            spinning={approving}
-            label={t('admin.actions.validate')}
-            onClick={() => openProof(row)}
+            icon={RotateCcw}
+            label={t('admin.ticketOrders.reinstateAction')}
+            onClick={() => openLifecycle('reinstate', row)}
             variant="celeste"
           />
-        )}
+        ) : null}
+        {canCancel ? (
+          <AdminIconButton
+            disabled={approving}
+            icon={Ban}
+            label={t('admin.ticketOrders.cancelAction')}
+            onClick={() => openLifecycle('cancel', row)}
+            variant="danger"
+          />
+        ) : null}
       </AdminTableActions>
     )
   }
@@ -562,13 +649,32 @@ export default function TicketOrdersSection({
               mobile: 'badge',
               width: 150,
               sortable: true,
-              render: (row) => <StatusBadge value={row.status} />,
+              // El motivo debajo del estado: para decidir si volver a aceptar
+              // hace falta saber por qué se cerró, sin abrir la orden.
+              render: (row) => {
+                const reason =
+                  row.status === 'rechazado'
+                    ? row.rejectionReason
+                    : row.status === 'cancelado'
+                      ? row.cancellationReason
+                      : null
+                return (
+                  <div className="admin-orders-block__stack">
+                    <StatusBadge value={row.status} />
+                    {reason ? (
+                      <span className="admin-orders-block__status-reason" title={reason}>
+                        {reason}
+                      </span>
+                    ) : null}
+                  </div>
+                )
+              },
             },
             {
               key: 'actions',
               label: t('admin.columns.action'),
               mobile: 'action',
-              width: 104,
+              width: 128,
               className: 'data-table__column--actions',
               render: (row) => renderTicketRowActions(row),
               mobileRender: (row) => renderTicketRowActions(row, { compact: true }),
@@ -596,6 +702,20 @@ export default function TicketOrdersSection({
               if (done) setReviewRow(null)
             })
           }}
+        />
+      ) : null}
+
+      {lifecycle ? (
+        <TicketOrderLifecycleDialog
+          mode={lifecycle.mode}
+          order={lifecycle.row}
+          busy={lifecycleBusy}
+          error={lifecycleError}
+          onCancel={() => {
+            if (lifecycleBusy) return
+            setLifecycle(null)
+          }}
+          onConfirm={handleLifecycleConfirm}
         />
       ) : null}
 

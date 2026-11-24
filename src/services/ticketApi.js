@@ -49,6 +49,8 @@ function toCamelTicket(row, { event, checkIn, order } = {}) {
   return {
     id: row.id,
     ticketCode: row.ticket_code,
+    // 6 dígitos para dictar en la puerta si el QR no se lee.
+    doorCode: row.door_code ?? row.doorCode ?? null,
     qrToken: row.qr_token,
     orderId: row.order_id,
     eventId: row.event_id,
@@ -106,6 +108,11 @@ function toCamelOrder(row) {
     rejectedBy: row.rejected_by ?? row.rejectedBy ?? null,
     rejectionReason: row.rejection_reason ?? row.rejectionReason ?? null,
     rejectedAt: row.rejected_at ?? row.rejectedAt ?? null,
+    cancellationReason: row.cancellation_reason ?? row.cancellationReason ?? null,
+    cancelledAt: row.cancelled_at ?? row.cancelledAt ?? null,
+    cancelledFromStatus: row.cancelled_from_status ?? row.cancelledFromStatus ?? null,
+    reinstatedAt: row.reinstated_at ?? row.reinstatedAt ?? null,
+    courtesyLabel: row.courtesy_label ?? row.courtesyLabel ?? null,
     paymentProofPath: row.payment_proof_path?.trim?.() || row.payment_proof_path || null,
     paymentProofUploadedAt: row.payment_proof_uploaded_at,
     createdAt: row.created_at,
@@ -183,6 +190,85 @@ export async function rejectTicketOrder(orderId, reason) {
   }
 }
 
+/**
+ * Cancela una orden manual. Si estaba acreditada sus QR dejan de abrir la
+ * puerta y el comprador recibe el motivo por mail; si estaba abierta, libera
+ * el cupo. Mercado Pago se cancela reembolsando desde MP (el server lo rechaza).
+ */
+export async function cancelTicketOrder(orderId, reason = '') {
+  const result = await apiPost(`/api/tickets/orders/${orderId}/cancel`, { reason })
+  return {
+    order: toCamelOrder(result.order),
+    tickets: (result.tickets ?? []).map((ticket) => toCamelTicket(ticket)),
+    previousStatus: result.previousStatus ?? null,
+    checkedInTickets: Number(result.checkedInTickets ?? 0),
+  }
+}
+
+/** Rechazada o cancelada vuelve a acreditarse; el server revalida el cupo. */
+export async function reinstateTicketOrder(orderId) {
+  const result = await apiPost(`/api/tickets/orders/${orderId}/reinstate`, {})
+  return {
+    order: toCamelOrder(result.order),
+    tickets: (result.tickets ?? []).map((ticket) => toCamelTicket(ticket)),
+    previousStatus: result.previousStatus ?? null,
+  }
+}
+
+/** Lista de invitados del evento (vigentes y dados de baja). */
+export async function listGuestTickets(eventSlug) {
+  const { guests } = await apiGet(`/api/tickets/guests/${encodeURIComponent(eventSlug)}`)
+  return guests ?? []
+}
+
+/**
+ * Emite entradas de cortesía. `guests`: [{fullName, dni, email?}]. Devuelve
+ * cuántas se emitieron, cuáles se omitieron (DNI repetido en la lista o con
+ * entrada vigente en el evento) y cuántos mails salieron.
+ */
+export async function issueGuestTickets(eventSlug, { ticketTypeId, label = '', guests, sendEmail = true }) {
+  const result = await apiPost(`/api/tickets/guests/${encodeURIComponent(eventSlug)}`, {
+    ticketTypeId,
+    label,
+    guests,
+    sendEmail,
+  })
+  return {
+    issued: Array.isArray(result.issued) ? result.issued.length : 0,
+    skipped: Array.isArray(result.skipped) ? result.skipped : [],
+    emailed: Number(result.emailed ?? 0),
+    emailFailed: Number(result.emailFailed ?? 0),
+  }
+}
+
+export async function cancelGuestTicket(eventSlug, orderId, reason) {
+  return apiPost(
+    `/api/tickets/guests/${encodeURIComponent(eventSlug)}/${orderId}/cancel`,
+    { reason },
+  )
+}
+
+/**
+ * "Mis entradas" del perfil: entradas acreditadas de la cuenta logueada, ya
+ * en la forma de `mapApiTicket` para reusar el render del QR.
+ */
+export async function fetchMyTickets() {
+  const { tickets } = await apiGet('/api/tickets/mine')
+  return (tickets ?? []).map((row) => {
+    const ticket = toCamelTicket(row, { event: row.event, checkIn: row.check_in })
+    return {
+      ...mapApiTicket(ticket),
+      orderReference: row.order_reference ?? null,
+      orderChannel: row.order_channel ?? null,
+      courtesyLabel: row.courtesy_label ?? null,
+      eventEndsAt: row.event?.ends_at ?? null,
+      // Vinculada sólo por DNI (no verificado): se ve, pero el QR no viaja.
+      qrLocked: Boolean(row.qr_locked),
+      buyerEmailMasked: row.buyer_email_masked ?? null,
+    }
+  })
+}
+
 export async function registerTicketPaymentProof(orderId, accessToken, proofPath) {
   const result = await apiPost(`/api/tickets/orders/${orderId}/proof`, { accessToken, proofPath })
   return { order: toCamelOrder(result.order) }
@@ -207,6 +293,13 @@ function mapTicketOrderRow(row) {
     buyerName: order.buyerName,
     buyerEmail: order.buyerEmail,
     createdAt: order.createdAt,
+    rejectionReason: order.rejectionReason,
+    rejectedAt: order.rejectedAt,
+    cancellationReason: order.cancellationReason,
+    cancelledAt: order.cancelledAt,
+    cancelledFromStatus: order.cancelledFromStatus,
+    reinstatedAt: order.reinstatedAt,
+    courtesyLabel: order.courtesyLabel,
     eventSlug: event.slug,
     eventTitle: event.title,
     ticketCount: row.ticketCount ?? row.ticket_count ?? 0,
@@ -338,6 +431,21 @@ export async function lookupTicketOrder(reference, email) {
   }
 }
 
+/**
+ * Verificación por código en la puerta: número de entrada o DNI -> las
+ * credenciales de ese evento que coinciden (`{ kind, code, ticketCode, name,
+ * document, label, status }`). `code` es el token que hubiera traído el QR; la
+ * validación real sigue por el flujo de escaneo.
+ */
+export async function lookupCheckinCredentials(eventSlug, { ticketCode, dni, doorCode } = {}) {
+  const body = { eventSlug }
+  if (doorCode) body.doorCode = doorCode
+  if (ticketCode) body.ticketCode = ticketCode
+  if (dni) body.dni = dni
+  const { matches } = await apiPost('/api/tickets/checkin/lookup', body)
+  return Array.isArray(matches) ? matches : []
+}
+
 export async function redeemTicketAddon(qrToken, addonId) {
   const result = await apiPost(`/api/tickets/checkin/${qrToken}/addons/${addonId}/redeem`, {})
   return {
@@ -357,6 +465,7 @@ export function mapApiTicket(apiTicket, purchaseEvent) {
     id: apiTicket.id,
     orderId: apiTicket.orderId,
     ticketCode: apiTicket.ticketCode,
+    doorCode: apiTicket.doorCode ?? null,
     qrToken: apiTicket.qrToken,
     attendeeName: apiTicket.attendeeName,
     attendeeDni: apiTicket.attendeeDni,

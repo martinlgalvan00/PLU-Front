@@ -94,6 +94,58 @@ export async function findInAllowlist(eventSlug, code) {
 }
 
 /**
+ * La misma búsqueda por código que `POST /checkin/lookup`, contra la lista
+ * descargada: sin red el guardia tiene que poder tipear el número impreso o el
+ * DNI igual. Devuelve la forma de coincidencia del servidor más `entry`, para
+ * validar offline sin volver a buscar.
+ */
+export async function findMatchesInAllowlist(
+  eventSlug,
+  { ticketCode = null, dni = null, doorCode = null } = {},
+) {
+  const allowlist = await getAllowlist(eventSlug)
+  if (!allowlist) return null
+
+  const code = (ticketCode ?? '').toLowerCase()
+  const tickets = allowlist.tickets
+    .filter((item) =>
+      doorCode
+        ? String(item.doorCode ?? '') === doorCode
+        : ticketCode
+          ? (item.ticketCode ?? '').toLowerCase() === code
+          : String(item.attendeeDni ?? '') === dni,
+    )
+    .map((entry) => ({
+      kind: 'ticket',
+      code: entry.qrToken,
+      ticketCode: entry.ticketCode ?? null,
+      doorCode: entry.doorCode ?? null,
+      name: entry.attendeeName,
+      document: entry.attendeeDni,
+      label: entry.credentialLabel ?? entry.ticketTypeName ?? null,
+      status: entry.status,
+      entry,
+    }))
+
+  const registrations = dni
+    ? allowlist.registrations
+        .filter((item) => String(item.athleteDocument ?? '') === dni)
+        .map((entry) => ({
+          kind: 'registration',
+          code: entry.qrToken,
+          ticketCode: null,
+          name: entry.athleteName,
+          document: entry.athleteDocument,
+          label: null,
+          status: entry.status,
+          entry,
+        }))
+    : []
+
+  return [...tickets, ...registrations]
+}
+
+/**
  * Marca localmente una entrada como ya escaneada mientras seguimos
  * offline -- evita que ESTE dispositivo deje pasar dos veces el mismo QR
  * antes de poder sincronizar contra el servidor.

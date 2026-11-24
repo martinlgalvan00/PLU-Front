@@ -78,6 +78,9 @@ describe('estado de inscripción: todas las superficies coinciden', () => {
             session: SESSION,
             registrations: [],
             memberships: MEMBERSHIPS,
+            // Sin el reloj fijo, el test dependía de la fecha real: pasada la
+            // ventana `cierreFuturo` (20/11) fallaba solo.
+            now: NOW,
           })
           expect(athlete === 'can_register').toBe(phase.canRegister)
           // El panel anuncia "en vivo" cuando el público puede inscribirse.

@@ -34,6 +34,11 @@ export const ACCOUNT_BENEFITS_TAB = 'account-benefits'
 export const ACCOUNT_MEMBERSHIP_TAB = 'account-membership'
 export const ACCOUNT_EVENTS_TAB = 'account-events'
 /**
+ * Entradas de espectador con QR habilitado. Van pegadas a la credencial: son
+ * lo otro que se muestra en una puerta.
+ */
+export const ACCOUNT_TICKETS_TAB = 'account-tickets'
+/**
  * Ficha condicional: existe sólo para quien canjeó un código secreto de oferta
  * exclusiva. Está en `ACCOUNT_TAB_IDS` porque el orden de la cinta y la
  * dirección de la transición se leen de ahí, pero `AccountNav` recibe aparte
@@ -54,6 +59,7 @@ export const ACCOUNT_PAYMENTS_TAB = 'account-payments'
  */
 export const ACCOUNT_TAB_IDS = [
   DEFAULT_ACCOUNT_TAB,
+  ACCOUNT_TICKETS_TAB,
   // Condicional: la ficha del código-paquete existe sólo para quien canjeó uno.
   // Está en el orden porque de acá sale la dirección de la transición del
   // panel; qué fichas se dibujan lo decide `visibleIds` en AccountNav.
@@ -94,6 +100,8 @@ const ACCOUNT_TAB_BY_SECTION = Object.freeze({
   profile: 'account-personal-data',
   qr: DEFAULT_ACCOUNT_TAB,
   credential: DEFAULT_ACCOUNT_TAB,
+  tickets: ACCOUNT_TICKETS_TAB,
+  entradas: ACCOUNT_TICKETS_TAB,
 })
 
 /**

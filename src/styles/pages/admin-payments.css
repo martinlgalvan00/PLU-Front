@@ -491,6 +491,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Motivo de rechazo/cancelación bajo el estado: una línea, el resto en el
+   title. Sirve para decidir si volver a aceptar sin abrir la orden. */
+.admin-orders-block__status-reason {
+  color: var(--admin-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  max-width: 26ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .admin-orders-block__proof-note--warning {
   color: var(--admin-status-warning);
   font-weight: 500;

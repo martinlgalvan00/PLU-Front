@@ -113,6 +113,7 @@ import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import {
   publicReadLimiter,
+  doorLookupLimiter,
   scanTelemetryLimiter,
   staffLimiter,
   ticketOrderLookupLimiter,
@@ -149,6 +150,7 @@ import { resolveMercadoPagoPublicKeyForProfileId } from '../modules/payments/mer
 import { wisePriceFor } from '../modules/pricing/checkoutPricePolicy.js'
 import { resolveTicketOrderWisePricing } from '../../shared/ticketWisePricing.js'
 import { recordScanEvent, recordScanEvents } from '../modules/checkin/scanEventRecorder.js'
+import { requireAthleteSession } from '../services/athleteSessionService.js'
 
 const attendeeSchema = z.object({
   fullName: z.string().trim().min(3),
@@ -261,6 +263,68 @@ export const createOrderSchema = z
   .superRefine(assertNoDuplicateDni)
 const accessSchema = z.object({ accessToken: z.string().trim().min(32) })
 const rejectOrderSchema = z.object({ reason: z.string().trim().min(3).max(500) })
+// El motivo es obligatorio para una orden ya acreditada (lo recibe el
+// comprador por mail); para una abierta sin cobrar es opcional. Esa regla la
+// aplica la RPC, que es la que sabe en qué estado está la orden.
+const cancelOrderSchema = z.object({
+  reason: z.string().trim().max(500).optional().default(''),
+})
+const guestSchema = z.object({
+  fullName: z.string().trim().min(3).max(120),
+  dni: z
+    .string()
+    .transform((value) => value.replace(/\D/g, ''))
+    .pipe(z.string().regex(/^\d{7,8}$/, 'DNI inválido.')),
+  email: z
+    .union([z.literal(''), z.string().trim().toLowerCase().email().max(160)])
+    .optional()
+    .default(''),
+})
+export const issueGuestTicketsSchema = z.object({
+  ticketTypeId: z.string().uuid(),
+  label: z.string().trim().max(60).optional().default(''),
+  sendEmail: z.boolean().optional().default(true),
+  guests: z.array(guestSchema).min(1).max(200),
+})
+const guestCancelSchema = z.object({ reason: z.string().trim().min(3).max(500) })
+/**
+ * Verificación por código en la puerta. El cliente ya normalizó lo que tipeó el
+ * guardia (`parseManualCheckinCode`): acá sólo entran las dos formas canónicas.
+ * POST y no GET: un DNI no tiene que quedar en la URL de los logs.
+ */
+const checkinLookupSchema = z
+  .object({
+    eventSlug: z.string().trim().min(1).max(120),
+    ticketCode: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^TCK-\d{8}$/, 'Código de entrada inválido.')
+      .optional(),
+    dni: z
+      .string()
+      .transform((value) => value.replace(/\D/g, ''))
+      .pipe(z.string().regex(/^\d{7,8}$/, 'DNI inválido.'))
+      .optional(),
+    doorCode: z
+      .string()
+      .transform((value) => value.replace(/\D/g, ''))
+      .pipe(z.string().regex(/^\d{6}$/, 'El código de puerta tiene 6 dígitos.'))
+      .optional(),
+  })
+  .refine(
+    (value) => [value.ticketCode, value.dni, value.doorCode].filter(Boolean).length === 1,
+    { message: 'Indicá un código de puerta, un número de entrada o un DNI.' },
+  )
+// El QR lleva un UUID. Cualquier otra cosa no puede ser una entrada: se
+// contesta 404 en la ruta, en vez de dejar que el cast falle en la base
+// (22P02 -> 503), que la puerta leía como "sin conexión con el servidor".
+const QR_TOKEN_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+function assertQrTokenShape(qrToken) {
+  if (!QR_TOKEN_RE.test(String(qrToken ?? ''))) {
+    throw new HttpError(404, 'Entrada no encontrada.')
+  }
+}
 
 const ticketOrderStatusEnum = z.enum([
   'creado',
@@ -294,7 +358,9 @@ const ticketOrdersQuerySchema = z.object({
         .pipe(z.array(ticketOrderStatusEnum).min(1).max(6)),
     ])
     .optional(),
-  channel: z.enum(['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer']).optional(),
+  channel: z
+    .enum(['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer', 'courtesy'])
+    .optional(),
   query: z.string().trim().min(1).max(120).optional(),
   sort: z.enum(['recent', 'aging']).optional().default('recent'),
   limit: z.coerce.number().int().min(1).max(200).optional().default(200),
@@ -459,6 +525,32 @@ export function createTicketRoutes({
    * como segundo factor y, si coincide, recupera la entrada con el mismo
    * render que una compra recién hecha (ver GET /orders/lookup).
    */
+  /**
+   * Sólo avisa cuando la orden estaba acreditada: una pendiente que se cierra
+   * nunca tuvo un QR que funcionara, y el comprador no necesita otro mail.
+   */
+  async function notifyTicketCancelled(result, reason) {
+    const order = result?.order
+    if (!order || result?.duplicate || result?.previousStatus !== 'aprobado') return
+    if (!order.buyer_email) return
+    const event = await athleteRepo()
+      .findEventSummary(order.event_id)
+      .catch(() => null)
+    await sendBestEffort('ticket_cancelled', {
+      to: order.buyer_email,
+      toName: order.buyer_name,
+      entityType: 'ticket_order',
+      entityId: order.id,
+      idempotencyKey: `email:ticket-cancelled:${order.id}:${order.updated_at}`,
+      params: {
+        name: order.buyer_name,
+        eventTitle: event?.title ?? 'PLU ARG',
+        reference: order.reference,
+        reason: reason || 'Cancelada por la organización.',
+      },
+    })
+  }
+
   async function sendTicketConfirmation(result) {
     const order = result?.order
     if (!order || result?.duplicate) return
@@ -474,7 +566,10 @@ export function createTicketRoutes({
     const quantity =
       tickets.filter((ticket) => ticket.is_primary_credential !== false).length || tickets.length
 
-    await sendBestEffort('ticket_confirmation', {
+    // Devuelve el resultado del despacho: quien cuenta envíos (invitados)
+    // tiene que distinguir 'sent' de 'failed'/'skipped' — sendBestEffort nunca
+    // rechaza, así que un `fulfilled` no significa que el mail salió.
+    return sendBestEffort('ticket_confirmation', {
       to: order.buyer_email,
       toName: order.buyer_name,
       entityType: 'ticket_order',
@@ -700,8 +795,24 @@ export function createTicketRoutes({
       }
     },
   )
+  /**
+   * "Mis entradas" del perfil: las entradas acreditadas que le pertenecen a la
+   * cuenta logueada, por DNI del asistente o por mail de compra verificado
+   * (ver `athlete_list_my_tickets`). Sólo `pagada`: un QR pendiente o
+   * cancelado no abre nada y mostrarlo confunde en la puerta.
+   */
+  router.get('/mine', publicReadLimiter, async (req, res, next) => {
+    try {
+      const { athleteId } = await requireAthleteSession({ client: getSupabaseAdmin?.(), req })
+      res.set('Cache-Control', 'private, no-store')
+      res.json({ tickets: await repo().listForAthlete(athleteId) })
+    } catch (error) {
+      next(error)
+    }
+  })
   router.get('/verify/:qrToken', publicReadLimiter, async (req, res, next) => {
     try {
+      assertQrTokenShape(req.params.qrToken)
       res.json({ ticket: await repo().verify(req.params.qrToken) })
     } catch (error) {
       next(error)
@@ -745,6 +856,7 @@ export function createTicketRoutes({
               order_id: ticket.order_id,
               bundle_id: ticket.bundle_id,
               ticket_code: ticket.ticket_code,
+              door_code: ticket.door_code ?? null,
               qr_token: ticket.qr_token,
               attendee_name: ticket.attendee_name,
               status: ticket.status,
@@ -1025,6 +1137,55 @@ export function createTicketRoutes({
       }
     },
   )
+  /**
+   * Cancelar una orden manual: la aprobada pierde sus QR (dejan de abrir la
+   * puerta) y la abierta libera el cupo que retenía. Si ya estaba acreditada,
+   * el comprador recibe el motivo por mail. Mercado Pago no pasa por acá: se
+   * cancela reembolsando desde MP, y el webhook revoca los QR.
+   */
+  router.post(
+    '/orders/:orderId/cancel',
+    ...financeWriteGuard,
+    staffLimiter,
+    validateBody(cancelOrderSchema),
+    async (req, res, next) => {
+      try {
+        const orderId = parseOrderId(req)
+        assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
+        const result = await repo().cancel(orderId, req.validatedBody.reason || null, actor(req))
+        await notifyTicketCancelled(result, req.validatedBody.reason).catch((error) =>
+          logger.warn('email.ticket_cancelled_failed', { orderId, err: error }),
+        )
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Volver a aceptar una orden rechazada o cancelada (comprobante rechazado
+   * por error, transferencia que llegó después del vencimiento). La RPC
+   * revalida el cupo: si se vendió mientras la orden estaba cerrada, falla
+   * con 409 y nada cambia.
+   */
+  router.post(
+    '/orders/:orderId/reinstate',
+    ...financeWriteGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const orderId = parseOrderId(req)
+        assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
+        const result = await repo().reinstate(orderId, actor(req))
+        await sendTicketConfirmation(result).catch((error) =>
+          logger.warn('email.ticket_confirmation_failed', { orderId, err: error }),
+        )
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   router.get(
     '/orders/:orderId/proof-url',
     ...financeReadGuard,
@@ -1064,6 +1225,104 @@ export function createTicketRoutes({
           bucket: PROOF_BUCKET,
           cacheControl: 'private, max-age=300, stale-while-revalidate=60',
         })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
+   * Lista de invitados del evento (prensa, sponsors, staff externo): entradas
+   * sin cargo con QR propio, que la puerta escanea igual que cualquier otra.
+   * Es una decisión de la organización del evento, no de Finanzas: la guarda
+   * es `admin.events.write`, la misma que las excepciones de acceso.
+   */
+  router.get(
+    '/guests/:eventSlug',
+    ...ticketAccessOverrideGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        assertEventSlugScope(req, req.params.eventSlug)
+        const eventId = await repo().resolveEventIdBySlug(req.params.eventSlug)
+        if (!eventId) throw new HttpError(404, 'Evento no encontrado.')
+        res.set('Cache-Control', 'private, no-store')
+        res.json({ guests: await repo().listGuestOrders(eventId) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/guests/:eventSlug',
+    ...ticketAccessOverrideGuard,
+    staffLimiter,
+    validateBody(issueGuestTicketsSchema),
+    async (req, res, next) => {
+      try {
+        assertEventSlugScope(req, req.params.eventSlug)
+        const { ticketTypeId, label, guests, sendEmail } = req.validatedBody
+        const result = await repo().issueGuestTickets(
+          { eventSlug: req.params.eventSlug, ticketTypeId, guests, label: label || null },
+          actor(req),
+        )
+        const issued = Array.isArray(result?.issued) ? result.issued : []
+        let emailed = 0
+        let emailFailed = 0
+        if (sendEmail) {
+          // De a pocos: una planilla de 200 invitados no puede abrir 200
+          // envíos a Brevo a la vez, ni frenar la respuesta si uno falla.
+          for (let index = 0; index < issued.length; index += 5) {
+            const batch = issued
+              .slice(index, index + 5)
+              .filter((item) => item?.order?.buyer_email)
+            const settled = await Promise.allSettled(
+              batch.map((item) => sendTicketConfirmation({ ...item, duplicate: false })),
+            )
+            for (const outcome of settled) {
+              if (outcome.status === 'fulfilled' && outcome.value?.status === 'sent') {
+                emailed += 1
+                continue
+              }
+              emailFailed += 1
+              logger.warn('email.guest_ticket_failed', {
+                status: outcome.status === 'fulfilled' ? outcome.value?.status : 'rejected',
+                err: outcome.reason,
+              })
+            }
+          }
+        }
+        res.status(201).json({ ...result, emailed, emailFailed })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Dar de baja una invitación desde el mismo panel donde se cargó. Sólo
+   * órdenes de cortesía de este evento: el resto de las cancelaciones pasa
+   * por Cobros, con el permiso de Finanzas.
+   */
+  router.post(
+    '/guests/:eventSlug/:orderId/cancel',
+    ...ticketAccessOverrideGuard,
+    staffLimiter,
+    validateBody(guestCancelSchema),
+    async (req, res, next) => {
+      try {
+        assertEventSlugScope(req, req.params.eventSlug)
+        const orderId = parseOrderId(req)
+        const eventId = await repo().resolveEventIdBySlug(req.params.eventSlug)
+        if (!eventId) throw new HttpError(404, 'Evento no encontrado.')
+        const order = await repo().findOrderSummary(orderId)
+        if (!order || order.event_id !== eventId || order.manual_payment_channel !== 'courtesy') {
+          throw new HttpError(404, 'Invitación no encontrada en este evento.')
+        }
+        const result = await repo().cancel(orderId, req.validatedBody.reason, actor(req))
+        await notifyTicketCancelled(result, req.validatedBody.reason).catch((error) =>
+          logger.warn('email.ticket_cancelled_failed', { orderId, err: error }),
+        )
+        res.json(result)
       } catch (error) {
         next(error)
       }
@@ -1177,6 +1436,49 @@ export function createTicketRoutes({
    * alta, y `:qrToken` capturaría literalmente "scan-events" como si fuera
    * un token si esta ruta quedara después.
    */
+  /**
+   * "El QR no escanea": el guardia tipea el número impreso en la entrada o el
+   * DNI y esto devuelve la(s) credencial(es) de ESTE evento que coinciden. No
+   * registra el ingreso ni decide nada: el cliente sigue con el token por el
+   * mismo camino que un escaneo, así pago, vigencia, zona y uso único se
+   * validan igual que con la cámara.
+   *
+   * Registrada antes de `/checkin/:qrToken` (Express matchea por orden de alta).
+   */
+  router.post(
+    '/checkin/lookup',
+    ...guard,
+    doorLookupLimiter,
+    validateBody(checkinLookupSchema),
+    async (req, res, next) => {
+      try {
+        const { eventSlug, ticketCode, dni, doorCode } = req.validatedBody
+        assertEventSlugScope(req, eventSlug)
+        const eventId = await repo().resolveEventIdBySlug(eventSlug)
+        if (!eventId) throw new HttpError(404, 'Evento no encontrado.')
+        const matches = await repo().lookupCheckinCredentials(eventId, {
+          ticketCode: ticketCode ?? null,
+          dni: dni ?? null,
+          doorCode: doorCode ?? null,
+        })
+        // Rastro de búsquedas sin coincidencia: es la señal de alguien probando
+        // códigos al azar. Sin el valor buscado (un DNI no va a los logs).
+        if (matches.length === 0) {
+          logger.info('checkin.lookup_miss', {
+            eventId,
+            kind: doorCode ? 'door_code' : ticketCode ? 'ticket_code' : 'dni',
+            actor: req.auth?.user?.id ?? null,
+            gate: req.auth?.user?.securityZone?.name ?? null,
+          })
+        }
+        res.set('Cache-Control', 'private, no-store')
+        res.json({ matches })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   router.post(
     '/checkin/scan-events',
     ...guard,
@@ -1349,6 +1651,7 @@ export function createTicketRoutes({
     let ticket
     const gate = resolveGateLabel(req)
     try {
+      assertQrTokenShape(req.params.qrToken)
       ticket = await repo().verify(req.params.qrToken)
       const eventId = verifiedTicketEventId(ticket)
       assertEventScope(req, eventId)
@@ -1400,6 +1703,7 @@ export function createTicketRoutes({
     staffLimiter,
     async (req, res, next) => {
       try {
+        assertQrTokenShape(req.params.qrToken)
         const ticket = await repo().verify(req.params.qrToken)
         assertEventScope(req, verifiedTicketEventId(ticket))
         assertTicketValidity(ticket)

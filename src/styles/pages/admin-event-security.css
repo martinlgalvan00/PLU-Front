@@ -608,6 +608,176 @@
   font-size: 15px;
 }
 
+/* ---- Lista de invitados ----
+   Misma composición abierta que el equipo: un filete arriba la separa del
+   bloque anterior, sin tarjeta propia. */
+
+.admin-guest-list {
+  border-top: 1px solid var(--admin-hairline);
+  padding-top: var(--space-xl);
+}
+
+.admin-guest-list__form {
+  border-bottom: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: var(--space-lg);
+  padding-bottom: var(--space-xl);
+}
+
+.admin-guest-list__form-row {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-guest-list__paste {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-guest-list__paste-head {
+  align-items: center;
+  display: flex;
+  gap: var(--space-md);
+  justify-content: space-between;
+}
+
+.admin-guest-list__paste label {
+  color: var(--admin-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-guest-list__paste textarea {
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 10px;
+  color: var(--admin-ink);
+  font: inherit;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 13px;
+  line-height: 1.55;
+  min-height: 132px;
+  padding: 12px 14px;
+  resize: vertical;
+  width: 100%;
+}
+
+.admin-guest-list__paste textarea:focus-visible,
+.admin-guest-list__checkbox input:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-guest-list__paste small,
+.admin-guest-list__checkbox small {
+  color: var(--admin-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.admin-guest-list__preview {
+  display: grid;
+  font-size: 13px;
+  gap: 6px;
+}
+
+.admin-guest-list__preview strong {
+  color: var(--admin-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-guest-list__preview summary {
+  color: var(--admin-status-danger);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.admin-guest-list__preview ul {
+  color: var(--admin-text-secondary);
+  display: grid;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.admin-guest-list__checkbox {
+  align-items: flex-start;
+  cursor: pointer;
+  display: flex;
+  font-size: 13.5px;
+  gap: 10px;
+}
+
+.admin-guest-list__checkbox input {
+  height: 18px;
+  margin-top: 1px;
+  width: 18px;
+}
+
+.admin-guest-list__checkbox span {
+  color: var(--admin-ink);
+  display: grid;
+  gap: 2px;
+}
+
+.admin-guest-list__form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-guest-list__result {
+  color: var(--admin-status-success);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.admin-guest-list__toolbar {
+  justify-content: space-between;
+}
+
+.admin-guest-list__count {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.admin-guest-list__status {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+}
+
+.admin-guest-list__status small {
+  color: var(--admin-muted);
+  font-size: 12px;
+  max-width: 20ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .admin-guest-list__form-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-guest-list__toolbar {
+    flex-wrap: wrap;
+  }
+
+  .admin-shell .admin-toolbar .admin-guest-list__toolbar .admin-filters__search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .admin-guest-list__form-actions .btn {
+    width: 100%;
+  }
+}
+
 /* ---- Responsive ---- */
 
 @media (max-width: 960px) {

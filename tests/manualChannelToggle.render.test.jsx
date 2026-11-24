@@ -1,6 +1,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
+import { goToPaymentStep } from './helpers/ticketCheckoutSteps.js'
 
 /**
  * Con el canal manual cerrado desde el panel, transferencia y efectivo no
@@ -19,6 +20,10 @@ vi.mock('../src/config/env.js', () => ({
     payments: { transferAlias: 'maximal.plu', transferCbu: '', transferHolder: 'Camila Pérez' },
     auth0: { domain: '', clientId: '', audience: '', redirectUri: '', configured: false },
   },
+}))
+
+vi.mock('../src/motion/MotionContentSwap.tsx', () => ({
+  default: ({ children }) => <div>{children}</div>,
 }))
 
 const RegisterSettle = (await import('../src/components/checkout/RegisterSettle.jsx')).default
@@ -47,11 +52,10 @@ function renderSettle(manualPaymentEnabled) {
 }
 
 function renderTickets(manualPaymentEnabled) {
-  return render(
+  const view = render(
     <I18nProvider>
       <TicketPurchaseSection
         editorial
-        showPassPreview={false}
         event={{ slug: 'pitbull-classic-2026', title: 'Pitbull Classic' }}
         manualPaymentEnabled={manualPaymentEnabled}
         pricing={TICKET_PRICING}
@@ -60,6 +64,9 @@ function renderTickets(manualPaymentEnabled) {
       />
     </I18nProvider>,
   )
+  // Los medios de pago son el tercer paso del checkout.
+  goToPaymentStep()
+  return view
 }
 
 /**

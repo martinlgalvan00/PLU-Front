@@ -1,5 +1,5 @@
 import '../../styles/components/ticket-type-options.css'
-import { CalendarDays, DoorOpen, Flame, ShieldCheck, Users } from 'lucide-react'
+import { CalendarDays, DoorOpen, Flame, Minus, Plus, ShieldCheck, Users } from 'lucide-react'
 import { money } from '../../lib/format.js'
 import { ticketTypeNameParts } from '../../lib/eventPricing.js'
 
@@ -12,11 +12,13 @@ import { ticketTypeNameParts } from '../../lib/eventPricing.js'
  * y eso tiene que leerse antes de pagar, no después.
  *
  * La misma pieza sirve para mostrar el catálogo (tienda, vista rápida del
- * evento, página de entradas). El checkout no la vuelve a pintar: ahí se
- * elige el tipo con un select por asistente, y esta lista queda como vidriera.
+ * evento) y para elegir en el checkout: con `onQuantityChange` cada tipo lleva
+ * su propio contador, así la vidriera y el lugar donde se compra son la misma
+ * lista y no hay que leer el catálogo arriba para después elegir en un select.
  *
- * Sin `onChange` es de sólo lectura: una lista, no un grupo de radios, para no
- * ofrecerle un control inerte a quien navega con teclado.
+ * Sin `onChange` ni `onQuantityChange` es de sólo lectura: una lista, no un
+ * grupo de radios, para no ofrecerle un control inerte a quien navega con
+ * teclado.
  */
 
 const ZONE_ICONS = {
@@ -122,11 +124,48 @@ function TicketTypeBody({ type, locale, t, showAddons }) {
   )
 }
 
+/**
+ * Contador de un tipo. El número es un `<output>` con aria-live: al tocar +
+ * el lector anuncia la cantidad nueva sin mover el foco del botón.
+ */
+function TicketTypeStepper({ count, label, maxReached, onChange, t }) {
+  return (
+    <div
+      className="ticket-type-options__stepper"
+      role="group"
+      aria-label={t('pages.tickets.flow.quantityFor', { name: label })}
+    >
+      <button
+        type="button"
+        aria-label={t('pages.tickets.flow.subtractNamed', { name: label })}
+        disabled={count === 0}
+        onClick={() => onChange(-1)}
+      >
+        <Minus size={16} strokeWidth={2} aria-hidden />
+      </button>
+      <output aria-live="polite" className="ticket-type-options__count">
+        {count}
+      </output>
+      <button
+        type="button"
+        aria-label={t('pages.tickets.flow.addNamed', { name: label })}
+        disabled={maxReached}
+        onClick={() => onChange(1)}
+      >
+        <Plus size={16} strokeWidth={2} aria-hidden />
+      </button>
+    </div>
+  )
+}
+
 export default function TicketTypeOptions({
   className = '',
   locale = 'es',
+  maxReached = false,
   name,
   onChange,
+  onQuantityChange,
+  quantities = {},
   showAddons = true,
   t,
   ticketTypes = [],
@@ -136,6 +175,34 @@ export default function TicketTypeOptions({
 
   const rootClass = ['ticket-type-options', className].filter(Boolean).join(' ')
   const legend = t('pages.tickets.ticketTypes.legend')
+
+  if (onQuantityChange) {
+    return (
+      <ul className={`${rootClass} ticket-type-options--picker`} aria-label={legend}>
+        {ticketTypes.map((type) => {
+          const count = quantities[type.id] ?? 0
+          const label = ticketTypeNameParts(type.name, locale).title || type.name
+          return (
+            <li
+              key={type.id}
+              className={`ticket-type-options__option${count > 0 ? ' is-selected' : ''}`}
+            >
+              <div className="ticket-type-options__body">
+                <TicketTypeBody type={type} locale={locale} t={t} showAddons={showAddons} />
+              </div>
+              <TicketTypeStepper
+                count={count}
+                label={label}
+                maxReached={maxReached}
+                onChange={(delta) => onQuantityChange(type.id, delta)}
+                t={t}
+              />
+            </li>
+          )
+        })}
+      </ul>
+    )
+  }
 
   if (!onChange) {
     return (

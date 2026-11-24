@@ -810,6 +810,22 @@ export default function App() {
 
   const Page = PUBLIC_VIEWS[view] || NotFoundPage
 
+  // Quien compra entradas con la sesión abierta compra "como sí mismo": sus
+  // datos precargan el checkout y la compra termina en Mis entradas (el
+  // backend la asocia por DNI o por mail verificado de la cuenta).
+  const ticketAccount =
+    view === 'tickets' && app.session?.role === 'athlete_plu'
+      ? (() => {
+          const athlete = app.athletes.find((item) => item.id === app.session.athleteId)
+          return {
+            name: athlete?.fullName ?? app.session.name ?? '',
+            email: athlete?.email ?? app.session.email ?? '',
+            dni: athlete?.documentId ?? '',
+            emailVerified: Boolean(athlete?.emailVerifiedAt),
+          }
+        })()
+      : null
+
   const pageProps =
     view === 'register'
       ? {
@@ -868,6 +884,7 @@ export default function App() {
                       events: publicEvents,
                       initialEventSlug: ticketEventSlug,
                       tickets: app.tickets,
+                      account: ticketAccount,
                       createdOrder: app.createdOrder,
                       onSubmitTicketPurchase: app.submitTicketPurchase,
                       onUploadPaymentProof: app.uploadTicketPaymentProofAction,

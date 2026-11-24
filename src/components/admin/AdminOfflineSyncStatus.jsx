@@ -23,6 +23,9 @@ export default function AdminOfflineSyncStatus({
   lastDownloadedAt,
   lastSyncedAt,
   pendingCount,
+  // Avisos de Realtime: si está en false los cambios de otras puertas llegan
+  // por el sondeo (hasta 30 s), no al instante.
+  realtimeConnected = false,
   syncIssue = null,
   syncNow,
   syncing,
@@ -73,6 +76,20 @@ export default function AdminOfflineSyncStatus({
               {isOnline ? <Wifi size={14} aria-hidden /> : <CloudOff size={14} aria-hidden />}
               {isOnline ? t('admin.checkin.offline.online') : t('admin.checkin.offline.offline')}
             </span>
+
+            {isOnline ? (
+              <span
+                className={`admin-offline-sync-status__live${realtimeConnected ? ' is-live' : ''}`}
+                title={
+                  realtimeConnected
+                    ? t('admin.checkin.offline.liveHint')
+                    : t('admin.checkin.offline.pollingHint')
+                }
+              >
+                <span className="admin-offline-sync-status__live-dot" aria-hidden />
+                {realtimeConnected ? t('admin.checkin.offline.live') : t('admin.checkin.offline.polling')}
+              </span>
+            ) : null}
 
             {hasPending && (
               <span className="admin-offline-sync-status__pending">

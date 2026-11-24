@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ArrowRight, Clock3, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Clock3, MapPin } from 'lucide-react'
 import { m } from 'motion/react'
 import heroPhoto from '../assets/DSC00392-display.jpg'
 import heroPhotoAvif from '../assets/DSC00392-display.avif'
@@ -11,9 +11,8 @@ import heroPhotoWebp800 from '../assets/DSC00392-display-800.webp'
 import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.jsx'
 import TicketOrderLookup from '../components/ui/TicketOrderLookup.jsx'
-import TicketPassPreview from '../components/ui/TicketPassPreview.jsx'
 import TicketPurchaseSection from '../components/ui/TicketPurchaseSection.jsx'
-import TicketTypeOptions, { zoneScopeLabel } from '../components/ui/TicketTypeOptions.jsx'
+import { zoneScopeLabel } from '../components/ui/TicketTypeOptions.jsx'
 import { zonesTicketsCanOpen } from '../services/securityZoneService.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import {
@@ -21,6 +20,8 @@ import {
   useTicketCheckoutAvailability,
 } from '../hooks/useTicketAvailability.js'
 import { getUpcomingEventsByDate } from '../lib/eventNavigation.js'
+import { getTicketsRouteOrderReference } from '../lib/ticketsRoute.js'
+import { ACCOUNT_TICKETS_TAB } from '../lib/navigation.js'
 import {
   cheapestTicketTypePrice,
   isTicketSalesEnabled,
@@ -118,6 +119,7 @@ export default function TicketsPage({
   events = [],
   initialEventSlug = null,
   tickets = [],
+  account = null,
   createdOrder,
   onNavigate,
   onLookupTicketOrder,
@@ -157,12 +159,6 @@ export default function TicketsPage({
       ? createdOrder
       : null
 
-  const heroMark =
-    String(selectedEvent?.title ?? '')
-      .trim()
-      .split(/\s+/)[0]
-      ?.toUpperCase() || t('pages.ticketsPage.heroWatermark')
-
   // `visibleCreatedOrder` matchea por evento seleccionado: si la entrada
   // recuperada es de otro evento en venta (dos eventos con venta simultánea),
   // sin este ajuste el QR quedaba encontrado pero invisible -- la pantalla
@@ -170,9 +166,7 @@ export default function TicketsPage({
   async function handleLookupTicketOrder(reference, email) {
     const result = await onLookupTicketOrder?.(reference, email)
     if (result?.order?.eventSlug) {
-      const match = ticketEvents.find(
-        (item) => (item.slug ?? item.id) === result.order.eventSlug,
-      )
+      const match = ticketEvents.find((item) => (item.slug ?? item.id) === result.order.eventSlug)
       if (match) setSelectedEventId(match.id ?? match.slug ?? match.title)
     }
     return result
@@ -188,11 +182,15 @@ export default function TicketsPage({
   const heroRootProps = reducedMotion
     ? {}
     : { initial: 'hidden', animate: 'visible', variants: heroStaggerContainer }
+  const [lookupFromLink] = useState(() => Boolean(getTicketsRouteOrderReference()))
+  const selectedEventKey = selectedEvent?.id ?? selectedEvent?.slug ?? selectedEvent?.title
 
   return (
     <main className="tickets-page">
+      {/* Cabecera compacta: qué evento, cuándo y dónde. La compra empieza
+          inmediatamente debajo, sin una portada que haya que atravesar. */}
       <HeroRoot
-        className={`tickets-page__hero${reducedMotion ? '' : ' tickets-page__hero--motion'}`}
+        className="tickets-page__hero"
         aria-labelledby="tickets-page-title"
         {...heroRootProps}
       >
@@ -208,27 +206,6 @@ export default function TicketsPage({
             fetchPriority="high"
           />
         </div>
-        <div className="tickets-page__hero-atmosphere" aria-hidden />
-        {reducedMotion ? (
-          <p className="tickets-page__hero-watermark" aria-hidden>
-            {heroMark}
-          </p>
-        ) : (
-          <m.p
-            className="tickets-page__hero-watermark"
-            aria-hidden
-            variants={{
-              hidden: { y: 28, scale: 0.97 },
-              visible: {
-                y: 0,
-                scale: 1,
-                transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1] },
-              },
-            }}
-          >
-            {heroMark}
-          </m.p>
-        )}
 
         <div className="tickets-page__shell tickets-page__hero-inner">
           <Item {...itemProps}>
@@ -242,124 +219,61 @@ export default function TicketsPage({
             </button>
           </Item>
 
-          <Item {...itemProps} className="tickets-page__hero-stripe" aria-hidden />
-
-          <div className="tickets-page__hero-frame">
-            <div className="tickets-page__hero-copy">
-              <Item {...itemProps}>
-                <p className="tickets-page__brand">{t('pages.ticketsPage.passBrand')}</p>
-              </Item>
-              <Item {...itemProps}>
-                <p className="tickets-page__eyebrow">{t('pages.ticketsPage.eyebrow')}</p>
-              </Item>
-              <Item {...itemProps}>
-                <h1 id="tickets-page-title">
-                  {selectedEvent?.title ?? t('pages.ticketsPage.title')}
-                </h1>
-              </Item>
-              <Item {...itemProps}>
-                <div
-                  className="tickets-page__dateline"
-                  aria-label={t('pages.ticketsPage.eventMetaAria')}
-                >
-                  <p className="tickets-page__dateline-date">
-                    {selectedEvent?.date ?? t('pages.ticketsPage.dateFallback')}
-                  </p>
-                  <p className="tickets-page__dateline-venue">
-                    {selectedEvent?.venue ?? t('pages.ticketsPage.venueFallback')}
-                  </p>
-                </div>
-              </Item>
-              <Item {...itemProps}>
-                <p className="tickets-page__lead">{t('pages.ticketsPage.lead')}</p>
-              </Item>
-
-              {ticketSalesOpen && availabilityRemaining != null ? (
-                <Item {...itemProps}>
-                  <TicketAvailabilityBadge remaining={availabilityRemaining} />
-                </Item>
-              ) : null}
-
-              {!ticketSalesOpen ? (
-                <Item {...itemProps}>
-                  <p className="tickets-page__sales-paused" role="status">
-                    <Clock3 size={15} aria-hidden />
-                    <span>{t('pages.ticketsPage.salesPaused')}</span>
-                  </p>
-                </Item>
-              ) : null}
-
+          <div className="tickets-page__hero-copy">
+            <Item {...itemProps}>
+              <p className="tickets-page__eyebrow">{t('pages.ticketsPage.eyebrow')}</p>
+            </Item>
+            <Item {...itemProps}>
+              <h1 id="tickets-page-title">
+                {selectedEvent?.title ?? t('pages.ticketsPage.title')}
+              </h1>
+            </Item>
+            <Item {...itemProps}>
+              <p
+                className="tickets-page__dateline"
+                aria-label={t('pages.ticketsPage.eventMetaAria')}
+              >
+                <span className="tickets-page__dateline-date">
+                  <CalendarDays size={15} aria-hidden />
+                  {selectedEvent?.date ?? t('pages.ticketsPage.dateFallback')}
+                </span>
+                <span className="tickets-page__dateline-venue">
+                  <MapPin size={15} aria-hidden />
+                  {selectedEvent?.venue ?? t('pages.ticketsPage.venueFallback')}
+                </span>
+              </p>
+            </Item>
+            <Item {...itemProps} className="tickets-page__hero-status">
               {ticketSalesOpen ? (
-                <Item {...itemProps}>
-                  <div className="tickets-page__hero-actions">
-                    <a className="tickets-page__hero-cta motion-icon-shift" href="#checkout">
-                      {t('pages.ticketsPage.heroCta')}
-                      <ArrowRight
-                        size={15}
-                        aria-hidden
-                        className="tickets-page__hero-cta-icon motion-icon-shift__target"
-                      />
-                    </a>
-                    <a className="tickets-page__hero-link" href="#pass-preview">
-                      {t('pages.ticketsPage.heroSeePass')}
-                    </a>
-                  </div>
-                </Item>
-              ) : null}
-            </div>
-
-            <Item {...itemProps} className="tickets-page__hero-visual">
-              <TicketPassPreview
-                eventTitle={selectedEvent?.title ?? t('pages.ticketsPage.eventFallback')}
-                eventSlug={selectedEvent?.slug ?? selectedEvent?.id ?? ''}
-                date={selectedEvent?.date ?? t('pages.ticketsPage.dateFallback')}
-                venue={selectedEvent?.venue ?? t('pages.ticketsPage.venueFallback')}
-                showHint={false}
-              />
+                availabilityRemaining != null ? (
+                  <TicketAvailabilityBadge remaining={availabilityRemaining} />
+                ) : null
+              ) : (
+                <p className="tickets-page__sales-paused" role="status">
+                  <Clock3 size={15} aria-hidden />
+                  <span>{t('pages.ticketsPage.salesPaused')}</span>
+                </p>
+              )}
             </Item>
           </div>
         </div>
       </HeroRoot>
 
       <section
-        id="pass-preview"
-        className="tickets-page__pass tickets-page__shell"
-        aria-labelledby="tickets-pass-title"
+        id="checkout"
+        className="tickets-page__checkout tickets-page__shell"
+        aria-label={t('pages.ticketsPage.checkoutTitle')}
       >
-        <header className="tickets-page__pass-head">
-          <span className="tickets-page__eyebrow">
-            {t('pages.ticketsPage.passShowcaseEyebrow')}
-          </span>
-          <h2 id="tickets-pass-title">{t('pages.ticketsPage.passShowcaseTitle')}</h2>
-          <p>{t('pages.ticketsPage.passShowcaseLead')}</p>
-        </header>
-
-        <div className="tickets-page__pass-stage" aria-label={t('pages.ticketsPage.quickCardAria')}>
-          <TicketPassPreview
-            eventTitle={selectedEvent?.title ?? t('pages.ticketsPage.eventFallback')}
-            eventSlug={selectedEvent?.slug ?? selectedEvent?.id ?? ''}
-            date={selectedEvent?.date ?? t('pages.ticketsPage.dateFallback')}
-            venue={selectedEvent?.venue ?? t('pages.ticketsPage.venueFallback')}
-          />
-        </div>
-      </section>
-
-      {ticketEvents.length > 1 && (
-        <section
-          className="tickets-page__event-picker tickets-page__shell"
-          aria-label={t('pages.ticketsPage.chooseEventAria')}
-        >
-          <div className="tickets-page__event-picker-head">
-            <span>{t('pages.ticketsPage.chooseEventEyebrow')}</span>
-            <h2>{t('pages.ticketsPage.chooseEventTitle')}</h2>
-            <p>{t('pages.ticketsPage.chooseEventLead')}</p>
-          </div>
-          <div className="tickets-page__event-list" role="list">
+        {ticketEvents.length > 1 ? (
+          <div
+            className="tickets-page__event-picker"
+            role="group"
+            aria-label={t('pages.ticketsPage.chooseEventAria')}
+          >
             {ticketEvents.map((item) => {
               const itemId = item.id ?? item.slug ?? item.title
-              const active =
-                itemId === (selectedEvent?.id ?? selectedEvent?.slug ?? selectedEvent?.title)
-              const itemPricing = ticketPricingFromEvent(item)
+              const active = itemId === selectedEventKey
+              const fromPrice = cheapestTicketTypePrice(ticketPricingFromEvent(item))
               return (
                 <button
                   key={itemId}
@@ -370,120 +284,73 @@ export default function TicketsPage({
                   ]
                     .filter(Boolean)
                     .join(' ')}
+                  aria-pressed={active}
                   onClick={() => setSelectedEventId(itemId)}
-                  role="listitem"
                 >
-                  <span>
-                    {active
-                      ? t('pages.ticketsPage.currentEvent')
-                      : t('pages.ticketsPage.availableEvent')}
-                  </span>
                   <strong>{item.title ?? t('pages.ticketsPage.eventFallback')}</strong>
                   <small>
-                    {item.date ?? t('pages.ticketsPage.dateFallback')} ·{' '}
-                    {item.venue ?? t('pages.ticketsPage.venueFallback')}
+                    {item.date ?? t('pages.ticketsPage.dateFallback')}
+                    {fromPrice != null
+                      ? ` · ${t('pages.shop.fromPrice', { amount: money(fromPrice, locale) })}`
+                      : ''}
                   </small>
-                  <em>
-                    {money(cheapestTicketTypePrice(itemPricing), locale)}{' '}
-                    {t('pages.ticketsPage.fromPerDay')}
-                  </em>
                 </button>
               )
             })}
           </div>
-        </section>
-      )}
+        ) : null}
 
-      {ticketSalesOpen ? (
-        <section
-          className="tickets-page__offers tickets-page__shell"
-          aria-labelledby="tickets-offers-title"
-        >
-          <header className="tickets-page__offers-head">
-            <span className="tickets-page__eyebrow">{t('pages.ticketsPage.offersEyebrow')}</span>
-            <h2 id="tickets-offers-title">{t('pages.ticketsPage.offersTitle')}</h2>
-            <p>{t('pages.ticketsPage.offersLead')}</p>
-          </header>
+        {/* Quien llega con el link del mail viene a recuperar su entrada: la
+            búsqueda va arriba y abierta. El resto viene a comprar, y la
+            búsqueda queda al pie. */}
+        {lookupFromLink && !visibleCreatedOrder ? (
+          <TicketOrderLookup onLookup={handleLookupTicketOrder} />
+        ) : null}
 
-          {/* Los tipos se muestran con la misma pieza que usa el checkout: la
-              vidriera y el paso donde se elige tienen que decir lo mismo. */}
-          <TicketTypeOptions
-            className="tickets-page__offers-grid"
-            locale={locale}
-            t={t}
-            ticketTypes={pricing.ticketTypes}
+        {ticketSalesOpen ? (
+          <TicketPurchaseSection
+            // Cambiar de evento arranca una compra nueva: los tipos, precios y
+            // medios son otros, y el paso en el que estaba deja de aplicar.
+            key={selectedEventKey}
+            editorial
+            event={selectedEvent}
+            manualPaymentEnabled={
+              ticketCheckout.channels
+                ? ticketCheckout.channels.bank_transfer === true
+                : ticketCheckout.ticketManualEnabled !== false
+            }
+            mercadoPagoEnabled={ticketCheckout.channels?.mercado_pago !== false}
+            // Efectivo y Wise sólo si la celda viene explícitamente abierta:
+            // ofrecerlos por omisión es prometer un medio que rebota al
+            // confirmar la compra.
+            cashEnabled={ticketCheckout.channels?.cash_pitbull === true}
+            wiseEnabled={ticketCheckout.channels?.wise_transfer === true}
+            accountDetails={ticketCheckout.bankTransfer ?? null}
+            pricing={pricing}
+            tickets={tickets}
+            account={account}
+            onOpenMyTickets={() => onNavigate('profile', { tab: ACCOUNT_TICKETS_TAB })}
+            onCreateAccount={() => onNavigate('register')}
+            createdOrder={visibleCreatedOrder}
+            onSubmit={onSubmitTicketPurchase}
+            onUploadPaymentProof={onUploadPaymentProof}
           />
+        ) : (
+          <div className="tickets-page__closed">
+            <h2>{t('pages.ticketsPage.salesPausedTitle')}</h2>
+            <p>{t('pages.ticketsPage.salesPausedLead')}</p>
+          </div>
+        )}
+      </section>
 
-          <TicketAccessMatrix locale={locale} ticketTypes={pricing.ticketTypes} t={t} />
+      {!visibleCreatedOrder ? (
+        <section className="tickets-page__more tickets-page__shell">
+          {!lookupFromLink ? <TicketOrderLookup onLookup={handleLookupTicketOrder} /> : null}
+          {ticketSalesOpen ? (
+            <TicketAccessMatrix locale={locale} ticketTypes={pricing.ticketTypes} t={t} />
+          ) : null}
         </section>
       ) : null}
-
-      <section
-        id="checkout"
-        className="tickets-page__checkout"
-        aria-labelledby="tickets-checkout-title"
-      >
-        <div className="tickets-page__shell tickets-page__checkout-inner">
-          <header className="tickets-page__checkout-head">
-            <div className="tickets-page__checkout-copy">
-              <span className="tickets-page__eyebrow">
-                {ticketSalesOpen
-                  ? t('pages.ticketsPage.checkoutEyebrow')
-                  : t('pages.ticketsPage.salesPausedEyebrow')}
-              </span>
-              <h2 id="tickets-checkout-title">
-                {ticketSalesOpen
-                  ? t('pages.ticketsPage.checkoutTitle')
-                  : t('pages.ticketsPage.salesPausedTitle')}
-              </h2>
-              <p>
-                {ticketSalesOpen
-                  ? t('pages.ticketsPage.checkoutLead')
-                  : t('pages.ticketsPage.salesPausedLead')}
-              </p>
-            </div>
-            {ticketSalesOpen ? (
-              <p className="tickets-page__trust">
-                <ShieldCheck size={16} aria-hidden />
-                {t('pages.ticketsPage.secureFlow')}
-              </p>
-            ) : null}
-          </header>
-
-          {!visibleCreatedOrder ? (
-            <TicketOrderLookup onLookup={handleLookupTicketOrder} />
-          ) : null}
-
-          <div className="tickets-page__checkout-panel">
-            {ticketSalesOpen ? (
-              <TicketPurchaseSection
-                editorial
-                showPassPreview={false}
-                event={selectedEvent}
-                manualPaymentEnabled={
-                  ticketCheckout.channels
-                    ? ticketCheckout.channels.bank_transfer === true
-                    : ticketCheckout.ticketManualEnabled !== false
-                }
-                mercadoPagoEnabled={ticketCheckout.channels?.mercado_pago !== false}
-                // Efectivo y Wise sólo si la celda viene explícitamente abierta:
-                // ofrecerlos por omisión es prometer un medio que rebota al
-                // confirmar la compra.
-                cashEnabled={ticketCheckout.channels?.cash_pitbull === true}
-                wiseEnabled={ticketCheckout.channels?.wise_transfer === true}
-                accountDetails={ticketCheckout.bankTransfer ?? null}
-                pricing={pricing}
-                tickets={tickets}
-                createdOrder={visibleCreatedOrder}
-                onSubmit={onSubmitTicketPurchase}
-                onUploadPaymentProof={onUploadPaymentProof}
-              />
-            ) : (
-              <p className="tickets-page__closed">{t('pages.ticketsPage.salesPausedLead')}</p>
-            )}
-          </div>
-        </div>
-      </section>
     </main>
   )
 }

@@ -1,6 +1,10 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { HttpError } from '../../lib/errors.js'
-import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseRpc.js'
+import {
+  assertSupabaseResult,
+  isMissingSchemaColumn,
+  requireSupabaseClient,
+} from '../../lib/supabaseRpc.js'
 import { PROOF_BUCKET } from '../../lib/supabaseAdmin.js'
 import { aggregateCapacity, aggregateRevenue, bucketByDay } from './ticketSalesAggregation.js'
 
@@ -9,14 +13,22 @@ const ORDER_ACCESS_SELECT = 'id,provider'
 // Misma proyección para la cola de pendientes y para el historial completo:
 // las dos pantallas arman la misma fila (orden + evento + asistentes), solo
 // cambia el filtro de estado/proveedor con el que se consulta.
-const TICKET_ORDER_SELECT = `
+const TICKET_ORDER_BASE_COLUMNS = `
   id, event_id, buyer_name, buyer_email, buyer_phone, amount, currency,
   provider, manual_payment_channel, status, reference, payment_proof_path,
   payment_proof_uploaded_at, created_at, updated_at,
   event:events(slug,title),
   tickets(attendee_name,attendee_dni)
 `
-const PENDING_MANUAL_ORDER_SELECT = TICKET_ORDER_SELECT
+// Trazabilidad de cancelación/reactivación (20261210100000). Va aparte para
+// poder leer sin ella si la API se despliega antes que la migración: una
+// columna faltante no puede dejar a Finanzas sin la lista de cobros.
+const TICKET_ORDER_LIFECYCLE_COLUMNS = `
+  rejection_reason, rejected_at, cancellation_reason, cancelled_at,
+  cancelled_from_status, reinstated_at, courtesy_label
+`
+const TICKET_ORDER_SELECT = `${TICKET_ORDER_BASE_COLUMNS}, ${TICKET_ORDER_LIFECYCLE_COLUMNS}`
+const PENDING_MANUAL_ORDER_SELECT = TICKET_ORDER_BASE_COLUMNS
 const OPEN_TICKET_ORDER_STATUSES = ['creado', 'pendiente']
 // Igual que en el repo de atletas: sumar el importe pendiente sobre una
 // muestra acotada en vez de traer la tabla entera para un número.
@@ -52,6 +64,33 @@ export function createSupabaseTicketRepository(client) {
     )
     if (!order) throw new HttpError(403, 'Token de orden invalido.')
     return order
+  }
+
+  function queryOrders(columns, { statuses, channel, query, sort = 'recent', limit = 200 } = {}) {
+    let builder = client.from('ticket_orders').select(columns)
+
+    if (Array.isArray(statuses) && statuses.length > 0) builder = builder.in('status', statuses)
+
+    // El canal sólo tiene sentido para `manual`: fijarlo sin fijar el
+    // proveedor dejaría pasar filas de Mercado Pago con el campo en null.
+    if (channel === 'mercado_pago') builder = builder.eq('provider', 'mercado_pago')
+    else if (channel) builder = builder.eq('provider', 'manual').eq('manual_payment_channel', channel)
+
+    if (query) {
+      const like = `%${query.trim()}%`
+      builder = builder.or(
+        `reference.ilike.${like},buyer_name.ilike.${like},buyer_email.ilike.${like}`,
+      )
+    }
+
+    // "Antiguas primero" prioriza el comprobante que más tiempo lleva
+    // esperando -- mismo argumento que `sort=aging` en afiliaciones.
+    builder =
+      sort === 'aging'
+        ? builder.order('created_at', { ascending: true })
+        : builder.order('created_at', { ascending: false })
+
+    return builder.limit(limit)
   }
 
   return {
@@ -168,6 +207,94 @@ export function createSupabaseTicketRepository(client) {
         return null
       }
     },
+    /**
+     * Verificación por código cuando el QR no se puede leer: traduce el número
+     * impreso en la entrada (`TCK-00000412`) o un DNI a la credencial que el
+     * QR hubiera traído, SIEMPRE dentro del evento del puesto. Lo que se
+     * devuelve es el token para seguir por el flujo de escaneo normal (pago,
+     * vigencia, zona, uso único los decide `staff_check_in_ticket`), nunca un
+     * veredicto propio.
+     *
+     * Un DNI puede dar varias: un entrenador tiene dos credenciales, y una
+     * misma persona puede tener entrada e inscripción de atleta.
+     */
+    async lookupCheckinCredentials(
+      eventId,
+      { ticketCode = null, dni = null, doorCode = null } = {},
+    ) {
+      const ticketQuery = client
+        .from('tickets')
+        .select(
+          'qr_token, ticket_code, door_code, attendee_name, attendee_dni, credential_label, status, is_primary_credential, ticket_types(name)',
+        )
+        .eq('event_id', eventId)
+      const filtered = doorCode
+        ? ticketQuery.eq('door_code', doorCode)
+        : ticketCode
+          ? ticketQuery.eq('ticket_code', ticketCode)
+          : ticketQuery.eq('attendee_dni', dni)
+      const tickets = assertSupabaseResult(
+        await filtered
+          .order('created_at', { ascending: true })
+          .limit(10),
+        'No se pudo buscar la entrada.',
+      )
+
+      const matches = (tickets ?? []).map((ticket) => ({
+        kind: 'ticket',
+        code: ticket.qr_token,
+        ticketCode: ticket.ticket_code,
+        doorCode: ticket.door_code ?? null,
+        name: ticket.attendee_name,
+        document: ticket.attendee_dni,
+        label: ticket.credential_label ?? ticket.ticket_types?.name ?? null,
+        status: ticket.status,
+      }))
+
+      // Atletas: sólo por DNI (el número de entrada es de espectadores). El
+      // token de credencial es el mismo que lleva el QR de su perfil.
+      if (dni) {
+        const athlete = assertSupabaseResult(
+          await client
+            .from('athletes')
+            .select('id, full_name, document_id, credential_token')
+            .eq('document_id', dni)
+            .maybeSingle(),
+          'No se pudo buscar el atleta.',
+        )
+        if (athlete?.credential_token) {
+          const registration = assertSupabaseResult(
+            await client
+              .from('event_registrations')
+              .select('id, status')
+              .eq('event_id', eventId)
+              .eq('athlete_id', athlete.id)
+              .neq('status', 'cancelada')
+              .limit(1)
+              .maybeSingle(),
+            'No se pudo buscar la inscripción.',
+          )
+          if (registration) {
+            matches.push({
+              kind: 'registration',
+              code: athlete.credential_token,
+              ticketCode: null,
+              doorCode: null,
+              name: athlete.full_name,
+              document: athlete.document_id,
+              label: null,
+              status: registration.status,
+            })
+          }
+        }
+      }
+
+      // Lo vigente primero: lo que el guardia busca es la credencial que
+      // puede abrir la puerta, no la compra cancelada de la semana pasada.
+      return matches.sort(
+        (left, right) => Number(left.status === 'cancelada') - Number(right.status === 'cancelada'),
+      )
+    },
     async resolveTicketById(ticketId) {
       if (!ticketId) return null
       try {
@@ -247,7 +374,7 @@ export function createSupabaseTicketRepository(client) {
           await client
             .from('tickets')
             .select(
-              'id, order_id, bundle_id, ticket_code, qr_token, attendee_name, status, credential_label, credential_scopes, is_primary_credential, addons, ticket_types(name)',
+              'id, order_id, bundle_id, ticket_code, door_code, qr_token, attendee_name, status, credential_label, credential_scopes, is_primary_credential, addons, ticket_types(name)',
             )
             .eq('order_id', order.id)
             .order('created_at'),
@@ -275,34 +402,13 @@ export function createSupabaseTicketRepository(client) {
      * consulta (mismo criterio que `listPaymentOrders` del lado atleta): quien
      * mira "aprobadas" no necesita que le lleguen las 500 pendientes primero.
      */
-    async listOrders({ statuses, channel, query, sort = 'recent', limit = 200 } = {}) {
-      let builder = client.from('ticket_orders').select(TICKET_ORDER_SELECT)
-
-      if (Array.isArray(statuses) && statuses.length > 0) builder = builder.in('status', statuses)
-
-      // El canal sólo tiene sentido para `manual`: fijarlo sin fijar el
-      // proveedor dejaría pasar filas de Mercado Pago con el campo en null.
-      if (channel === 'mercado_pago') builder = builder.eq('provider', 'mercado_pago')
-      else if (channel) builder = builder.eq('provider', 'manual').eq('manual_payment_channel', channel)
-
-      if (query) {
-        const like = `%${query.trim()}%`
-        builder = builder.or(
-          `reference.ilike.${like},buyer_name.ilike.${like},buyer_email.ilike.${like}`,
-        )
+    async listOrders(filters = {}) {
+      const run = (columns) => queryOrders(columns, filters)
+      let result = await run(TICKET_ORDER_SELECT)
+      if (result.error && isMissingSchemaColumn(result.error)) {
+        result = await run(TICKET_ORDER_BASE_COLUMNS)
       }
-
-      // "Antiguas primero" prioriza el comprobante que más tiempo lleva
-      // esperando -- mismo argumento que `sort=aging` en afiliaciones.
-      builder =
-        sort === 'aging'
-          ? builder.order('created_at', { ascending: true })
-          : builder.order('created_at', { ascending: false })
-
-      const rows = assertSupabaseResult(
-        await builder.limit(limit),
-        'No se pudieron listar las ordenes de entradas.',
-      )
+      const rows = assertSupabaseResult(result, 'No se pudieron listar las ordenes de entradas.')
       return rows.map(mapTicketOrderRow)
     },
     /**
@@ -423,6 +529,105 @@ export function createSupabaseTicketRepository(client) {
         'reject_ticket_payment_order',
         { p_order_id: orderId, p_reason: reason ?? null, p_actor: actor ?? null },
         'No se pudo rechazar la orden.',
+      )
+    },
+    /**
+     * Revoca una orden manual: aprobada o abierta pasa a `cancelado` y sus QR
+     * dejan de abrir la puerta. Mercado Pago se cancela reembolsando (el
+     * webhook revoca), así que la RPC lo rechaza.
+     */
+    async cancel(orderId, reason, actor) {
+      return rpc(
+        'staff_cancel_ticket_order',
+        { p_order_id: orderId, p_reason: reason ?? null, p_actor: actor ?? null },
+        'No se pudo cancelar la orden.',
+      )
+    },
+    /** Rechazada o cancelada vuelve a `aprobado`, revalidando el cupo. */
+    async reinstate(orderId, actor) {
+      return rpc(
+        'staff_reinstate_ticket_order',
+        { p_order_id: orderId, p_actor: actor ?? null },
+        'No se pudo volver a aceptar la orden.',
+      )
+    },
+    /** Lista de invitados: una orden `courtesy` acreditada por persona. */
+    async issueGuestTickets({ eventSlug, ticketTypeId, guests, label }, actor) {
+      return rpc(
+        'staff_issue_guest_tickets',
+        {
+          p_event_slug: eventSlug,
+          p_ticket_type_id: ticketTypeId,
+          p_guests: guests,
+          p_label: label ?? null,
+          p_actor: actor ?? null,
+        },
+        'No se pudo emitir la lista de invitados.',
+      )
+    },
+    /**
+     * Invitaciones del evento, vigentes y dadas de baja: el panel muestra las
+     * dos para que una baja no parezca un invitado que nunca se cargó.
+     */
+    async listGuestOrders(eventId) {
+      const rows = assertSupabaseResult(
+        await client
+          .from('ticket_orders')
+          .select(
+            `id, buyer_name, buyer_email, status, reference, courtesy_label, created_at,
+             cancelled_at, cancellation_reason,
+             tickets(id, ticket_code, attendee_name, attendee_dni, status, credential_label,
+                     is_primary_credential, check_ins(scanned_at, gate))`,
+          )
+          .eq('event_id', eventId)
+          .eq('provider', 'manual')
+          .eq('manual_payment_channel', 'courtesy')
+          .order('created_at', { ascending: false })
+          .limit(500),
+        'No se pudo leer la lista de invitados.',
+      )
+      return (rows ?? []).map((order) => {
+        const tickets = order.tickets ?? []
+        const primary = tickets.find((ticket) => ticket.is_primary_credential) ?? tickets[0]
+        const checkIn = tickets
+          .flatMap((ticket) => ticket.check_ins ?? [])
+          .sort((a, b) => String(a.scanned_at).localeCompare(String(b.scanned_at)))[0]
+        return {
+          orderId: order.id,
+          reference: order.reference,
+          status: order.status,
+          fullName: primary?.attendee_name ?? order.buyer_name,
+          dni: primary?.attendee_dni ?? null,
+          email: order.buyer_email ?? null,
+          label: order.courtesy_label ?? null,
+          ticketCode: primary?.ticket_code ?? null,
+          credentialCount: tickets.length,
+          createdAt: order.created_at,
+          cancelledAt: order.cancelled_at ?? null,
+          cancellationReason: order.cancellation_reason ?? null,
+          checkedInAt: checkIn?.scanned_at ?? null,
+          checkedInGate: checkIn?.gate ?? null,
+        }
+      })
+    },
+    async findOrderSummary(orderId) {
+      return assertSupabaseResult(
+        await client
+          .from('ticket_orders')
+          .select('id, event_id, provider, manual_payment_channel, status')
+          .eq('id', orderId)
+          .maybeSingle(),
+        'No se pudo leer la orden.',
+      )
+    },
+    /** Entradas acreditadas que le pertenecen a una cuenta (por DNI o mail verificado). */
+    async listForAthlete(athleteId) {
+      return (
+        (await rpc(
+          'athlete_list_my_tickets',
+          { p_athlete_id: athleteId },
+          'No se pudieron leer tus entradas.',
+        )) ?? []
       )
     },
     async createProofUpload(orderId, accessToken, fileName) {

@@ -6,6 +6,7 @@ import { formatScheduleSummary, formatSessionDetail } from '../../lib/eventSched
 import { formatDocumentWithKind } from '../../lib/format.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { checkinTypeLabel } from '../../services/checkinScanService.js'
+import { formatDoorCode } from '../../lib/manualCheckinCode.js'
 import { TICKET_VALIDITY_STATUS, ticketValidityTiming } from '../../lib/ticketValidity.js'
 
 function formatRelativeValidityTime(milliseconds, direction, locale) {
@@ -24,6 +25,7 @@ export default function CheckInScanResult({
   onDismiss,
   onRedeemAddon,
   onScanCheckIn,
+  onSelectMatch,
   redeemBusyId,
   redeemError,
   scanBusy,
@@ -127,6 +129,52 @@ export default function CheckInScanResult({
           ) : null}
         </div>
       </div>
+
+      {scanResult.manualQuery && effectiveOutcome === 'not_found' ? (
+        <p className="admin-checkin-result__reason admin-checkin-result__manual-hint">
+          {scanResult.manualQuery.kind === 'dni'
+            ? t('admin.checkin.manual.notFoundDni', { dni: scanResult.manualQuery.dni })
+            : scanResult.manualQuery.kind === 'door_code'
+              ? t('admin.checkin.manual.notFoundDoor', {
+                  code: formatDoorCode(scanResult.manualQuery.doorCode),
+                })
+              : t('admin.checkin.manual.notFoundCode', { code: scanResult.manualQuery.ticketCode })}
+        </p>
+      ) : null}
+
+      {/* Un DNI con varias credenciales (entrenador, o entrada + inscripción):
+          el guardia elige cuál está validando. Cada opción sigue después por
+          el mismo carril que un escaneo. */}
+      {effectiveOutcome === 'multiple_matches' && Array.isArray(scanResult.matches) ? (
+        <ul className="admin-checkin-result__matches">
+          {scanResult.matches.map((match) => (
+            <li key={`${match.kind}-${match.code}`}>
+              <button
+                type="button"
+                className="admin-checkin-result__match"
+                disabled={scanBusy || !onSelectMatch}
+                onClick={() => onSelectMatch?.(match)}
+              >
+                <span className="admin-checkin-result__match-main">
+                  <strong>{match.name}</strong>
+                  <span>
+                    {match.kind === 'registration'
+                      ? t('admin.checkin.athlete')
+                      : match.label || t('admin.checkin.spectator')}
+                    {match.ticketCode ? (
+                      <>
+                        {' · '}
+                        <span className="admin-checkin-result__match-code">{match.ticketCode}</span>
+                      </>
+                    ) : null}
+                  </span>
+                </span>
+                <StatusBadge value={match.status} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       {scanPersonName ? (
         <p className="admin-checkin-result__person">

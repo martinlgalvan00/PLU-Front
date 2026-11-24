@@ -6728,28 +6728,40 @@
   margin-top: calc(var(--space-sm) * -0.5);
 }
 
-.payment-validation-dialog__actions .btn--danger {
+.payment-validation-dialog__actions .btn--danger,
+.admin-status-dialog__actions .btn--danger {
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--color-danger-text) 32%, var(--color-border-light));
   color: var(--color-danger-text);
 }
 
+.admin-status-dialog__actions .btn--danger:hover:not(:disabled),
 .payment-validation-dialog__actions .btn--danger:hover:not(:disabled) {
   background: var(--color-danger-bg);
   border-color: color-mix(in srgb, var(--color-danger-text) 48%, transparent);
   box-shadow: none;
 }
 
+/* Pie fijo de acciones. Opaco y por encima de la vista previa: con fondo al
+   94 % y sin z-index, el comprobante (un iframe) se veía entre los botones y
+   debajo del pie, y "Habilitar QR" quedaba montado sobre el documento que se
+   está revisando. El margen negativo cubre el padding inferior del panel, que
+   era una franja por donde se asomaba el contenido al scrollear; la sombra
+   arriba avisa que hay más comprobante detrás. */
 .payment-validation-dialog__actions {
-  background: color-mix(in srgb, var(--color-bg-elevated) 94%, transparent);
+  background: var(--color-bg-elevated);
   border-top: 1px solid var(--color-border-subtle);
+  bottom: -12px;
+  box-shadow: 0 -10px 16px -12px rgb(0 0 0 / 0.45);
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: -12px;
   margin-top: 2px;
+  padding-bottom: 12px;
   padding-top: 10px;
   position: sticky;
-  bottom: 0;
+  z-index: 2;
 }
 
 /* Con 3 botones: Cancelar | Rechazar arriba, Confirmar ancho completo abajo. */
@@ -6939,6 +6951,14 @@
   height: 40px;
   justify-content: center;
   width: 40px;
+}
+
+/* Cancelar una orden acreditada revoca un QR que funcionaba: es la única
+   variante destructiva del diálogo, y el rojo se reserva para eso. */
+.admin-status-dialog__icon--danger {
+  background: var(--color-danger-bg);
+  border-color: color-mix(in srgb, var(--color-danger-text) 28%, var(--color-border-subtle));
+  color: var(--color-danger-text);
 }
 
 .admin-status-dialog__lead {
@@ -7507,6 +7527,13 @@
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
+}
+
+.admin-checkin-scanner__manual-hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 2px 0 0;
 }
 
 .admin-checkin-scanner__manual-row {
@@ -8365,6 +8392,33 @@
   color: rgb(237, 176, 90);
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* Canal en vivo: un punto estático (no pulsa: un loop decorativo en la puerta
+   distrae), verde si los avisos llegan, gris si se depende del sondeo. */
+.admin-offline-sync-status__live {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.admin-offline-sync-status__live-dot {
+  background: var(--color-text-muted);
+  border-radius: 999px;
+  height: 7px;
+  width: 7px;
+}
+
+.admin-offline-sync-status__live.is-live {
+  color: var(--admin-status-success, var(--color-text-secondary));
+}
+
+.admin-offline-sync-status__live.is-live .admin-offline-sync-status__live-dot {
+  background: var(--admin-status-success, currentColor);
 }
 
 .admin-offline-sync-status__meta {
@@ -19001,6 +19055,84 @@ button.action-queue__proof:focus-visible {
   font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+/* Verificación por código: pista cuando no hubo coincidencia y lista para
+   elegir cuando un DNI trae varias credenciales. Filas de toque completo
+   (44px) porque se usan con el celular en la mano, en la puerta. */
+.admin-checkin-result__manual-hint {
+  color: var(--admin-text-secondary, var(--color-text-secondary));
+  font-weight: 500;
+  margin: 8px 0 0;
+}
+
+.admin-checkin-result__matches {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 12px 0 4px;
+  padding: 0;
+}
+
+.admin-checkin-result__match {
+  align-items: center;
+  background: var(--admin-surface, transparent);
+  border: 1px solid var(--admin-hairline-strong, var(--color-border-subtle));
+  border-radius: 10px;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 8px 12px;
+  text-align: left;
+  transition: border-color var(--motion-fast, 160ms) var(--ease-out, ease);
+  width: 100%;
+}
+
+.admin-checkin-result__match:hover:not(:disabled) {
+  border-color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-checkin-result__match:focus-visible {
+  outline: 2px solid var(--admin-focus, var(--color-focus-ring));
+  outline-offset: 2px;
+}
+
+.admin-checkin-result__match:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.admin-checkin-result__match-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-checkin-result__match-main strong {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.admin-checkin-result__match-main span {
+  color: var(--admin-text-secondary, var(--color-text-secondary));
+  font-size: 12.5px;
+}
+
+/* El código es lo que el guardia coteja contra la entrada: nunca partido. */
+.admin-checkin-result__match-main .admin-checkin-result__match-code {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-checkin-result__match {
+    transition: none;
+  }
 }
 
 .admin-checkin-result--warning .admin-checkin-result__reason {

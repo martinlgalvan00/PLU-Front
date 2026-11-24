@@ -243,6 +243,7 @@ export default function CheckInAppPage({
                 onDismiss={() => workspace.setScanResult(null)}
                 onRedeemAddon={workspace.handleRedeemAddon}
                 onScanCheckIn={workspace.handleScanCheckIn}
+                onSelectMatch={workspace.selectScanMatch}
                 redeemBusyId={workspace.redeemBusyId}
                 redeemError={workspace.redeemError}
                 scanBusy={workspace.scanBusy}
@@ -260,6 +261,7 @@ export default function CheckInAppPage({
                 conflictCount={workspace.offlineSync.conflictCount}
                 downloadAllowlist={handleDownloadAllowlist}
                 isOnline={workspace.offlineSync.isOnline}
+                realtimeConnected={workspace.realtimeConnected}
                 lastDownloadedAt={workspace.offlineSync.lastDownloadedAt}
                 lastSyncedAt={workspace.offlineSync.lastSyncedAt}
                 pendingCount={workspace.offlineSync.pendingCount}

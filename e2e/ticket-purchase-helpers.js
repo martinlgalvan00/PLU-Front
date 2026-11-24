@@ -88,14 +88,10 @@ export async function navigateToTickets(page, eventSlug, { title, expectCheckout
   }
   if (expectCheckout) {
     await assertCheckoutVisible(page)
-    // Transferencia sólo aparece cuando ya llegó el interruptor de canal
-    // manual: si el form se pinta antes, el default es Mercado Pago y un
-    // remount posterior borra lo que se acaba de tipear.
-    await expect(
-      page.locator('#checkout input[name="ticket-payment"][value="transferencia"]'),
-    ).toBeVisible({ timeout: 15_000 })
+    // La compra arranca en el selector de entradas, sin scrollear ni abrir
+    // nada: es lo primero que tiene que estar listo.
     await page
-      .locator('#checkout input[name="attendee-0-fullName"]')
+      .locator('#checkout .ticket-type-options--picker')
       .waitFor({ state: 'visible', timeout: 10_000 })
   }
 }
@@ -128,12 +124,13 @@ export async function navigateFromEventToTickets(page, eventSlug, { title } = {}
 }
 
 /**
- * Verifica que un tipo de entrada sea visible en la sección de ofertas.
- * La vidriera usa `TicketTypeOptions` en lista (`li`), no articles.
+ * Verifica que un tipo de entrada sea visible en el selector del checkout.
+ * La vidriera y el lugar donde se elige son la misma lista: cada fila es un
+ * tipo con su precio, lo que abre y su contador.
  */
 export async function assertTicketTypeVisible(page, name, priceText, extras = {}) {
-  const offersGrid = page.locator('.tickets-page__offers-grid')
-  const offer = offersGrid.locator('.ticket-type-options__option', { hasText: name })
+  const picker = page.locator('#checkout .ticket-type-options--picker')
+  const offer = picker.locator('.ticket-type-options__option', { hasText: name })
   await expect(offer).toBeVisible({ timeout: 5_000 })
   await expect(offer).toContainText(priceText)
   if (extras.credentials) await expect(offer).toContainText(extras.credentials)
@@ -141,8 +138,9 @@ export async function assertTicketTypeVisible(page, name, priceText, extras = {}
   if (extras.includes) await expect(offer).toContainText(extras.includes)
 }
 
+/** Total del resumen de la compra (columna en desktop, barra abajo en mobile). */
 export function liveTotal(page) {
-  return page.locator('.ticket-purchase__summary-inline strong')
+  return page.locator('#checkout .ticket-flow-summary__total strong')
 }
 
 export async function assertLiveTotal(page, amountText) {
@@ -179,6 +177,74 @@ export async function assertPaymentMethodsVisible(page) {
   await expect(page.locator('input[name="ticket-payment"][value="transferencia"]')).toBeVisible()
 }
 
+// ── Pasos del checkout ─────────────────────────────────────────────────────
+// Entradas → Tus datos → Pago. Cada paso reemplaza al anterior en pantalla y
+// el único botón de avance vive en el resumen (`.ticket-flow-summary__action`).
+
+const STEP_TITLES = {
+  tickets: /elegí tus entradas/i,
+  buyer: /tus datos/i,
+  payment: /cómo pagás/i,
+}
+const STEP_NAV_LABELS = { tickets: /volver a entradas/i, buyer: /volver a tus datos/i }
+
+function escapeRegExp(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+export function checkoutAction(page) {
+  return page.locator('#checkout .ticket-flow-summary__action')
+}
+
+export async function assertCheckoutStep(page, step) {
+  await expect(page.locator('#checkout .ticket-purchase__step-title')).toHaveText(STEP_TITLES[step])
+}
+
+/** Avanza un paso con el botón del resumen (en el último paso, envía la compra). */
+export async function continueCheckout(page) {
+  await checkoutAction(page).click()
+}
+
+/** Vuelve a un paso ya hecho desde la barra de pasos. */
+export async function openCheckoutStep(page, step) {
+  const title = page.locator('#checkout .ticket-purchase__step-title')
+  if (STEP_TITLES[step].test((await title.textContent()) ?? '')) return
+  await page
+    .locator('#checkout .ticket-flow-steps')
+    .getByRole('button', { name: STEP_NAV_LABELS[step] })
+    .click()
+  await assertCheckoutStep(page, step)
+}
+
+function quantityGroup(page, typeName) {
+  return typeName
+    ? page.getByRole('group', { name: new RegExp(`^Cantidad de ${escapeRegExp(typeName)}`, 'i') })
+    : page.locator('#checkout .ticket-type-options__stepper').first()
+}
+
+/**
+ * Deja un tipo de entrada en una cantidad exacta con su contador (+ / −).
+ * Sin `typeName` usa el primer tipo del catálogo.
+ */
+export async function setTicketQuantity(page, quantity, typeName) {
+  const group = quantityGroup(page, typeName)
+  await group.waitFor({ state: 'visible', timeout: 5_000 })
+  const output = group.locator('output')
+  const current = Number.parseInt((await output.textContent()) ?? '0', 10) || 0
+  const add = group.getByRole('button', { name: /^sumar/i })
+  const remove = group.getByRole('button', { name: /^restar/i })
+  for (let i = current; i < quantity; i++) await add.click()
+  for (let i = current; i > quantity; i--) await remove.click()
+  await expect(output).toHaveText(String(quantity))
+}
+
+/** Nombres de los tipos en el orden del selector (el mismo de las tarjetas). */
+async function pickerTypeNames(page) {
+  return page
+    .locator('#checkout .ticket-type-options--picker .ticket-type-options__name')
+    .allTextContents()
+}
+
 async function typeAttendee(page, index, { fullName, dni }) {
   const digits = String(dni).replace(/\D/g, '')
   const form = page.locator('#checkout form.ticket-purchase')
@@ -192,8 +258,8 @@ async function typeAttendee(page, index, { fullName, dni }) {
 }
 
 /**
- * Llena el formulario de un asistente por su índice (0-indexed). Funciona
- * tanto con el formulario individual como con la tabla batch.
+ * Llena nombre y DNI de una entrada por su posición en el paso de datos
+ * (0-indexed, en el orden del catálogo).
  */
 export async function fillAttendeeForm(page, index, attendee) {
   await expect(async () => {
@@ -201,9 +267,15 @@ export async function fillAttendeeForm(page, index, attendee) {
   }).toPass({ timeout: 15_000 })
 }
 
+export async function fillBuyerForm(page, { name, email, phone }) {
+  await page.locator('#checkout input[name="buyer-name"]').fill(name)
+  await page.locator('#checkout input[name="buyer-email"]').fill(email)
+  if (phone) await page.locator('#checkout input[name="buyer-phone"]').fill(phone)
+}
+
 /**
- * Deja el checkout listo para enviar. Reintenta si el catálogo o la
- * disponibilidad remontan el form y se llevan nombre, DNI o el medio de pago.
+ * Deja el checkout en el paso de pago, listo para enviar. Reintenta si el
+ * catálogo o la disponibilidad remontan el form y se llevan lo cargado.
  */
 export async function fillReadyTicketCheckout(
   page,
@@ -211,40 +283,78 @@ export async function fillReadyTicketCheckout(
 ) {
   await expect(async () => {
     await applyTicketCheckout(page, { attendees, buyer, paymentMethod, quantity })
-  }).toPass({ timeout: 20_000 })
+  }).toPass({ timeout: 30_000 })
 }
 
+/**
+ * Recorre los tres pasos como una persona: cantidades por tipo, datos de
+ * quien compra y de cada entrada, y medio de pago.
+ *
+ * Las tarjetas del paso de datos salen agrupadas por tipo en el orden del
+ * catálogo, no en el orden de `attendees`: cada asistente se escribe en la
+ * primera tarjeta libre de su tipo.
+ */
 async function applyTicketCheckout(
   page,
   { attendees, buyer, paymentMethod = 'transferencia', quantity },
 ) {
-  const targetQuantity = quantity ?? attendees.length
-  if (targetQuantity > 1) await setTicketQuantity(page, targetQuantity)
+  await openCheckoutStep(page, 'tickets')
+  const typeNames = await pickerTypeNames(page)
+  const typeOf = (attendee) => attendee.type ?? typeNames[0]
 
-  for (const [index, attendee] of attendees.entries()) {
-    await typeAttendee(page, index, attendee)
-    if (attendee.type) await selectTicketType(page, index, attendee.type)
-    if (attendee.addon) await toggleTicketAddon(page, attendee.addon, { index, selected: true })
+  const counts = new Map(typeNames.map((name) => [name, 0]))
+  for (const attendee of attendees) {
+    const name = typeNames.find((candidate) =>
+      candidate.toLowerCase().includes(typeOf(attendee).toLowerCase()),
+    )
+    if (!name) throw new Error(`tipo "${typeOf(attendee)}" no está en el selector`)
+    counts.set(name, counts.get(name) + 1)
   }
+  const extra = (quantity ?? attendees.length) - attendees.length
+  if (extra > 0) {
+    const name = typeNames.find((candidate) =>
+      candidate.toLowerCase().includes(typeOf(attendees[0]).toLowerCase()),
+    )
+    counts.set(name, counts.get(name) + extra)
+  }
+  for (const [name, count] of counts) await setTicketQuantity(page, count, name)
+
+  await continueCheckout(page)
+  await assertCheckoutStep(page, 'buyer')
 
   // El comprador es quien recibe el QR por email y puede ser distinto de los
   // asistentes. Los tests que no necesitan ese caso usan un contacto válido
   // derivado del primer asistente; así recorren el formulario real completo.
   const first = attendees[0]
-  const buyerData = buyer ?? {
-    name: first.fullName,
-    email: `e2e-ticket-${String(first.dni).replace(/\D/g, '')}@pluarg.test`,
-  }
-  await page.locator('#checkout input[name="buyer-name"]').fill(buyerData.name)
-  await page.locator('#checkout input[name="buyer-email"]').fill(buyerData.email)
-  if (buyerData.phone) {
-    await page.locator('#checkout input[name="buyer-phone"]').fill(buyerData.phone)
-  }
-
-  await selectPaymentMethod(page, paymentMethod)
-  expect(await page.locator('#checkout input[name="attendee-0-fullName"]').inputValue()).toBe(
-    attendees[0].fullName,
+  await fillBuyerForm(
+    page,
+    buyer ?? {
+      name: first.fullName,
+      email: `e2e-ticket-${String(first.dni).replace(/\D/g, '')}@pluarg.test`,
+    },
   )
+
+  const cardTypes = await page
+    .locator('#checkout .ticket-purchase__attendee-card .ticket-purchase__attendee-type')
+    .allTextContents()
+  const used = new Set()
+  for (const attendee of attendees) {
+    const index = cardTypes.findIndex(
+      (cardType, position) =>
+        !used.has(position) && cardType.toLowerCase().includes(typeOf(attendee).toLowerCase()),
+    )
+    if (index < 0) throw new Error(`no hay tarjeta libre de tipo "${typeOf(attendee)}"`)
+    used.add(index)
+    await typeAttendee(page, index, attendee)
+    if (attendee.addon) await toggleTicketAddon(page, attendee.addon, { index, selected: true })
+  }
+  // Un lote con filas a propósito vacías se queda en este paso: el test
+  // verifica justamente que no se pueda avanzar.
+  if ((quantity ?? attendees.length) > attendees.length) return
+
+  await continueCheckout(page)
+  await assertCheckoutStep(page, 'payment')
+  await selectPaymentMethod(page, paymentMethod)
   expect(
     await page.locator(`input[name="ticket-payment"][value="${paymentMethod}"]`).isChecked(),
   ).toBe(true)
@@ -252,7 +362,7 @@ async function applyTicketCheckout(
 
 /**
  * Compra por el formulario real. Si React remonta el checkout entre el fill
- * y el click, no hubo POST: se vuelve a llenar en vez de afirmar a ciegas
+ * y el click, no hubo POST: se vuelve a recorrer en vez de afirmar a ciegas
  * la pantalla de confirmación.
  */
 export async function purchaseTickets(
@@ -263,27 +373,14 @@ export async function purchaseTickets(
     if (expectOk && (await page.locator('.ticket-purchase--confirmation').isVisible())) return
 
     await applyTicketCheckout(page, { attendees, buyer, paymentMethod, quantity })
-    const submit = page.locator('#checkout form.ticket-purchase .ticket-purchase__submit')
     const responsePromise = page.waitForResponse(isTicketOrderPost, { timeout: 8_000 })
-    await submit.click()
-
-    if (expectOk) {
-      const confirmation = page.locator('.ticket-purchase--confirmation')
-      const nameInput = page.locator('#checkout input[name="attendee-0-fullName"]')
-      if (
-        !(await confirmation.isVisible()) &&
-        (await nameInput.count()) > 0 &&
-        (await nameInput.inputValue()) !== attendees[0].fullName
-      ) {
-        throw new Error('el checkout se remontó al enviar')
-      }
-    }
+    await continueCheckout(page)
 
     const response = await responsePromise
     if (expectOk && !response.ok()) {
       throw new Error(`POST /api/tickets/orders → ${response.status()}`)
     }
-  }).toPass({ timeout: 40_000 })
+  }).toPass({ timeout: 60_000 })
 
   if (expectOk) {
     await expect(page.locator('.ticket-purchase--confirmation')).toBeVisible({ timeout: 15_000 })
@@ -291,54 +388,8 @@ export async function purchaseTickets(
 }
 
 /**
- * Selecciona un tipo de entrada para un asistente.
- *
- * El checkout editorial elige el tipo con un `<select>` por asistente.
- * El catálogo de ofertas queda en la vidriera, no se vuelve a pintar acá.
- */
-export async function selectTicketType(page, index, typeName) {
-  const form = page.locator('#checkout form.ticket-purchase')
-  const select = form.locator(`select[name="attendee-${index}-ticketTypeId"]`)
-  await expect(select).toBeVisible()
-  const optionValue = await select.locator('option').evaluateAll((options, name) => {
-    const needle = String(name).toLowerCase()
-    const match = options.find((option) => (option.textContent ?? '').toLowerCase().includes(needle))
-    return match?.value ?? null
-  }, typeName)
-  if (!optionValue) {
-    throw new Error(`tipo "${typeName}" no está en el select de la entrada ${index + 1}`)
-  }
-  await select.selectOption(optionValue)
-  await expect(select).toHaveValue(optionValue)
-}
-
-/**
- * Ajusta la cantidad de entradas (+ / -). El stepper editorial usa
- * `.ticket-purchase__stepper` y aria-labels "Sumar entrada" / "Restar entrada".
- */
-export async function setTicketQuantity(page, quantity) {
-  const stepper = page.locator('.ticket-purchase__stepper')
-  await stepper.waitFor({ state: 'visible', timeout: 5_000 })
-  const valueLocator = stepper.locator('span').first()
-  const current = Number.parseInt((await valueLocator.textContent()) ?? '1', 10) || 1
-
-  if (quantity > current) {
-    const addButton = stepper.getByRole('button', { name: /sumar entrada/i })
-    for (let i = current; i < quantity; i++) {
-      await addButton.click()
-    }
-  } else if (quantity < current) {
-    const removeButton = stepper.getByRole('button', { name: /restar entrada/i })
-    for (let i = current; i > quantity; i--) {
-      await removeButton.click()
-    }
-  }
-
-  await expect(valueLocator).toHaveText(String(quantity))
-}
-
-/**
- * Selecciona el método de pago. Los radio buttons usan name="ticket-payment".
+ * Selecciona el método de pago (tercer paso). Los radios usan
+ * name="ticket-payment".
  */
 export async function selectPaymentMethod(page, method) {
   const radio = page.locator(`input[name="ticket-payment"][value="${method}"]`)
@@ -351,10 +402,11 @@ export async function selectPaymentMethod(page, method) {
 }
 
 /**
- * Envía el formulario de compra de entradas. El CTA editorial dice "Pagar".
+ * Toca el botón del resumen: en el paso de datos valida y avanza; en el de
+ * pago envía la compra.
  */
 export async function submitTicketPurchase(page) {
-  const submitButton = page.locator('#checkout form.ticket-purchase .ticket-purchase__submit')
+  const submitButton = checkoutAction(page)
   await submitButton.waitFor({ state: 'visible', timeout: 5_000 })
   await submitButton.click()
 }

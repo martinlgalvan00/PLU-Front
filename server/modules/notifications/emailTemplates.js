@@ -835,6 +835,24 @@ const BODIES = {
     ].join(''),
   }),
 
+  ticket_cancelled: (p) => ({
+    title: 'Entrada cancelada',
+    preheader: `Tu entrada para ${p.eventTitle} fue cancelada.`,
+    body: [
+      paragraph(
+        `${greeting(p.name)} tu entrada para ${escapeHtml(p.eventTitle)} fue cancelada y el QR ya no habilita el ingreso.`,
+      ),
+      dataPanel([
+        ['Evento', p.eventTitle],
+        ['Código', p.reference],
+        ['Motivo', p.reason],
+      ]),
+      paragraph('Si creés que es un error, respondé este correo y lo revisamos.', {
+        muted: true,
+      }),
+    ].join(''),
+  }),
+
   event_announcement: (p) => ({
     title: p.eventTitle ? String(p.eventTitle) : 'Nueva fecha',
     preheader: p.summary ? String(p.summary) : 'Nueva fecha confirmada en el calendario.',

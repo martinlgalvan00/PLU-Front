@@ -170,12 +170,17 @@ function ShopFeatured({
   )
 }
 
-/** Fila de evento: fecha, nombre, sede y desde cuánto. Toda la fila abre el detalle. */
-function ShopEventRow({ event, locale, checkoutOpen, onOpenDetail, t }) {
+/**
+ * Fila de evento: fecha, nombre, sede y desde cuánto. Con venta abierta toda
+ * la fila lleva directo a elegir entradas: el panel lateral intermedio era un
+ * paso más entre "quiero ir" y la compra. Sin venta abre la ficha rápida.
+ */
+function ShopEventRow({ event, locale, checkoutOpen, onBuyTickets, onOpenDetail, t }) {
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
   const salesOpen = checkoutOpen && isTicketSalesEnabled(event)
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
+  const canBuy = salesOpen && remaining !== 0
   const dateParts = parseShopDateParts(event.date)
   const { reducedMotion, tier } = useMotionConfig()
   const still = reducedMotion || tier === 'low'
@@ -183,7 +188,11 @@ function ShopEventRow({ event, locale, checkoutOpen, onOpenDetail, t }) {
 
   return (
     <Row className="shop-row" {...(still ? {} : { variants: rowVariants })}>
-      <button type="button" className="shop-row__hit" onClick={() => onOpenDetail(event)}>
+      <button
+        type="button"
+        className="shop-row__hit"
+        onClick={() => (canBuy ? onBuyTickets(event) : onOpenDetail(event))}
+      >
         <span className="shop-row__date" aria-label={event.date}>
           {dateParts?.day ? (
             <>
@@ -228,7 +237,11 @@ function ShopEventRow({ event, locale, checkoutOpen, onOpenDetail, t }) {
             {shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t)}
           </span>
           <span className="shop-row__hint">
-            {checkoutOpen ? t('pages.shop.cardHint') : t('pages.shop.cardHintSoon')}
+            {canBuy
+              ? t('pages.shop.buyTickets')
+              : checkoutOpen
+                ? t('pages.shop.cardHint')
+                : t('pages.shop.cardHintSoon')}
             <ArrowRight size={14} aria-hidden />
           </span>
         </span>
@@ -510,6 +523,7 @@ export default function ShopPage({ events = [], onNavigate }) {
                           event={event}
                           locale={locale}
                           checkoutOpen={checkoutOpen}
+                          onBuyTickets={handleBuyTickets}
                           onOpenDetail={setDetailEvent}
                           t={t}
                         />

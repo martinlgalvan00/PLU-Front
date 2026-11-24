@@ -3,6 +3,9 @@ import { createApp } from '../server/app.js'
 import { readSessionFromRequest } from '../server/services/sessionService.js'
 import { listen } from './integration/helpers/supabaseTestClient.js'
 
+// El QR siempre lleva un UUID: la ruta rechaza cualquier otra forma con 404.
+const QR_TOKEN = 'b2222222-2222-4222-8222-222222222222'
+
 vi.mock('../server/services/sessionService.js', () => ({
   readSessionFromRequest: vi.fn(),
   extendSessionIfActive: vi.fn(),
@@ -54,7 +57,7 @@ describe('Seguridad: acciones sobre QR', () => {
       const app = appWith()
       const server = listen(app)
       try {
-        const response = await post(server, `/api/tickets/checkin/token-${id}`)
+        const response = await post(server, `/api/tickets/checkin/${QR_TOKEN}`)
         expect(response.status).toBe(200)
       } finally {
         await server.close()
@@ -67,9 +70,9 @@ describe('Seguridad: acciones sobre QR', () => {
     const redeemAddon = vi.fn(async () => ({ ticket: { id: 'ticket-1' } }))
     const server = listen(appWith({ redeemAddon }))
     try {
-      const response = await post(server, '/api/tickets/checkin/token-1/addons/food/redeem')
+      const response = await post(server, `/api/tickets/checkin/${QR_TOKEN}/addons/food/redeem`)
       expect(response.status).toBe(200)
-      expect(redeemAddon).toHaveBeenCalledWith('token-1', 'food', `${id}:${id}@plu.test`)
+      expect(redeemAddon).toHaveBeenCalledWith(QR_TOKEN, 'food', `${id}:${id}@plu.test`)
     } finally {
       await server.close()
     }
@@ -86,7 +89,7 @@ describe('Seguridad: acciones sobre QR', () => {
       }),
     )
     try {
-      const response = await post(server, '/api/tickets/checkin/token-1')
+      const response = await post(server, `/api/tickets/checkin/${QR_TOKEN}`)
       expect(response.status).toBe(expectedStatus)
     } finally {
       await server.close()
@@ -161,7 +164,7 @@ describe('Seguridad: puesto que queda escrito en el ingreso', () => {
     const checkIn = vi.fn(async (token) => ({ ticket: { qr_token: token }, checkIn: { id: 'in-1' } }))
     const server = listen(appWith({ checkIn }))
     try {
-      const response = await fetch(`${server.url}/api/tickets/checkin/token-1`, {
+      const response = await fetch(`${server.url}/api/tickets/checkin/${QR_TOKEN}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

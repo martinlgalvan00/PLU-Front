@@ -59,14 +59,13 @@ describe('TicketsPage con ventas suspendidas', () => {
     )
 
     expect(screen.getAllByText(/próximamente/i).length).toBeGreaterThan(0)
-    expect(screen.queryByText(/elegí tu entrada/i)).toBeNull()
-    expect(screen.queryByText(/reservá tu lugar/i)).toBeNull()
+    expect(screen.queryByTestId('ticket-purchase')).toBeNull()
     expect(screen.queryByRole('button', { name: /pagar/i })).toBeNull()
   })
 })
 
 describe('TicketsPage con ventas habilitadas', () => {
-  it('muestra el CTA de compra y el checkout, no el aviso de Próximamente', () => {
+  it('muestra el checkout de entrada, sin portada intermedia ni aviso de Próximamente', () => {
     checkoutState.ticketEnabled = true
 
     render(
@@ -76,8 +75,9 @@ describe('TicketsPage con ventas habilitadas', () => {
     )
 
     expect(screen.queryByRole('status')).toBeNull()
-    expect(screen.getByRole('link', { name: /comprar entradas/i })).toBeTruthy()
-    expect(screen.getByText(/reservá tu lugar/i)).toBeTruthy()
+    // La compra arranca en la misma pantalla: no hay un CTA que mande a
+    // buscar el formulario más abajo.
+    expect(screen.queryByRole('link', { name: /comprar entradas/i })).toBeNull()
     expect(screen.getByTestId('ticket-purchase')).toBeTruthy()
   })
 
@@ -92,7 +92,7 @@ describe('TicketsPage con ventas habilitadas', () => {
     )
 
     expect(screen.getAllByText(/próximamente/i).length).toBeGreaterThan(0)
-    expect(screen.queryByRole('link', { name: /comprar entradas/i })).toBeNull()
+    expect(screen.queryByTestId('ticket-purchase')).toBeNull()
   })
 
   it('compara accesos por zona, sin repetir Incluida por cada tipo', () => {

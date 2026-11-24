@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
+import { goToPaymentStep } from './helpers/ticketCheckoutSteps.js'
 
 /**
  * Los cuatro medios de la compra de entradas salen de la misma matriz de
@@ -16,6 +17,9 @@ vi.mock('../src/components/ui/TicketPassPreview.jsx', () => ({
 vi.mock('../src/components/ui/MercadoPagoEmbeddedCheckout.jsx', () => ({
   default: () => <div data-testid="mp-embedded" />,
 }))
+vi.mock('../src/motion/MotionContentSwap.tsx', () => ({
+  default: ({ children }) => <div>{children}</div>,
+}))
 
 const TicketPurchaseSection = (await import('../src/components/ui/TicketPurchaseSection.jsx'))
   .default
@@ -29,11 +33,18 @@ const pricing = {
 }
 
 function renderSection(props = {}) {
+  const view = mount(props)
+  // Los medios de pago viven en el tercer paso: se llega como una persona,
+  // eligiendo la entrada y completando los datos.
+  if (!props.createdOrder) goToPaymentStep()
+  return view
+}
+
+function mount(props) {
   return render(
     <I18nProvider>
       <TicketPurchaseSection
         editorial
-        showPassPreview={false}
         event={event}
         pricing={pricing}
         tickets={[]}

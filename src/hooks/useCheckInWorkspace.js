@@ -2,10 +2,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Clock, HelpCircle, XCircle } from 'lucide-react'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { useOfflineCheckinSync } from './useOfflineCheckinSync.js'
+import { useBroadcastTopic } from './useBroadcastTopic.js'
 import { buildEventTicketAddonReport } from '../lib/ticketAddons.js'
 import { parseCredentialScan } from '../lib/credentialQr.js'
 import { getFeedbackTone, playCheckinFeedback } from '../lib/checkinFeedback.js'
-import { enqueueCheckin, findInAllowlist } from '../lib/offlineCheckinDb.js'
+import {
+  enqueueCheckin,
+  findInAllowlist,
+  findMatchesInAllowlist,
+} from '../lib/offlineCheckinDb.js'
+import {
+  checkinLookupQuery,
+  needsCheckinLookup,
+  parseManualCheckinCode,
+} from '../lib/manualCheckinCode.js'
+import { lookupCheckinCredentials } from '../services/ticketApi.js'
 import { credentialOpensZone } from '../services/securityZoneService.js'
 import { TICKET_VALIDITY_STATUS, ticketValidityStatus } from '../lib/ticketValidity.js'
 import {
@@ -27,6 +38,20 @@ import { classifyCheckinFailure, isRetryableCheckinFailure } from '../services/c
 
 const MAX_SCAN_HISTORY = 15
 const COUNTER_REFRESH_MS = 30_000
+// Con Realtime conectado los avisos traen los cambios al instante: el sondeo
+// queda como red de seguridad, más espaciado.
+const COUNTER_REFRESH_LIVE_MS = 120_000
+// La lista de la puerta (y la offline) se baja entera: en plena entrada no
+// puede repetirse en cada aviso. Con varias puertas en el mismo wifi, releerla
+// por cada ingreso agotaba el límite de pedidos por IP y los escaneos mismos
+// empezaban a rebotar con 429.
+const ALLOWLIST_REFRESH_MIN_MS = 20_000
+const OPS_EVENTS = ['checkin-changed', 'tickets-changed']
+// Ventana de agrupado de los avisos de la puerta: el aviso de un ingreso llega
+// también a la puerta que lo registró (lo emite la base), así que en hora pico
+// hay uno cada pocos segundos. Contadores al día en <5 s, una relectura por
+// ventana como mucho.
+const OPS_REALTIME_OPTIONS = { debounceMs: 1500, maxWaitMs: 5000 }
 const FEEDBACK_STORAGE_KEY = 'plu-checkin-feedback'
 
 export const TYPE_FILTERS = [
@@ -70,6 +95,9 @@ export const SCAN_VERDICT_META = {
   // del puesto venció. Se muestran como lo que son, nunca como "no encontrada".
   service_unavailable: { Icon: AlertTriangle, tone: 'warning' },
   session_expired: { Icon: XCircle, tone: 'danger' },
+  // Búsqueda por DNI con más de una credencial (entrenador, o entrada +
+  // inscripción): no es un veredicto, es "elegí cuál".
+  multiple_matches: { Icon: HelpCircle, tone: 'warning' },
 }
 
 /**
@@ -274,14 +302,69 @@ export function useCheckInWorkspace({
   // Con varias puertas abiertas los contadores sólo se movían con los ingresos
   // de ESTE equipo. Se vuelven a pedir cada tanto, y sólo con la pestaña a la
   // vista y con conexión: de fondo o sin señal sería gasto sin nadie mirando.
+  const [allowlistReloadKey, setAllowlistReloadKey] = useState(0)
+  const allowlistRefreshedAtRef = useRef(0)
+  const allowlistTrailingRef = useRef(null)
+
+  useEffect(
+    () => () => {
+      if (allowlistTrailingRef.current) window.clearTimeout(allowlistTrailingRef.current)
+    },
+    [],
+  )
+
+  // Un ingreso en otra puerta, una entrada cancelada o aprobada, una invitación
+  // nueva: la base avisa por `ticket-ops:<slug>` (sin datos) y acá se relee.
+  // Si este puesto tiene la lista offline bajada, también se refresca, así una
+  // cancelación llega a la puerta que después se quede sin señal.
+  const refreshAllowlists = useCallback(() => {
+    allowlistRefreshedAtRef.current = Date.now()
+    if ((registrations?.length ?? 0) === 0) setAllowlistReloadKey((key) => key + 1)
+    if (offlineSync.lastDownloadedAt && navigator.onLine) {
+      void offlineSync.downloadAllowlist().catch(() => {})
+    }
+  }, [offlineSync, registrations])
+  // El timeout de la relectura final tiene que usar el estado del momento en
+  // que corre (lista offline bajada o no), no el de cuando se programó.
+  const refreshAllowlistsRef = useRef(refreshAllowlists)
+  refreshAllowlistsRef.current = refreshAllowlists
+
+  const handleOpsChange = useCallback(() => {
+    if (!eventSlug) return
+    // Lo liviano (contadores y entradas) en cada ventana de avisos.
+    onRefreshTickets?.(eventSlug)
+    // Lo pesado (la lista completa), como mucho cada 20 s; si cae dentro de la
+    // ventana, queda una relectura al final para no perder el último cambio
+    // (una cancelación tiene que llegar a la lista offline).
+    const elapsed = Date.now() - allowlistRefreshedAtRef.current
+    if (elapsed >= ALLOWLIST_REFRESH_MIN_MS) {
+      refreshAllowlists()
+    } else if (!allowlistTrailingRef.current) {
+      allowlistTrailingRef.current = window.setTimeout(() => {
+        allowlistTrailingRef.current = null
+        refreshAllowlistsRef.current()
+      }, ALLOWLIST_REFRESH_MIN_MS - elapsed)
+    }
+  }, [eventSlug, onRefreshTickets, refreshAllowlists])
+
+  const opsRealtime = useBroadcastTopic(
+    eventSlug ? `ticket-ops:${eventSlug}` : null,
+    OPS_EVENTS,
+    handleOpsChange,
+    OPS_REALTIME_OPTIONS,
+  )
+
   useEffect(() => {
     if (!eventSlug || !onRefreshTickets) return undefined
-    const intervalId = window.setInterval(() => {
-      if (document.visibilityState !== 'visible' || !navigator.onLine) return
-      onRefreshTickets(eventSlug)
-    }, COUNTER_REFRESH_MS)
+    const intervalId = window.setInterval(
+      () => {
+        if (document.visibilityState !== 'visible' || !navigator.onLine) return
+        onRefreshTickets(eventSlug)
+      },
+      opsRealtime.connected ? COUNTER_REFRESH_LIVE_MS : COUNTER_REFRESH_MS,
+    )
     return () => window.clearInterval(intervalId)
-  }, [eventSlug, onRefreshTickets])
+  }, [eventSlug, onRefreshTickets, opsRealtime.connected])
 
   useEffect(() => {
     if ((registrations?.length ?? 0) > 0 || !eventSlug) return undefined
@@ -291,12 +374,14 @@ export function useCheckInWorkspace({
         if (live) setAllowlistSources(mapAllowlistToCheckinSources(data, eventSlug))
       })
       .catch(() => {
-        if (live) setAllowlistSources(null)
+        // Si la relectura falla se conserva lo último que se vio (no se pisa
+        // con null): vaciar la lista por un corte momentáneo dejaría la puerta
+        // sin nadie a quien buscar.
       })
     return () => {
       live = false
     }
-  }, [eventSlug, registrations])
+  }, [allowlistReloadKey, eventSlug, registrations])
 
   const allRows = useMemo(
     () =>
@@ -361,18 +446,8 @@ export function useCheckInWorkspace({
     [allRows, checkinStatus, credential, day, query, type],
   )
 
-  const handleScan = useCallback(
-    async (raw) => {
-      const parsed = parseCredentialScan(raw)
-      if (!parsed?.code) {
-        const invalidResult = { outcome: 'invalid' }
-        setScanResult(invalidResult)
-        prependHistoryEntry(buildHistoryEntry(invalidResult, raw))
-        playCheckinFeedback('invalid', feedbackPrefs)
-        reportScanAttempt({ eventSlug, kind: 'unknown', outcome: 'invalid' })
-        return
-      }
-
+  const runParsedScan = useCallback(
+    async (parsed, raw) => {
       const scanSeq = ++scanSeqRef.current
       const isStale = () => scanSeq !== scanSeqRef.current
       setScanBusy(true)
@@ -445,6 +520,133 @@ export function useCheckInWorkspace({
       }
     },
     [canCheckIn, eventSlug, feedbackPrefs, zoneScope],
+  )
+
+  /**
+   * Muestra un resultado que no salió de resolver un QR (búsqueda manual sin
+   * coincidencias, varias coincidencias, sesión vencida): mismo historial y
+   * misma alerta que un escaneo.
+   */
+  const showScanOutcome = useCallback(
+    (result, raw) => {
+      setScanResult(result)
+      setRedeemError('')
+      const entry = buildHistoryEntry(result, raw)
+      setScanHistory((current) => [entry, ...current].slice(0, MAX_SCAN_HISTORY))
+      setActiveHistoryId(entry.id)
+      playCheckinFeedback(result.outcome ?? 'invalid', feedbackPrefs)
+    },
+    [feedbackPrefs],
+  )
+
+  /**
+   * El guardia eligió una credencial (o la búsqueda dio una sola). Online sigue
+   * por el carril del escaneo con el token que hubiera traído el QR: pago,
+   * vigencia, zona y uso único se validan igual que con la cámara. Offline se
+   * valida contra la lista descargada, como un QR sin señal.
+   */
+  const selectScanMatch = useCallback(
+    async (match, raw = match?.ticketCode ?? match?.document ?? '') => {
+      if (!match?.code) return
+      if (match.entry) {
+        const offlineResult = buildOfflineScanResult(
+          { kind: match.kind, entry: match.entry },
+          zoneScope,
+        )
+        showScanOutcome(offlineResult, raw)
+        if (offlineResult.row?.id) setHighlightRowId(offlineResult.row.id)
+        reportScanAttempt({
+          eventSlug,
+          kind: offlineResult.kind ?? 'unknown',
+          outcome: offlineResult.outcome ?? 'invalid',
+          qrToken: offlineResult.qrToken ?? null,
+          offline: true,
+        })
+        return
+      }
+      await runParsedScan(
+        { code: match.code, eventSlug, type: match.kind === 'ticket' ? 'ticket' : null },
+        raw,
+      )
+    },
+    [eventSlug, runParsedScan, showScanOutcome, zoneScope],
+  )
+
+  /**
+   * "El QR no escanea": número impreso en la entrada o DNI -> credencial(es)
+   * de este evento. Una sola sigue directo; varias se le muestran al guardia
+   * para que elija; ninguna es "no encontrada", con la pista de qué se buscó.
+   */
+  const runManualLookup = useCallback(
+    async (manual, raw) => {
+      const scanSeq = ++scanSeqRef.current
+      const isStale = () => scanSeq !== scanSeqRef.current
+      const query = checkinLookupQuery(manual)
+      setScanBusy(true)
+      setScanResult(null)
+
+      try {
+        let matches
+        try {
+          matches = await lookupCheckinCredentials(eventSlug, query)
+        } catch (error) {
+          if (isStale()) return
+          if (classifyCheckinFailure(error) === 'auth') {
+            showScanOutcome({ outcome: 'session_expired' }, raw)
+            return
+          }
+          if (!isRetryableCheckinFailure(error)) throw error
+          // Sin red: la misma búsqueda contra la lista descargada.
+          matches = await findMatchesInAllowlist(eventSlug, query)
+          if (isStale()) return
+          if (!matches) {
+            showScanOutcome({ outcome: 'service_unavailable', offline: true }, raw)
+            return
+          }
+        }
+        if (isStale()) return
+
+        if (matches.length === 1) {
+          await selectScanMatch(matches[0], raw)
+          return
+        }
+        if (matches.length === 0) {
+          showScanOutcome({ outcome: 'not_found', manualQuery: manual }, raw)
+          reportScanAttempt({ eventSlug, kind: 'unknown', outcome: 'not_found' })
+          return
+        }
+        showScanOutcome({ outcome: 'multiple_matches', matches, manualQuery: manual }, raw)
+      } catch (error) {
+        if (isStale()) return
+        console.error('checkin manual lookup:', error)
+        showScanOutcome({ outcome: 'not_found', manualQuery: manual }, raw)
+      } finally {
+        if (!isStale()) setScanBusy(false)
+      }
+    },
+    [eventSlug, selectScanMatch, showScanOutcome],
+  )
+
+  const handleScan = useCallback(
+    async (raw) => {
+      const manual = parseManualCheckinCode(raw)
+      if (needsCheckinLookup(manual)) {
+        await runManualLookup(manual, raw)
+        return
+      }
+
+      const parsed = parseCredentialScan(raw)
+      if (!parsed?.code) {
+        const invalidResult = { outcome: 'invalid' }
+        setScanResult(invalidResult)
+        prependHistoryEntry(buildHistoryEntry(invalidResult, raw))
+        playCheckinFeedback('invalid', feedbackPrefs)
+        reportScanAttempt({ eventSlug, kind: 'unknown', outcome: 'invalid' })
+        return
+      }
+      await runParsedScan(parsed, raw)
+    },
+    [eventSlug, feedbackPrefs, runManualLookup, runParsedScan],
   )
 
   function handleHistorySelect(item) {
@@ -724,8 +926,10 @@ export function useCheckInWorkspace({
     handleRedeemAddon,
     handleScan,
     handleScanCheckIn,
+    selectScanMatch,
     highlightRowId,
     offlineSync,
+    realtimeConnected: opsRealtime.connected,
     persistFeedbackPrefs,
     query,
     redeemBusyId,

@@ -24,6 +24,7 @@ import ProfileIncompleteNoticeBanner from '../components/ui/ProfileIncompleteNot
 import AccountNav from './profile/AccountNav.jsx'
 import ProfileHero from './profile/ProfileHero.jsx'
 import QrCredentialSection from './profile/QrCredentialSection.jsx'
+import MyTicketsSection from './profile/MyTicketsSection.jsx'
 import UpcomingEventsSection from './profile/UpcomingEventsSection.jsx'
 import HistorySection from './profile/HistorySection.jsx'
 import MembershipPurchaseSection from './profile/MembershipPurchaseSection.jsx'
@@ -384,6 +385,7 @@ export default function AthleteProfilePage({
         onNavigate={onNavigate}
       />
     ),
+    'account-tickets': <MyTicketsSection onNavigate={onNavigate} />,
     'account-offer': (
       <SecretBundleSection
         athlete={athlete}

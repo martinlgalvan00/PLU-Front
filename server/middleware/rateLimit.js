@@ -297,6 +297,20 @@ export const scanTelemetryLimiter = buildLimiter(
   { name: 'scan-telemetry', mode: 'sampled' },
 )
 
+/**
+ * Verificación por código en la puerta (código de 6 dígitos, número de entrada
+ * o DNI). Límite propio y más corto que `staffLimiter`: es la única ruta staff
+ * donde un atacante con una sesión de puerta podría probar códigos al azar. El
+ * volumen alcanza para varias puertas detrás del mismo wifi del venue (la clave
+ * es la IP) cargando a mano todo el día, y corta un barrido de miles.
+ */
+export const doorLookupLimiter = buildLimiter(
+  60 * 1000,
+  60,
+  'Demasiadas búsquedas por código. Esperá un minuto.',
+  { name: 'door-lookup', mode: 'strict' },
+)
+
 // Todo lo staff-only: ya protegido por rol (requireRole), este límite es
 // defensa en profundidad ante una cuenta comprometida o un script/bug de
 // polling descontrolado en el panel admin, no control de abuso primario --

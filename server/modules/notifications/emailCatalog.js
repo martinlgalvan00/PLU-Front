@@ -270,6 +270,17 @@ export const EMAIL_CATALOG = Object.freeze({
     optOutAllowed: false,
     critical: true,
   },
+  // El staff canceló una orden de entradas ya acreditada: el QR deja de abrir
+  // la puerta y el comprador tiene que enterarse antes de llegar al evento.
+  ticket_cancelled: {
+    category: EMAIL_CATEGORIES.event,
+    templateEnv: 'BREVO_TEMPLATE_TICKET_CANCELLED',
+    subject: 'Tu entrada fue cancelada · PLU ARG',
+    entityType: 'ticket_order',
+    requiredParams: ['name', 'eventTitle', 'reason'],
+    optOutAllowed: false,
+    critical: false,
+  },
   event_announcement: {
     category: EMAIL_CATEGORIES.event,
     templateEnv: 'BREVO_TEMPLATE_EVENT_ANNOUNCEMENT',

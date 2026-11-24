@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
+import { input, submitStep } from './helpers/ticketCheckoutSteps.js'
 
 /**
  * Los datos de quien compra no se pedían: la orden viajaba sin `buyer`, así que
@@ -14,6 +15,9 @@ vi.mock('../src/components/ui/TicketPassPreview.jsx', () => ({
 }))
 vi.mock('../src/components/ui/MercadoPagoEmbeddedCheckout.jsx', () => ({
   default: () => <div data-testid="mp-embedded" />,
+}))
+vi.mock('../src/motion/MotionContentSwap.tsx', () => ({
+  default: ({ children }) => <div>{children}</div>,
 }))
 
 const TicketPurchaseSection = (await import('../src/components/ui/TicketPurchaseSection.jsx'))
@@ -32,7 +36,6 @@ function renderSection(onSubmit, props = {}) {
     <I18nProvider>
       <TicketPurchaseSection
         editorial
-        showPassPreview={false}
         event={event}
         pricing={pricing}
         tickets={[]}
@@ -45,24 +48,28 @@ function renderSection(onSubmit, props = {}) {
   )
 }
 
-const input = (name) => document.querySelector(`input[name="${name}"]`)
-
-function fillValidPurchase() {
+/**
+ * Recorre el checkout como una persona: del paso de entradas al de datos,
+ * completa y deja la compra en el paso de pago, lista para enviar.
+ */
+function fillValidPurchase({ beforeContinue } = {}) {
+  submitStep()
   fireEvent.change(input('buyer-name'), { target: { value: 'Camila Rearte' } })
   fireEvent.change(input('buyer-email'), { target: { value: 'camila@example.com' } })
   fireEvent.change(input('attendee-0-fullName'), { target: { value: 'Julián Mas' } })
   fireEvent.change(input('attendee-0-dni'), { target: { value: '30111222' } })
+  beforeContinue?.()
+  submitStep()
 }
 
-function submit() {
-  fireEvent.submit(document.querySelector('form'))
-}
+const submit = submitStep
 
 afterEach(cleanup)
 
 describe('datos del comprador', () => {
   it('el formulario los pide', () => {
     renderSection(() => {})
+    submitStep()
     expect(input('buyer-name')).not.toBeNull()
     expect(input('buyer-email')).not.toBeNull()
     expect(input('buyer-phone')).not.toBeNull()
@@ -71,6 +78,7 @@ describe('datos del comprador', () => {
   it('sin email válido no se envía la compra', async () => {
     const onSubmit = vi.fn()
     renderSection(onSubmit)
+    submitStep()
     fireEvent.change(input('buyer-name'), { target: { value: 'Camila Rearte' } })
     fireEvent.change(input('buyer-email'), { target: { value: 'camila' } })
     fireEvent.change(input('attendee-0-fullName'), { target: { value: 'Julián Mas' } })
@@ -98,8 +106,10 @@ describe('datos del comprador', () => {
   it('el comprador viaja al submit junto con los asistentes', async () => {
     const onSubmit = vi.fn().mockResolvedValue({})
     renderSection(onSubmit)
-    fillValidPurchase()
-    fireEvent.change(input('buyer-phone'), { target: { value: '1155551234' } })
+    fillValidPurchase({
+      beforeContinue: () =>
+        fireEvent.change(input('buyer-phone'), { target: { value: '1155551234' } }),
+    })
     submit()
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())
@@ -134,14 +144,14 @@ describe('reconciliación con el catálogo a la venta', () => {
         ],
       },
     })
-    expect(input('attendee-0-fullName')).not.toBeNull()
+    // Con dos tipos se arranca en cero: la persona elige la preventa.
+    fireEvent.click(screen.getByRole('button', { name: 'Sumar Preventa' }))
 
     rerender(
       <I18nProvider>
         <TicketPurchaseSection
           editorial
-          showPassPreview={false}
-          event={event}
+            event={event}
           pricing={{
             eventDays: [],
             addons: [],
@@ -172,8 +182,7 @@ describe('reconciliación con el catálogo a la venta', () => {
       <I18nProvider>
         <TicketPurchaseSection
           editorial
-          showPassPreview={false}
-          event={event}
+            event={event}
           pricing={pricing}
           tickets={[]}
           createdOrder={null}
@@ -211,7 +220,7 @@ describe('validateTicketBuyer', () => {
   })
 })
 
-describe('lote de asistentes', () => {
+describe('elegir tipos de entrada', () => {
   const multiTypePricing = {
     eventDays: [],
     addons: [],
@@ -233,38 +242,25 @@ describe('lote de asistentes', () => {
     ],
   }
 
-  it('elige el tipo con un select, sin repetir el catálogo de ofertas', () => {
+  it('cada tipo lleva su contador en el mismo catálogo, sin select por asistente', () => {
     renderSection(() => {}, { pricing: multiTypePricing })
 
-    const solo = document.querySelector('select[name="attendee-0-ticketTypeId"]')
-    expect(solo).not.toBeNull()
-    expect(document.querySelectorAll('input[name="attendee-0-ticketTypeId"]')).toHaveLength(0)
-    expect(document.querySelector('.ticket-purchase__type-guide')).toBeNull()
-    expect(document.querySelector('.ticket-type-options')).toBeNull()
-    expect(solo.value).toBe('publico-d1')
-    expect(solo.textContent).toContain('Público general día 1')
-    expect(solo.textContent).toContain('15.000')
-    expect(document.body.textContent).toContain('Abre Puerta general')
+    expect(document.querySelector('.ticket-type-options--picker')).not.toBeNull()
+    expect(document.querySelectorAll('select')).toHaveLength(0)
+    expect(screen.getByRole('group', { name: /cantidad de público general día 1/i })).toBeTruthy()
+    expect(screen.getByRole('group', { name: /cantidad de entrenador día 1/i })).toBeTruthy()
+    // Lo que abre cada una se lee antes de elegir, no después de pagar.
+    expect(document.body.textContent).toContain('Entrada en calor')
+    expect(document.body.textContent).toContain('2 credenciales · 2 QR')
   })
 
-  it('elige el tipo con un select por fila, no con chips', () => {
+  it('la entrada elegida llega al paso de datos con su tipo y su precio', () => {
     renderSection(() => {}, { pricing: multiTypePricing })
+    fireEvent.click(screen.getByRole('button', { name: 'Sumar Entrenador día 1' }))
+    submitStep()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Sumar entrada' }))
-
-    const first = document.querySelector('select[name="attendee-0-ticketTypeId"]')
-    const second = document.querySelector('select[name="attendee-1-ticketTypeId"]')
-    expect(first).not.toBeNull()
-    expect(second).not.toBeNull()
-    expect(first.value).toBe('publico-d1')
-    expect(document.querySelector('.ticket-purchase__type-guide')).toBeNull()
-    expect(document.querySelector('.ticket-type-options')).toBeNull()
-    expect(document.querySelectorAll('.ticket-purchase__day-chip')).toHaveLength(0)
-
-    fireEvent.change(first, { target: { value: 'entrenador-d1' } })
-    expect(first.value).toBe('entrenador-d1')
-    expect(document.querySelector('.ticket-purchase__attendees-batch-price').textContent).toContain(
-      '18.000',
-    )
+    const card = document.querySelector('.ticket-purchase__attendee-card')
+    expect(card.textContent).toContain('Entrenador día 1')
+    expect(card.textContent).toContain('18.000')
   })
 })

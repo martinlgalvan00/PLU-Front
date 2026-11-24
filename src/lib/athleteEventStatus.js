@@ -89,6 +89,9 @@ export function resolveAthleteEventStatus({
   session,
   registrations = [],
   memberships = [],
+  // Inyectable para que el estado se resuelva con el mismo reloj que el resto
+  // de las superficies (y para que un test no dependa de la fecha real).
+  now = new Date(),
 } = {}) {
   if (!event?.slug) return null
 
@@ -107,7 +110,7 @@ export function resolveAthleteEventStatus({
 
   // Estado público: una ventana de cierre vencida cuenta como cerrada aunque la
   // base todavía diga "abierta".
-  const status = getPublicEventStatus(event)
+  const status = getPublicEventStatus(event, now)
   const closed = status === 'cerrado' || status === 'finalizado' || status === 'agotado'
   if (closed) return 'closed'
 

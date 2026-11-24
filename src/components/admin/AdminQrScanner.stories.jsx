@@ -23,7 +23,7 @@ export const Manual = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await userEvent.click(canvas.getByRole('tab', { name: /manual|código/i }))
-    await waitFor(() => expect(canvas.getByLabelText(/código o url/i)).toBeVisible())
+    await waitFor(() => expect(canvas.getByLabelText(/código de puerta, número de entrada o dni/i)).toBeVisible())
   },
 }
 
@@ -43,7 +43,7 @@ export const CompactManual = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await userEvent.click(canvas.getByRole('tab', { name: /manual|código/i }))
-    const input = await waitFor(() => canvas.getByLabelText(/código o url/i))
+    const input = await waitFor(() => canvas.getByLabelText(/código de puerta, número de entrada o dni/i))
     expect(input).toHaveFocus()
     expect(Number.parseFloat(getComputedStyle(input).fontSize)).toBeGreaterThanOrEqual(16)
     expect(Number.parseFloat(getComputedStyle(input).minHeight)).toBeGreaterThanOrEqual(48)

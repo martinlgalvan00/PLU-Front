@@ -9,6 +9,7 @@ import {
   Receipt,
   ShieldCheck,
   Sparkles,
+  Ticket,
   Trophy,
   UserRound,
 } from 'lucide-react'
@@ -25,6 +26,7 @@ import { useMotionConfig } from '../../motion/MotionProvider.tsx'
  */
 const ITEM_CHROME = {
   'account-qr': { icon: QrCode, labelKey: 'qr' },
+  'account-tickets': { icon: Ticket, labelKey: 'tickets' },
   'account-benefits': { icon: BadgePercent, labelKey: 'benefits' },
   'account-offer': { icon: Sparkles, labelKey: 'offer' },
   'account-events': { icon: Trophy, labelKey: 'events' },

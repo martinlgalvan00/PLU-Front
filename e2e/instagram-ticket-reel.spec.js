@@ -1,7 +1,12 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
 import { FIXTURE_PATH } from './global-setup.js'
-import { navigateToTickets, selectPaymentMethod, selectTicketType } from './ticket-purchase-helpers.js'
+import {
+  continueCheckout,
+  navigateToTickets,
+  selectPaymentMethod,
+  setTicketQuantity,
+} from './ticket-purchase-helpers.js'
 
 /**
  * instagram-ticket-reel.spec.js — PLU ARG
@@ -37,22 +42,19 @@ async function sweepTilt(page, locator, { steps = [0.2, 0.8, 0.35, 0.65], pauseM
 test('reel: comprar una entrada VIP y ver el pase reluciente', async ({ page }) => {
   test.slow()
 
-  // ── 1. "Así se ve tu entrada": el pase teaser en 3D ──
+  // ── 1. Elegir entrada: el selector ya está en pantalla, hover sobre VIP ──
   await navigateToTickets(page, fixture.ticketEventSlug, { title: fixture.ticketEventTitle })
-  const showcaseStage = page.locator('.tickets-page__pass-stage .ticket-pass-preview__stage')
-  await showcaseStage.scrollIntoViewIfNeeded()
-  await sweepTilt(page, showcaseStage)
-
-  // ── 2. Vidriera de tipos: lift al pasar por la card VIP ──
-  const offersGrid = page.locator('.tickets-page__offers-grid')
-  await offersGrid.scrollIntoViewIfNeeded()
-  const vipOffer = offersGrid.locator('.ticket-type-options__option', { hasText: 'VIP' })
+  const picker = page.locator('#checkout .ticket-type-options--picker')
+  const vipOffer = picker.locator('.ticket-type-options__option', { hasText: 'VIP' })
+  await vipOffer.scrollIntoViewIfNeeded()
   await vipOffer.hover()
-  await page.waitForTimeout(1400)
+  await page.waitForTimeout(1000)
+  await setTicketQuantity(page, 1, 'VIP')
+  await page.waitForTimeout(700)
 
-  // ── 3. Checkout: elegir VIP y completar el formulario a ritmo humano ──
-  await page.locator('#checkout').scrollIntoViewIfNeeded()
-  await selectTicketType(page, 0, 'VIP')
+  // ── 2. Datos: completar el formulario a ritmo humano ──
+  await continueCheckout(page)
+  await page.waitForTimeout(500)
 
   const nameInput = page.locator('#checkout input[name="attendee-0-fullName"]')
   await nameInput.click()
@@ -70,10 +72,13 @@ test('reel: comprar una entrada VIP y ver el pase reluciente', async ({ page }) 
   await buyerEmail.click()
   await buyerEmail.pressSequentially('camila.reel@pluarg.test', { delay: 35 })
 
+  // ── 3. Pago ──
+  await continueCheckout(page)
+  await page.waitForTimeout(500)
   await selectPaymentMethod(page, 'mercado_pago')
   await page.waitForTimeout(600)
 
-  const submit = page.locator('#checkout form.ticket-purchase .ticket-purchase__submit')
+  const submit = page.locator('#checkout .ticket-flow-summary__action')
   await submit.scrollIntoViewIfNeeded()
   await page.waitForTimeout(400)
   await submit.click()

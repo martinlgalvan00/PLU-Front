@@ -8,9 +8,13 @@ import {
   assertOrderCreated,
   assertPassesOnConfirmation,
   assertTransferPanelVisible,
-  selectTicketType,
   setTicketQuantity,
   assertLiveTotal,
+  assertCheckoutStep,
+  checkoutAction,
+  continueCheckout,
+  fillReadyTicketCheckout,
+  openCheckoutStep,
   selectEventOption,
   assertAddonIncluded,
   assertPaymentMethodsVisible,
@@ -72,27 +76,32 @@ test.describe('Venta de Entradas', () => {
 
   test('el total sigue al tipo, a la cantidad y al beneficio extra', async ({ page }) => {
     await navigateToTickets(page, fixture.ticketEventSlug, { title: fixture.ticketEventTitle })
-    await assertPaymentMethodsVisible(page)
-    // El default es el primer tipo del catálogo: Entrenadores.
-    await assertLiveTotal(page, '10.000')
+    // Con varios tipos se arranca en cero: nadie paga un tipo que no eligió.
+    await expect(checkoutAction(page)).toBeDisabled()
 
-    await selectTicketType(page, 0, 'Público general')
+    await setTicketQuantity(page, 1, 'Público general')
     await assertLiveTotal(page, '20.000')
 
+    await continueCheckout(page)
+    await assertCheckoutStep(page, 'buyer')
     await page.locator('.ticket-purchase__addon', { hasText: fixture.ticketAddonLabel }).click()
     await assertLiveTotal(page, '28.000')
 
-    await selectTicketType(page, 0, 'VIP')
-    await assertAddonIncluded(page, fixture.ticketAddonLabel)
+    await openCheckoutStep(page, 'tickets')
+    await setTicketQuantity(page, 0, 'Público general')
+    await setTicketQuantity(page, 1, 'VIP')
     await assertLiveTotal(page, '35.000')
+    await continueCheckout(page)
+    await assertAddonIncluded(page, fixture.ticketAddonLabel)
 
-    await setTicketQuantity(page, 2)
-    await expect(page.locator('input[name="attendee-1-fullName"]')).toBeVisible()
-    // La fila nueva nace en Entrenadores (10.000) + VIP (35.000).
+    await openCheckoutStep(page, 'tickets')
+    await setTicketQuantity(page, 1, 'Entrenadores')
     await assertLiveTotal(page, '45.000')
+    await continueCheckout(page)
+    await expect(page.locator('input[name="attendee-1-fullName"]')).toBeVisible()
 
-    await setTicketQuantity(page, 1)
-    await expect(page.locator('input[name="attendee-1-fullName"]')).toHaveCount(0)
+    await openCheckoutStep(page, 'tickets')
+    await setTicketQuantity(page, 0, 'Entrenadores')
     await assertLiveTotal(page, '35.000')
   })
 
@@ -106,8 +115,9 @@ test.describe('Venta de Entradas', () => {
     await selectEventOption(page, fixture.ticketEventTitle)
     await assertCheckoutVisible(page)
     await assertTicketTypeVisible(page, 'VIP', '35.000')
-    await assertPaymentMethodsVisible(page)
-    await assertLiveTotal(page, '10.000')
+    // Cambiar de evento arranca una compra nueva, en el primer paso.
+    await assertCheckoutStep(page, 'tickets')
+    await expect(checkoutAction(page)).toBeDisabled()
   })
 
   test('desde la ficha del evento se abre el checkout', async ({ page }) => {
@@ -115,7 +125,7 @@ test.describe('Venta de Entradas', () => {
       title: fixture.ticketEventTitle,
     })
     await assertTicketTypeVisible(page, 'Público general', '20.000')
-    await assertPaymentMethodsVisible(page)
+    await assertCheckoutStep(page, 'tickets')
   })
 
   test('permite comprar una entrada VIP por transferencia', async ({ page }) => {
@@ -186,11 +196,13 @@ test.describe('Venta de Entradas', () => {
     page,
   }) => {
     await navigateToTickets(page, fixture.ticketEventSlug, { title: fixture.ticketEventTitle })
-    await selectPaymentMethod(page, 'mercado_pago')
-    await selectPaymentMethod(page, 'transferencia')
-    await purchaseTickets(page, {
+    await fillReadyTicketCheckout(page, {
       attendees: [{ fullName: 'Nico Canal', dni: '41444555', type: 'Público general' }],
+      paymentMethod: 'mercado_pago',
     })
+    await assertPaymentMethodsVisible(page)
+    await selectPaymentMethod(page, 'transferencia')
+    await continueCheckout(page)
     await assertOrderCreated(page, { expectedAmount: '20.000', expectedQuantity: 1 })
     await assertTransferPanelVisible(page)
   })

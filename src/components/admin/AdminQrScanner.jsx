@@ -450,6 +450,7 @@ export default function AdminQrScanner({
               inputMode="text"
               name="checkin-manual"
               placeholder={t('admin.checkin.scanner.manualPlaceholder')}
+              aria-describedby="admin-checkin-manual-hint"
               spellCheck={false}
               value={manualValue}
               onChange={(event) => setManualValue(event.target.value)}
@@ -462,6 +463,9 @@ export default function AdminQrScanner({
               {t('admin.checkin.scanner.verify')}
             </button>
           </div>
+          <p id="admin-checkin-manual-hint" className="admin-checkin-scanner__manual-hint">
+            {t('admin.checkin.scanner.manualHint')}
+          </p>
         </form>
       )}
     </section>

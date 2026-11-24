@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { QrCode, Ticket } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from './AdminDataTable.jsx'
 import AdminEmptyState from './AdminEmptyState.jsx'
@@ -16,6 +16,7 @@ import { ticketTypeNameParts } from '../../lib/eventPricing.js'
 import { summarizeSoldTickets } from '../../lib/ticketAdmission.js'
 import { createCsv } from '../../services/exportService.js'
 import { listTicketsForEvent } from '../../services/ticketApi.js'
+import { useBroadcastTopic } from '../../hooks/useBroadcastTopic.js'
 // El bloque `admin-orders-block` (cabecera, buscador, filtros) vive en la hoja de
 // Cobros, que solo carga esa ruta: sin este import, "Vendidas" salía sin estilos.
 import '../../styles/pages/admin-payments.css'
@@ -84,17 +85,28 @@ export default function AdminEventTicketsSoldSection({
   const [overrideBusy, setOverrideBusy] = useState(false)
   const [overrideError, setOverrideError] = useState('')
 
+  // Después de la primera carga, las relecturas (avisos en vivo) son
+  // silenciosas: sin skeleton en cada ingreso de la puerta, y un fallo
+  // momentáneo conserva lo que ya se veía en vez de reemplazarlo por un error.
+  const loadedSlugRef = useRef(null)
+
   useEffect(() => {
     let active = true
     if (!event?.slug) return undefined
-    setLoading(true)
-    setError(null)
+    const silent = loadedSlugRef.current === event.slug
+    if (!silent) {
+      setLoading(true)
+      setError(null)
+    }
     fetchTickets(event.slug)
       .then(({ tickets: rows }) => {
-        if (active) setTickets(rows ?? [])
+        if (!active) return
+        setTickets(rows ?? [])
+        setError(null)
+        loadedSlugRef.current = event.slug
       })
       .catch((err) => {
-        if (active) setError(err)
+        if (active && !silent) setError(err)
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -103,6 +115,13 @@ export default function AdminEventTicketsSoldSection({
       active = false
     }
   }, [event?.slug, fetchTickets, reloadKey])
+
+  // Ventas, aprobaciones, cancelaciones e ingresos de este evento, al instante.
+  useBroadcastTopic(
+    event?.slug ? `ticket-ops:${event.slug}` : null,
+    ['tickets-changed', 'checkin-changed'],
+    () => setReloadKey((key) => key + 1),
+  )
 
   const typeOptions = useMemo(() => {
     const seen = new Map()

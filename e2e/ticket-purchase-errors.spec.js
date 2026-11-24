@@ -7,9 +7,11 @@ import {
   assertSalesPaused,
   fillAttendeeForm,
   fillReadyTicketCheckout,
-  selectTicketType,
-  selectPaymentMethod,
   submitTicketPurchase,
+  assertCheckoutStep,
+  checkoutAction,
+  continueCheckout,
+  fillBuyerForm,
   purchaseTickets,
   assertOrderCreated,
   assertPurchaseError,
@@ -19,6 +21,13 @@ import {
 } from './ticket-purchase-helpers.js'
 
 let fixture
+
+/** Una entrada de público general y al paso de datos, donde se valida. */
+async function startGeneralTicket(page) {
+  await setTicketQuantity(page, 1, 'Público general')
+  await continueCheckout(page)
+  await assertCheckoutStep(page, 'buyer')
+}
 
 test.beforeAll(async () => {
   fixture = JSON.parse(await readFile(FIXTURE_PATH, 'utf8'))
@@ -36,9 +45,8 @@ test.describe('Errores de compra de entradas', () => {
       }
     })
 
+    await startGeneralTicket(page)
     await fillAttendeeForm(page, 0, { fullName: 'Al', dni: 'abc' })
-    await selectTicketType(page, 0, 'Público general')
-    await selectPaymentMethod(page, 'transferencia')
     await submitTicketPurchase(page)
 
     await assertPurchaseError(page, { field: 'attendee-0-fullName', message: /nombre/i })
@@ -49,9 +57,8 @@ test.describe('Errores de compra de entradas', () => {
   test('rechaza un DNI de 6 dígitos', async ({ page }) => {
     await navigateToTickets(page, fixture.ticketEventSlug, { title: fixture.ticketEventTitle })
 
+    await startGeneralTicket(page)
     await fillAttendeeForm(page, 0, { fullName: 'Nombre Completo', dni: '123456' })
-    await selectTicketType(page, 0, 'Público general')
-    await selectPaymentMethod(page, 'transferencia')
     await submitTicketPurchase(page)
 
     await assertPurchaseError(page, { field: 'attendee-0-dni', message: /dígitos/i })
@@ -68,9 +75,8 @@ test.describe('Errores de compra de entradas', () => {
       }
     })
 
+    await startGeneralTicket(page)
     await fillAttendeeForm(page, 0, { fullName: 'Nombre Completo', dni: '123456789' })
-    await selectTicketType(page, 0, 'Público general')
-    await selectPaymentMethod(page, 'transferencia')
     await submitTicketPurchase(page)
 
     await assertPurchaseError(page, { field: 'attendee-0-dni', message: /dígitos/i })
@@ -78,13 +84,16 @@ test.describe('Errores de compra de entradas', () => {
     expect(posts).toHaveLength(0)
   })
 
-  test('el formulario arranca con un tipo de entrada seleccionado', async ({ page }) => {
+  test('con varios tipos el selector arranca en cero y no deja seguir vacío', async ({
+    page,
+  }) => {
     await navigateToTickets(page, fixture.ticketEventSlug, { title: fixture.ticketEventTitle })
 
-    // El select arranca con el primer tipo; no hay estado "sin elegir".
-    const typeSelect = page.locator('select[name="attendee-0-ticketTypeId"]')
-    await expect(typeSelect).toBeVisible()
-    await expect(typeSelect).not.toHaveValue('')
+    // Ningún tipo preelegido: nadie paga una entrada que no eligió.
+    await expect(page.locator('#checkout select')).toHaveCount(0)
+    await expect(checkoutAction(page)).toBeDisabled()
+    await setTicketQuantity(page, 1, 'Público general')
+    await expect(checkoutAction(page)).toBeEnabled()
   })
 
   test('un evento con la venta cerrada muestra Próximamente', async ({ page }) => {
@@ -169,6 +178,7 @@ test.describe('Errores de compra de entradas', () => {
       }
     })
 
+    await startGeneralTicket(page)
     await submitTicketPurchase(page)
     await assertPurchaseError(page, { field: 'attendee-0-fullName', message: /nombre/i })
     await assertPurchaseError(page, { field: 'attendee-0-dni', message: /dígitos/i })
@@ -185,11 +195,10 @@ test.describe('Errores de compra de entradas', () => {
 
   test('la segunda fila vacía en un lote no crea la orden', async ({ page }) => {
     await navigateToTickets(page, fixture.ticketEventSlug, { title: fixture.ticketEventTitle })
-    await setTicketQuantity(page, 2)
-    await fillReadyTicketCheckout(page, {
-      attendees: [{ fullName: 'Sólo Uno', dni: '40888777', type: 'Público general' }],
-      quantity: 2,
-    })
+    await setTicketQuantity(page, 2, 'Público general')
+    await continueCheckout(page)
+    await fillBuyerForm(page, { name: 'Sólo Uno', email: 'e2e-ticket-40888777@pluarg.test' })
+    await fillAttendeeForm(page, 0, { fullName: 'Sólo Uno', dni: '40888777' })
 
     const posts = []
     page.on('request', (request) => {
@@ -204,13 +213,16 @@ test.describe('Errores de compra de entradas', () => {
     expect(posts).toHaveLength(0)
   })
 
-  test('no se pueden pedir más de 8 entradas', async ({ page }) => {
+  test('no se pueden pedir más de 10 entradas por compra', async ({ page }) => {
     await navigateToTickets(page, fixture.ticketEventSlug, { title: fixture.ticketEventTitle })
-    await setTicketQuantity(page, 8)
-    const addButton = page.getByRole('button', { name: /sumar entrada/i })
-    await expect(addButton).toBeDisabled()
-    await expect(page.locator('input[name="attendee-7-fullName"]')).toBeVisible()
-    await expect(page.locator('input[name="attendee-8-fullName"]')).toHaveCount(0)
+    await setTicketQuantity(page, 10, 'Público general')
+    // El tope es por compra, no por tipo: se cierran todos los contadores.
+    for (const add of await page.getByRole('button', { name: /^sumar /i }).all()) {
+      await expect(add).toBeDisabled()
+    }
+    await continueCheckout(page)
+    await expect(page.locator('input[name="attendee-9-fullName"]')).toBeVisible()
+    await expect(page.locator('input[name="attendee-10-fullName"]')).toHaveCount(0)
   })
 
   test('un comprobante que no es imagen ni PDF se rechaza', async ({ page }) => {

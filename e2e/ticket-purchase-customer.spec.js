@@ -11,7 +11,9 @@ import {
   assertTransferPanelVisible,
   assertCheckoutVisible,
   assertLiveTotal,
-  selectTicketType,
+  assertCheckoutStep,
+  continueCheckout,
+  setTicketQuantity,
   toggleTicketAddon,
   assertCustomerConfirmation,
   openTicketPassModal,
@@ -96,20 +98,22 @@ test.describe('Cliente — flujo de compra de entradas', () => {
     }
   })
 
-  test('el hero lleva al checkout, se puede volver, y el adicional se puede sacar', async ({
+  test('la compra arranca a la vista, se puede volver, y el adicional se puede sacar', async ({
     page,
   }) => {
     await navigateToTickets(page, fixture.ticketEventSlug, { title: fixture.ticketEventTitle })
 
-    await page.locator('a.tickets-page__hero-cta').click()
-    await expect(page.locator('#checkout')).toBeInViewport()
+    // Sin portada que atravesar: el selector de entradas ya está en pantalla.
     await assertCheckoutVisible(page)
+    await expect(page.locator('#checkout .ticket-type-options--picker')).toBeInViewport()
 
-    await expect(page.getByRole('button', { name: /restar entrada/i })).toBeDisabled()
-    await expect(page.getByRole('button', { name: /sumar entrada/i })).toBeEnabled()
+    await expect(page.getByRole('button', { name: /^restar público general/i })).toBeDisabled()
+    await expect(page.getByRole('button', { name: /^sumar público general/i })).toBeEnabled()
 
-    await selectTicketType(page, 0, 'Público general')
+    await setTicketQuantity(page, 1, 'Público general')
     await assertLiveTotal(page, '20.000')
+    await continueCheckout(page)
+    await assertCheckoutStep(page, 'buyer')
     await toggleTicketAddon(page, fixture.ticketAddonLabel, { selected: true })
     await assertLiveTotal(page, '28.000')
     await toggleTicketAddon(page, fixture.ticketAddonLabel, { selected: false })

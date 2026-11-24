@@ -105,6 +105,7 @@ export default function CheckInSection({
             conflictCount={workspace.offlineSync.conflictCount}
             downloadAllowlist={workspace.offlineSync.downloadAllowlist}
             isOnline={workspace.offlineSync.isOnline}
+            realtimeConnected={workspace.realtimeConnected}
             lastDownloadedAt={workspace.offlineSync.lastDownloadedAt}
             lastSyncedAt={workspace.offlineSync.lastSyncedAt}
             pendingCount={workspace.offlineSync.pendingCount}
@@ -127,6 +128,7 @@ export default function CheckInSection({
             onDismiss={() => workspace.setScanResult(null)}
             onRedeemAddon={workspace.handleRedeemAddon}
             onScanCheckIn={workspace.handleScanCheckIn}
+            onSelectMatch={workspace.selectScanMatch}
             redeemBusyId={workspace.redeemBusyId}
             redeemError={workspace.redeemError}
             scanBusy={workspace.scanBusy}
